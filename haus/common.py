@@ -9,6 +9,13 @@ import os
 import sys
 from pathlib import Path
 
+# Haus.Licht's version (the man pages carry it).
+VERSION = "0.2"
+# The ctl protocol (docs/ctl-protocol.md, "protocol" in `get`): raised only for
+# changes that break an older widget (Haus.Licht-plasma's minProtocol);
+# added fields do not raise it.
+PROTOCOL = 1
+
 ROOT = Path(__file__).resolve().parent.parent  # the checkout
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))  # provision_and_toggle.py lives there

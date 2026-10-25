@@ -27,6 +27,15 @@ controls act on: a used bulb in no widget is still driven by its profile. `hausl
 no daemon answers). Error messages are meant for the user (German when the
 daemon runs in a German locale).
 
+**Protocol version.** `get` (and every reply that describes a widget)
+carries `"protocol"`, an integer (`PROTOCOL` in haus/common.py, now 1). It
+is raised only for a change that breaks an older widget: a field removed,
+renamed or given another meaning, a command removed or answering
+differently. Added fields and commands do not raise it. The widget
+([Haus.Licht-plasma](https://github.com/Gelaende51/Haus.Licht-plasma)) has
+a `minProtocol`; when a reachable daemon reports none or a lower one, its
+popup asks to update Haus.Licht and stays usable.
+
 ## Commands
 
 Most reply with the `get` object; the exceptions are noted.
@@ -288,6 +297,7 @@ values are those of `default`.
 
 ```json
 {
+  "protocol": 1,                // the ctl protocol version (see the top)
   "bulb": "sync",
   "following": true,            // no selected bulb paused
   "mode": "maximum",            // what the keyboard slider moves

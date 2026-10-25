@@ -387,3 +387,11 @@ onto Linux. Worth reporting upstream where marked.
   distros.yml always installs Electron's libraries and Node and runs npm, and
   desktops.yml's KDE is Ubuntu 24.04's Plasma 5. Optional `deps`/`node`
   inputs and an Arch Plasma 6 session there would let Haus.Licht reuse them.
+- Splitting the widget into Haus.Licht-plasma (2026-10): `uvx git-filter-repo`
+  on a `git clone --no-local` copy with `--path plasmoid/ --path
+  .github/workflows/plasmoid.yml --path tests/test_iconsets.py
+  --path-rename plasmoid/haus.licht.tray/:package/` kept every widget commit
+  (main.qml: 24 before and after) and dropped the remote, so nothing could be
+  pushed by accident. Unexpected coupling: dev/gen-man.py took the man
+  pages' version from the widget's metadata.json; the daemon now has its own
+  `VERSION` in haus/common.py.

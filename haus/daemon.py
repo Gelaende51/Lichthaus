@@ -33,7 +33,7 @@ from . import notifywatch
 from . import rootsetup
 from . import videofollow as videomod
 from .backends import QUICK_GAP_S, Offline
-from .common import UserError, _, armed_path, link_lock, read_armed, read_state, save_state, write_armed
+from .common import PROTOCOL, UserError, _, armed_path, link_lock, read_armed, read_state, save_state, write_armed
 from .desktop import Desktop, KbdSlider
 from .kde import Kde, panel_disabled
 from .profiles import (
@@ -1928,6 +1928,7 @@ class Daemon:
         states = {state for state, _why in links}
         env = self.desktop.env
         return {
+            "protocol": PROTOCOL,
             "bulb": "sync", "following": not any(b.paused for b in sel),
             "mode": self.settings["mode"], "slider": self.settings["slider"],
             **{k: profile[k] for k in PROFILE_KEYS},

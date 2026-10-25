@@ -104,11 +104,13 @@ only; nothing is stored or sent, and notification text is never logged.
 
 - **Tray widget** (Plasma 6) with **Clap**, **Flick** and **On/Off**
   switches; middle click toggles, the wheel dims (scroll direction can be
-  inverted). Extra widgets for the panel, each with its own bulbs.
+  inverted). Extra widgets for the panel, each with its own bulbs. The
+  widget lives in [Haus.Licht-plasma](https://github.com/Gelaende51/Haus.Licht-plasma); `install/install.sh`
+  installs its latest release.
 - **Icon sets:** six sets for the tray and bulb icons, previewed in a
   drop-down on Configure → *Bulbs*, following the Plasma colour scheme;
   sources and licences in
-  [plasmoid/haus.licht.tray/LICENSES.md](plasmoid/haus.licht.tray/LICENSES.md).
+  [Haus.Licht-plasma's LICENSES.md](https://github.com/Gelaende51/Haus.Licht-plasma/blob/main/package/LICENSES.md).
 - **Identify and Test** (Configure → *Bulbs*, or `hauslicht identify` /
   `test`): Identify blinks a bulb slowly to find it (off after 2 min). Test
   runs brightest, a fade, colours and on/off from fast to slow.
@@ -119,9 +121,9 @@ only; nothing is stored or sent, and notification text is never logged.
   status | flick exclusive | video on`; `hauslicht-ctl` speaks JSON
   ([protocol](docs/ctl-protocol.md)). `man hauslicht` and `man hauslicht-ctl`
   (also in German) after `install/install.sh`.
-- **Tested on every push** (Python 3.12–3.14, man pages, QML lint), weekly
-  in five distributions and with the widget in Plasma 6:
-  [docs/ci.md](docs/ci.md).
+- **Tested on every push** (Python 3.12–3.14, man pages), weekly in five
+  distributions: [docs/ci.md](docs/ci.md). The widget's QML lint and Plasma 6
+  run are in [Haus.Licht-plasma](https://github.com/Gelaende51/Haus.Licht-plasma).
 
 ## Supported bulbs
 
@@ -191,6 +193,11 @@ systemctl --user enable --now hauslicht
 
 - `install/install.sh --dry-run …` prints what would be installed;
   `hauslicht backends --requires KIND` lists a kind's pip packages.
+- The tray widget comes from the latest release of
+  [Haus.Licht-plasma](https://github.com/Gelaende51/Haus.Licht-plasma/releases) (checked against its SHA-256).
+  Offline, the rest installs and a note says how to add the widget later;
+  `install/install.sh --plasmoid FILE` installs it from a downloaded
+  `.plasmoid` or a checkout's `package/` instead.
 - Clap to toggle and Follow audio: `.venv/bin/pip install -r
   requirements-clap.txt` (numpy, ai-edge-litert; the 4 MB sound model is
   fetched on first clap use). Both record with `pw-record` or `parec`.

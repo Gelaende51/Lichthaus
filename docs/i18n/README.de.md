@@ -119,11 +119,12 @@ Benachrichtigungstexte werden nie protokolliert.
 - **Tray-Widget** (Plasma 6) mit den Schaltern **Klatschen**, **Schalter** und
   **An/Aus**; Mittelklick schaltet um, das Mausrad dimmt (Scrollrichtung
   umkehrbar). Weitere Widgets für die Kontrollleiste, jedes mit eigenen
-  Lampen.
+  Lampen. Das Widget liegt in [Haus.Licht-plasma](https://github.com/Gelaende51/Haus.Licht-plasma);
+  `install/install.sh` installiert seine neueste Version.
 - **Symbolsätze:** sechs Sätze für Tray- und Lampensymbole, mit Vorschau in
   einer Auswahlliste unter Einrichten → *Lampen*, passend zum
   Plasma-Farbschema; Quellen und Lizenzen in
-  [plasmoid/haus.licht.tray/LICENSES.md](../../plasmoid/haus.licht.tray/LICENSES.md).
+  [LICENSES.md von Haus.Licht-plasma](https://github.com/Gelaende51/Haus.Licht-plasma/blob/main/package/LICENSES.md) (englisch).
 - **Identifizieren und Testen** (Einrichten → *Lampen*, oder
   `hauslicht identify` / `test`): Identifizieren lässt eine Lampe langsam
   blinken, um sie zu finden (aus nach 2 Minuten). Testen zeigt am hellsten,
@@ -136,9 +137,10 @@ Benachrichtigungstexte werden nie protokolliert.
   `hauslicht-ctl` spricht JSON ([Protokoll](../ctl-protocol.md)).
   `man hauslicht` und `man hauslicht-ctl` (auch deutsch) nach
   `install/install.sh`.
-- **Bei jedem Push getestet** (Python 3.12–3.14, Handbuchseiten, QML-Lint),
-  wöchentlich in fünf Distributionen und mit dem Widget in Plasma 6:
-  [docs/ci.md](../ci.md) (englisch).
+- **Bei jedem Push getestet** (Python 3.12–3.14, Handbuchseiten),
+  wöchentlich in fünf Distributionen: [docs/ci.md](../ci.md) (englisch).
+  QML-Lint und Plasma-6-Lauf des Widgets liegen in
+  [Haus.Licht-plasma](https://github.com/Gelaende51/Haus.Licht-plasma).
 
 ## Unterstützte Lampen
 
@@ -209,6 +211,12 @@ systemctl --user enable --now hauslicht
 
 - `install/install.sh --dry-run …` zeigt, was installiert würde;
   `hauslicht backends --requires ART` listet die pip-Pakete einer Art.
+- Das Tray-Widget kommt aus der neuesten Version von
+  [Haus.Licht-plasma](https://github.com/Gelaende51/Haus.Licht-plasma/releases) (geprüft gegen ihre SHA-256-Summe).
+  Ohne Netz wird der Rest installiert, und ein Hinweis sagt, wie das Widget
+  später dazukommt; `install/install.sh --plasmoid DATEI` installiert es
+  stattdessen aus einer heruntergeladenen `.plasmoid` oder dem `package/`
+  eines Checkouts.
 - Klatschen schaltet und Audio folgen: `.venv/bin/pip install -r
   requirements-clap.txt` (numpy, ai-edge-litert; das 4-MB-Klangmodell wird
   beim ersten Klatschen geladen). Beide nehmen mit `pw-record` oder `parec`

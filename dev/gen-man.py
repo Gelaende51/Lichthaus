@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import argparse
 import datetime
-import json
 import os
 import re
 import subprocess
@@ -242,8 +241,9 @@ def page(lang: str, version: str, date: str) -> str:
 
 
 def version() -> str:
-    meta = json.loads((ROOT / "plasmoid" / "haus.licht.tray" / "metadata.json").read_text())
-    return meta["KPlugin"]["Version"]
+    """haus/common.py's VERSION (read as text: the parser is imported in a child process)."""
+    text = (ROOT / "haus" / "common.py").read_text(encoding="utf-8")
+    return re.search(r'^VERSION = "([^"]+)"', text, re.M).group(1)
 
 
 def main() -> int:

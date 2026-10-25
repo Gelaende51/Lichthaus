@@ -955,3 +955,14 @@ def test_the_shutdown_timeout_still_ends_a_hanging_set(tmp_path, monkeypatch, ca
         assert not sock.exists()
 
     asyncio.run(main())
+
+
+def test_get_carries_the_protocol(tmp_path):
+    """The widget (Haus.Licht-plasma) compares it with its minProtocol."""
+    from haus.common import PROTOCOL
+
+    async def body(d):
+        g = await cmd(d, "get")
+        assert isinstance(PROTOCOL, int) and PROTOCOL >= 1
+        assert g["protocol"] == PROTOCOL
+    run(tmp_path, mock_state(mock_1={"power": True}), body)
