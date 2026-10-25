@@ -121,6 +121,11 @@ Benachrichtigungstexte werden nie protokolliert.
   umkehrbar). Weitere Widgets für die Kontrollleiste, jedes mit eigenen
   Lampen. Das Widget liegt in [Haus.Licht-plasma](https://github.com/Gelaende51/Haus.Licht-plasma);
   `install/install.sh` installiert seine neueste Version.
+- **Einstellungsfenster:** `hauslicht config` öffnet die Einrichtungsseiten
+  des Widgets (Lampen, Profile, Ton, Video, Benachrichtigungen) in einem
+  eigenen Fenster, auch unter GNOME, XFCE oder einem Tiling-WM; unter Plasma
+  auch in den Systemeinstellungen → Hardware
+  ([wie es funktioniert](../settings-window.md), englisch).
 - **Symbolsätze:** sechs Sätze für Tray- und Lampensymbole, mit Vorschau in
   einer Auswahlliste unter Einrichten → *Lampen*, passend zum
   Plasma-Farbschema; Quellen und Lizenzen in

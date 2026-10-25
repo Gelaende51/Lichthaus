@@ -11,3 +11,10 @@ Icon=brightness-high
 Exec=hauslicht-ctl get
 NoDisplay=true
 Terminal=false
+Actions=Settings;
+
+[Desktop Action Settings]
+Name=Settings
+Name[de]=Einstellungen
+Icon=brightness-high
+Exec=hauslicht config

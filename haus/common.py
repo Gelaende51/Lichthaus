@@ -301,6 +301,22 @@ GERMAN = {
         "die Benachrichtigungsregeln des Profils der Auswahl (Dienst läuft)",
     "the system setup: missing, outdated or current, read anew (daemon running)":
         "die Systemeinrichtung: missing (fehlt), outdated (veraltet) oder current (aktuell), neu gelesen (Dienst läuft)",
+    "open the settings window: the Plasma widget's Configure pages (bulbs, profiles, sound, video, notifications), "
+    "also on other desktops":
+        "das Einstellungsfenster öffnen: die Einrichtungsseiten des Plasma-Widgets (Lampen, Profile, Ton, Video, "
+        "Benachrichtigungen), auch auf anderen Desktops",
+    "hauslicht config needs: {parts}": "hauslicht config braucht: {parts}",
+    "Install them with:": "Installieren mit:",
+    "Older Debian and Ubuntu releases have the executable engine in plasma-workspace.":
+        "Ältere Debian- und Ubuntu-Versionen haben die executable-Engine in plasma-workspace.",
+    "hauslicht config: the widget's pages were not found (a Haus.Licht-plasma package with "
+    "contents/standalone/main.qml). Looked in:":
+        "hauslicht config: die Seiten des Widgets wurden nicht gefunden (ein Haus.Licht-plasma-Paket mit "
+        "contents/standalone/main.qml). Gesucht in:",
+    "install/install.sh fetches them; or point HAUSLICHT_PLASMOID at a package directory.":
+        "install/install.sh holt sie; oder HAUSLICHT_PLASMOID auf ein Paketverzeichnis zeigen lassen.",
+    "hauslicht config: the window did not open (exit {code}); log: {log}":
+        "hauslicht config: das Fenster hat sich nicht geöffnet (Exit {code}); Protokoll: {log}",
     "open a window showing each bulb's intended state and the daemon's events, live (PyQt6)":
         "ein Fenster öffnen, das den Sollzustand jeder Lampe und die Ereignisse des Dienstes live zeigt (PyQt6)",
     "While the daemon runs it owns the Bluetooth link; the other commands then go to it over its socket. "

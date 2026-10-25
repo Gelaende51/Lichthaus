@@ -107,20 +107,51 @@ sed -e "s|^ExecStart=.*|ExecStart=$dir/.venv/bin/python $dir/hauslicht.py sync|"
     -e "s|^ExecStopPost=.*|ExecStopPost=-$dir/.venv/bin/python $dir/hauslicht.py disarm --if-armed|" \
     "$dir/hauslicht.service" > "$HOME/.config/systemd/user/hauslicht.service"
 # The daemon's app id for xdg-desktop-portal (follow video: the screen-cast
-# permission is kept under it); hidden, not a launcher
+# permission is kept under it) and of the settings window (hauslicht config:
+# its icon and name; the Settings action opens it); hidden, not a launcher.
+# Exec gets the full path: a desktop session's PATH may lack ~/.local/bin.
 mkdir -p "$HOME/.local/share/applications"
-cp "$dir/install/io.github.gelaende51.HausLicht.desktop" "$HOME/.local/share/applications/"
+rm -f "$HOME/.local/share/applications/io.github.gelaende51.HausLicht.desktop"
+sed "s|^Exec=hauslicht |Exec=$HOME/.local/bin/hauslicht |" "$dir/install/io.github.gelaende51.HausLicht.desktop" \
+    > "$HOME/.local/share/applications/io.github.gelaende51.HausLicht.desktop"
 command -v update-desktop-database >/dev/null && update-desktop-database -q "$HOME/.local/share/applications" || true
+# Plasma 6 System Settings: an entry under Hardware that runs hauslicht config
+# (an external application, no KCM); harmless where there is no Plasma
+mkdir -p "$HOME/.local/share/plasma/systemsettings/externalmodules"
+sed "s|^Exec=hauslicht |Exec=$HOME/.local/bin/hauslicht |" "$dir/install/hauslicht-systemsettings.desktop" \
+    > "$HOME/.local/share/plasma/systemsettings/externalmodules/hauslicht-systemsettings.desktop"
 # Plasma tray widget (shows up in the system tray after the next Plasma start).
+# Without Plasma (no kpackagetool6) its package is only unpacked, to
+# ~/.local/share/hauslicht/plasmoid: hauslicht config shows its Configure pages.
 # A failed download leaves the service installed: only the widget is missing.
-if ! command -v kpackagetool6 >/dev/null; then
-    echo "no kpackagetool6 (not KDE Plasma 6?): the tray widget is not installed"
-elif [ -n "$plasmoid" ]; then
-    install_widget "$plasmoid" || echo "the tray widget from $plasmoid did not install" >&2
+pages="$HOME/.local/share/hauslicht/plasmoid"
+# unpack_pages PATH: a .plasmoid file or a package directory, replacing $pages
+unpack_pages() {
+    rm -rf "$pages.new" && mkdir -p "$pages.new" || return 1
+    if [ -d "$1" ]; then
+        cp -R "$1/." "$pages.new/"
+    else
+        "$dir/.venv/bin/python" -m zipfile -e "$1" "$pages.new"
+    fi
+    if [ -f "$pages.new/contents/standalone/main.qml" ]; then
+        rm -rf "$pages" && mv "$pages.new" "$pages"
+    else
+        rm -rf "$pages.new"
+        return 1
+    fi
+}
+if command -v kpackagetool6 >/dev/null; then
+    widget=install_widget
+else
+    widget=unpack_pages
+    echo "no kpackagetool6 (not KDE Plasma 6?): the tray widget's pages go to $pages for hauslicht config"
+fi
+if [ -n "$plasmoid" ]; then
+    $widget "$plasmoid" || echo "the tray widget from $plasmoid did not install" >&2
 else
     tmp=$(mktemp -d)
     if file=$(fetch_widget "$tmp"); then
-        install_widget "$file" || echo "the tray widget did not install" >&2
+        $widget "$file" || echo "the tray widget did not install" >&2
     else
         echo "The tray widget was not installed: no release of $widget_repo could be fetched" >&2
         echo "(offline?). The service is installed. For the widget, run install/install.sh again" >&2

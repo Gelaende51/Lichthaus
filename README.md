@@ -107,6 +107,10 @@ only; nothing is stored or sent, and notification text is never logged.
   inverted). Extra widgets for the panel, each with its own bulbs. The
   widget lives in [Haus.Licht-plasma](https://github.com/Gelaende51/Haus.Licht-plasma); `install/install.sh`
   installs its latest release.
+- **Settings window:** `hauslicht config` opens the widget's Configure pages
+  (Bulbs, Profiles, Sound, Video, Notifications) in a window of their own,
+  also on GNOME, XFCE or a tiling WM; on Plasma also under System Settings
+  → Hardware ([how it works](docs/settings-window.md)).
 - **Icon sets:** six sets for the tray and bulb icons, previewed in a
   drop-down on Configure → *Bulbs*, following the Plasma colour scheme;
   sources and licences in

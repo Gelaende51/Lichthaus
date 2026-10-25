@@ -1,0 +1,15 @@
+[Desktop Entry]
+# Plasma 6 System Settings entry (no KCM: System Settings starts Exec as an
+# external application). install/install.sh puts it in
+# ~/.local/share/plasma/systemsettings/externalmodules/ with Exec's full path.
+Type=Service
+Exec=hauslicht config
+Icon=brightness-high
+X-KDE-ServiceTypes=SystemSettingsExternalApp
+X-KDE-System-Settings-Parent-Category=hardware
+X-KDE-Weight=90
+Name=Haus.Licht
+Comment=Bulbs that follow the screen: bulbs, profiles, sound, video, notifications
+Comment[de]=Lampen, die dem Bildschirm folgen: Lampen, Profile, Ton, Video, Benachrichtigungen
+X-KDE-Keywords=light,lights,bulb,lamp,smart bulb,Haus.Licht
+X-KDE-Keywords[de]=Licht,Lampe,Lampen,Glühbirne,smarte Lampe,Haus.Licht

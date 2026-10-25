@@ -58,7 +58,13 @@ TEXT = {
             ("$XDG_RUNTIME_DIR/hauslicht.sock", "The daemon's socket (or \\fB$HAUSLICHT_SOCK\\fR)."),
             ("~/.config/systemd/user/hauslicht.service", "The unit: \\fBhauslicht sync\\fR, and "
              "\\fBhauslicht disarm \\-\\-if\\-armed\\fR after every stop. Written by \\fBinstall/install.sh\\fR."),
-            ("~/.cache/hauslicht/", "The clap model, downloaded on first use."),
+            ("~/.cache/hauslicht/", "The clap model, downloaded on first use; \\fBHausLicht\\fR, the link to Qt's "
+             "\\fBqml\\fR runtime that \\fBconfig\\fR starts the settings window through."),
+            ("~/.local/share/hauslicht/plasmoid/", "The Plasma widget's package where Plasma is missing "
+             "(\\fBinstall/install.sh\\fR unpacks it there): its Configure pages for \\fBconfig\\fR."),
+            ("~/.config/hauslicht/settings-window.ini", "The settings window's own widget settings (icon set, "
+             "scroll direction, clap mode)."),
+            ("~/.local/state/hauslicht/config-window.log", "The settings window's messages from its last start."),
             ("/usr/local/lib/hauslicht/setup-version", "The stamp of the one-time system setup "
              "(\\fBsetup\\-root\\fR)."),
         ],
@@ -72,6 +78,9 @@ TEXT = {
             ("HAUSLICHT_DEBUG", "Set: \\fBsync\\fR logs at debug level."),
             ("HAUSLICHT_NO_PANEL", "\\fB1\\fR: the daemon adds no panel widgets, \\fB0\\fR: it does; unset: "
              "it does, except for a test instance."),
+            ("HAUSLICHT_PLASMOID", "A package directory of the Plasma widget for \\fBconfig\\fR, tried before "
+             "~/.local/share/plasma/plasmoids/haus.licht.tray, /usr/share/plasma/plasmoids/haus.licht.tray and "
+             "~/.local/share/hauslicht/plasmoid."),
             ("LANGUAGE, LC_ALL, LC_MESSAGES, LANG", "German messages when the language is \\fBde\\fR, "
              "English otherwise."),
         ],
@@ -131,7 +140,14 @@ TEXT = {
             ("$XDG_RUNTIME_DIR/hauslicht.sock", "Der Socket des Dienstes (oder \\fB$HAUSLICHT_SOCK\\fR)."),
             ("~/.config/systemd/user/hauslicht.service", "Die Unit: \\fBhauslicht sync\\fR, und nach jedem "
              "Stopp \\fBhauslicht disarm \\-\\-if\\-armed\\fR. Von \\fBinstall/install.sh\\fR geschrieben."),
-            ("~/.cache/hauslicht/", "Das Klatsch-Modell, beim ersten Gebrauch heruntergeladen."),
+            ("~/.cache/hauslicht/", "Das Klatsch-Modell, beim ersten Gebrauch heruntergeladen; \\fBHausLicht\\fR, "
+             "der Link auf Qts \\fBqml\\fR-Laufzeit, über den \\fBconfig\\fR das Einstellungsfenster startet."),
+            ("~/.local/share/hauslicht/plasmoid/", "Das Paket des Plasma-Widgets, wo Plasma fehlt "
+             "(\\fBinstall/install.sh\\fR entpackt es dorthin): seine Einrichtungsseiten für \\fBconfig\\fR."),
+            ("~/.config/hauslicht/settings-window.ini", "Die eigenen Widget-Einstellungen des Einstellungsfensters "
+             "(Symbolsatz, Bildlaufrichtung, Klatschmodus)."),
+            ("~/.local/state/hauslicht/config-window.log", "Die Meldungen des Einstellungsfensters seit seinem "
+             "letzten Start."),
             ("/usr/local/lib/hauslicht/setup-version", "Der Stempel der einmaligen Systemeinrichtung "
              "(\\fBsetup\\-root\\fR)."),
         ],
@@ -145,6 +161,9 @@ TEXT = {
             ("HAUSLICHT_DEBUG", "Gesetzt: \\fBsync\\fR protokolliert auf Debug-Stufe."),
             ("HAUSLICHT_NO_PANEL", "\\fB1\\fR: der Dienst legt keine Panel-Widgets an, \\fB0\\fR: er tut es; "
              "nicht gesetzt: er tut es, außer in einer Testinstanz."),
+            ("HAUSLICHT_PLASMOID", "Ein Paketverzeichnis des Plasma-Widgets für \\fBconfig\\fR, versucht vor "
+             "~/.local/share/plasma/plasmoids/haus.licht.tray, /usr/share/plasma/plasmoids/haus.licht.tray und "
+             "~/.local/share/hauslicht/plasmoid."),
             ("LANGUAGE, LC_ALL, LC_MESSAGES, LANG", "Deutsche Meldungen bei der Sprache \\fBde\\fR, sonst "
              "englische."),
         ],

@@ -1,4 +1,4 @@
-.TH HAUSLICHT 1 "2026-10-22" "Haus.Licht 0.2" "User Commands"
+.TH HAUSLICHT 1 "2026-10-25" "Haus.Licht 0.2" "User Commands"
 .SH NAME
 hauslicht \- lights that follow the screen (Bluetooth mesh and more)
 .SH SYNOPSIS
@@ -286,6 +286,9 @@ no daemon: OnPowerUp back to "on" so that the wall switch just switches on (the 
 only the bulbs the daemon left armed (its marker); nothing at all when there are none
 .RE
 .TP
+\fBconfig\fR
+open the settings window: the Plasma widget's Configure pages (bulbs, profiles, sound, video, notifications), also on other desktops
+.TP
 \fBdebug\fR
 open a window showing each bulb's intended state and the daemon's events, live (PyQt6)
 .TP
@@ -312,7 +315,16 @@ The daemon's socket (or \fB$HAUSLICHT_SOCK\fR).
 The unit: \fBhauslicht sync\fR, and \fBhauslicht disarm \-\-if\-armed\fR after every stop. Written by \fBinstall/install.sh\fR.
 .TP
 \fI~/.cache/hauslicht/\fR
-The clap model, downloaded on first use.
+The clap model, downloaded on first use; \fBHausLicht\fR, the link to Qt's \fBqml\fR runtime that \fBconfig\fR starts the settings window through.
+.TP
+\fI~/.local/share/hauslicht/plasmoid/\fR
+The Plasma widget's package where Plasma is missing (\fBinstall/install.sh\fR unpacks it there): its Configure pages for \fBconfig\fR.
+.TP
+\fI~/.config/hauslicht/settings\-window.ini\fR
+The settings window's own widget settings (icon set, scroll direction, clap mode).
+.TP
+\fI~/.local/state/hauslicht/config\-window.log\fR
+The settings window's messages from its last start.
 .TP
 \fI/usr/local/lib/hauslicht/setup\-version\fR
 The stamp of the one-time system setup (\fBsetup\-root\fR).
@@ -335,6 +347,9 @@ Set: \fBsync\fR logs at debug level.
 .TP
 \fBHAUSLICHT_NO_PANEL\fR
 \fB1\fR: the daemon adds no panel widgets, \fB0\fR: it does; unset: it does, except for a test instance.
+.TP
+\fBHAUSLICHT_PLASMOID\fR
+A package directory of the Plasma widget for \fBconfig\fR, tried before ~/.local/share/plasma/plasmoids/haus.licht.tray, /usr/share/plasma/plasmoids/haus.licht.tray and ~/.local/share/hauslicht/plasmoid.
 .TP
 \fBLANGUAGE, LC_ALL, LC_MESSAGES, LANG\fR
 German messages when the language is \fBde\fR, English otherwise.

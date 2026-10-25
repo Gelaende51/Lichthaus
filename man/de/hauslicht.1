@@ -1,4 +1,4 @@
-.TH HAUSLICHT 1 "2026-10-22" "Haus.Licht 0.2" "Benutzerbefehle"
+.TH HAUSLICHT 1 "2026-10-25" "Haus.Licht 0.2" "Benutzerbefehle"
 .SH BEZEICHNUNG
 hauslicht \- Lampen, die dem Bildschirm folgen (Bluetooth Mesh und mehr)
 .SH \[u00DC]BERSICHT
@@ -286,6 +286,9 @@ ohne Dienst: OnPowerUp zur\[u00FC]ck auf "on", damit der Wandschalter nur einsch
 nur die Lampen, die der Dienst scharf hinterlassen hat (seine Markierung); gar nichts, wenn keine
 .RE
 .TP
+\fBconfig\fR
+das Einstellungsfenster \[u00F6]ffnen: die Einrichtungsseiten des Plasma-Widgets (Lampen, Profile, Ton, Video, Benachrichtigungen), auch auf anderen Desktops
+.TP
 \fBdebug\fR
 ein Fenster \[u00F6]ffnen, das den Sollzustand jeder Lampe und die Ereignisse des Dienstes live zeigt (PyQt6)
 .TP
@@ -312,7 +315,16 @@ Der Socket des Dienstes (oder \fB$HAUSLICHT_SOCK\fR).
 Die Unit: \fBhauslicht sync\fR, und nach jedem Stopp \fBhauslicht disarm \-\-if\-armed\fR. Von \fBinstall/install.sh\fR geschrieben.
 .TP
 \fI~/.cache/hauslicht/\fR
-Das Klatsch-Modell, beim ersten Gebrauch heruntergeladen.
+Das Klatsch-Modell, beim ersten Gebrauch heruntergeladen; \fBHausLicht\fR, der Link auf Qts \fBqml\fR-Laufzeit, \[u00FC]ber den \fBconfig\fR das Einstellungsfenster startet.
+.TP
+\fI~/.local/share/hauslicht/plasmoid/\fR
+Das Paket des Plasma-Widgets, wo Plasma fehlt (\fBinstall/install.sh\fR entpackt es dorthin): seine Einrichtungsseiten f\[u00FC]r \fBconfig\fR.
+.TP
+\fI~/.config/hauslicht/settings\-window.ini\fR
+Die eigenen Widget-Einstellungen des Einstellungsfensters (Symbolsatz, Bildlaufrichtung, Klatschmodus).
+.TP
+\fI~/.local/state/hauslicht/config\-window.log\fR
+Die Meldungen des Einstellungsfensters seit seinem letzten Start.
 .TP
 \fI/usr/local/lib/hauslicht/setup\-version\fR
 Der Stempel der einmaligen Systemeinrichtung (\fBsetup\-root\fR).
@@ -335,6 +347,9 @@ Gesetzt: \fBsync\fR protokolliert auf Debug-Stufe.
 .TP
 \fBHAUSLICHT_NO_PANEL\fR
 \fB1\fR: der Dienst legt keine Panel-Widgets an, \fB0\fR: er tut es; nicht gesetzt: er tut es, au\[u00DF]er in einer Testinstanz.
+.TP
+\fBHAUSLICHT_PLASMOID\fR
+Ein Paketverzeichnis des Plasma-Widgets f\[u00FC]r \fBconfig\fR, versucht vor ~/.local/share/plasma/plasmoids/haus.licht.tray, /usr/share/plasma/plasmoids/haus.licht.tray und ~/.local/share/hauslicht/plasmoid.
 .TP
 \fBLANGUAGE, LC_ALL, LC_MESSAGES, LANG\fR
 Deutsche Meldungen bei der Sprache \fBde\fR, sonst englische.

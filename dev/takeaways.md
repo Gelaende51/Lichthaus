@@ -404,3 +404,36 @@ onto Linux. Worth reporting upstream where marked.
   Every component keeps one `brightness` across its modes, so a colour can be
   sent without it; RGBCCT switches with `mode` (rgb / cct). Untested on a
   real device.
+- Standalone settings window (`hauslicht config`, 2026-10): the widget's
+  Configure pages run in Qt's plain `qml` runtime when a directory with
+  stand-ins for `org.kde.plasma.plasmoid` and `org.kde.plasma.configuration`
+  comes first on the import path (`qml -I`): an import path entry shadows
+  libplasma's modules, and Plasma5Support's executable engine, KCM.SimpleKCM
+  and KIconThemes.IconDialog all work without a Plasma session.
+  - The qml runtime logs to the journal, not to stderr, when stderr is not a
+    terminal: a run from a script printed nothing at all until
+    `QT_FORCE_STDERR_LOGGING=1`.
+  - A non-visual root (QtObject) makes the runtime exit at once, silently.
+  - `grabToImage` on a window's `contentItem` fails ("item has no QML
+    engine"); grab an item the QML file created.
+  - Wayland app id = organisation domain reversed + "." + the basename the
+    program was started under, not resolved through symlinks (`/usr/bin/qml6`
+    gave `….qml6`). Setting `Qt.application.domain` before the window is
+    first shown and starting the runtime through a link named `HausLicht`
+    gives `io.github.gelaende51.HausLicht`, an existing desktop file.
+  - The runtime sets its own window icon (the Qt logo) and Qt 6.12 sends it
+    through xdg-toplevel-icon, which KWin prefers over the desktop file's
+    icon; `QT_WAYLAND_DISABLED_INTERFACES=xdg_toplevel_icon_manager_v1`
+    leaves the choice to the desktop file. No QML API sets a window icon or
+    desktopFileName; on X11 the Qt logo stays.
+  - qmllint warns "not declared as singleton in qmldir" when the singleton's
+    file is linted on its own; linting a file that imports the module is
+    clean.
+  - Debian 13 ships Plasma5Support's executable engine in plasma-workspace
+    (sid: libplasma5support6; Arch and Fedora 43: plasma5support).
+- Plasma 6 System Settings lists external applications from
+  `<data dir>/plasma/systemsettings/externalmodules/*.desktop` (UTF-16 string
+  `plasma/%1/externalmodules` in the binary; KInfoCenter's System Monitor
+  entry is the one shipped example), ~/.local/share included
+  (`systemsettings --list` shows them). `systemsettings <that id>` did not
+  start an external entry here; it is meant to start on a click (not tried).
