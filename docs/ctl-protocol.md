@@ -389,6 +389,8 @@ values are those of `default`.
                                   // model (product name), address (mesh unicast, BLE address or host/IP),
                                   // mac, firmware, rssi (dBm, last advert); mesh cid/pid/firmware (VID)
                                   // are stored at adoption (`hauslicht adopt`)
+                                  // ct_range ("2700–6500 K", a `ct` bulb's white range;
+                                  // mesh only once the bulb reported it), colour (true for `hs`)
      "step": 1.0,                 // native brightness step in percent (backend `step`, docs/backend-api.md):
                                   // 1 Ledvance mesh, 100/255 8-bit, 100/65535 LIFX; a slider moves in it
      "autoconnected": false}      // added by autoconnect (removing it puts it on autoconnect_ignore)

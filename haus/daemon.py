@@ -1893,7 +1893,10 @@ class Daemon:
     @staticmethod
     def bulb_details(b: Bulb) -> dict:
         """What the backend knows cheaply about the device (model, address,
-        MAC, firmware, RSSI, ...); only known keys. Never fails a get."""
+        MAC, firmware, RSSI, ...); only known keys. Never fails a get.
+        The colour ability from the caps: `ct_range` ("2700–6500 K") for a
+        white-temperature bulb, `colour` True for hs (the widget translates
+        the word); neither for a brightness-only bulb."""
         if not b.backend:
             return {}
         try:
@@ -1905,6 +1908,16 @@ class Daemon:
             out.pop("model", None)
             if product := mesh_product(out.get("cid"), out.get("pid")):
                 out["model"] = product
+        try:
+            caps = set(b.backend.caps(b))
+            # mesh sets ct_range itself, only once the bulb reported it (no guessed default)
+            if "ct" in caps and "ct_range" not in out and b.kind != "mesh":
+                lo, hi = b.backend.ct_range(b)
+                out["ct_range"] = f"{int(lo)}–{int(hi)} K"
+            if "hs" in caps:
+                out["colour"] = True
+        except Exception as exc:  # noqa: BLE001  a backend quirk must not break get
+            log.debug("details caps %s: %s", b.id, exc)
         return out
 
     def monitor_power_state(self) -> dict:

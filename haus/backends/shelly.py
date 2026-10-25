@@ -3,8 +3,12 @@ pulls in Home Assistant's Bluetooth stack).
 
 Gen1 (Duo, Vintage, Dimmer 1/2, Bulb): `GET /light/<ch>?turn=on&brightness=N`,
 power-on via `/settings/light/<ch>?default_state=`, basic auth.
-Gen2+ (Plus Wall Dimmer, Dimmer Gen3/4, Pro Dimmer): JSON-RPC `POST /rpc`
-`Light.Set`, power-on via `Light.SetConfig` `initial_state`, digest auth.
+Gen2+ (Plus Wall Dimmer, Dimmer Gen3/4, Pro Dimmer, Plus RGBW PM, Duo Bulb
+Gen3, Pro RGBWW PM): JSON-RPC `POST /rpc` `<Component>.Set`, power-on via
+`<Component>.SetConfig` `initial_state`, digest auth. The component is the
+one the device has at the channel (`light`, `cct`, `rgbcct`, `rgbw`, `rgb`;
+a device shows the one its profile selects), stored as `component` at add;
+a config without it is `light`.
 The device is polled every few seconds; a restarted uptime is reported as a
 power return (flick detection). See docs/backends-research.md#shelly.
 
@@ -16,8 +20,14 @@ mode the level is `gain`, in white mode `brightness`: apply sends the one of
 the mode the bulb is in, and a colour switches the mode with the level
 carried over (`mode=color&red&green&blue&white=0&gain`, `mode=white&temp&
 brightness`); the Duo gets `temp` alone. No `turn`: a colour never lights a
-dark bulb, and it goes out only while the bulb is lit. Gen2+ lights
-(`light:N`) have no colour; RGB/RGBW/CCT components are not supported.
+dark bulb, and it goes out only while the bulb is lit.
+
+Colour (Gen2+) follows the component: `light` none, `cct` ct (range from
+`CCT.GetConfig` `ct_range`), `rgb` / `rgbw` hs, `rgbcct` hs+ct (its config
+has no documented range: 2700-6500). Sent without `on` or `brightness`:
+`RGB.Set rgb`, `RGBW.Set rgb, white=0`, `CCT.Set ct`, `RGBCCT.Set mode=rgb,
+rgb` / `mode=cct, ct`; the level is the component's one `brightness` in
+every mode.
 """
 
 from __future__ import annotations
@@ -38,6 +48,24 @@ GEN1_POWERUP = {"off": "off", "on": "on", "restore": "last"}
 GEN2_POWERUP = {"off": "off", "on": "on", "restore": "restore_last"}
 COLOR_BULB_RANGE = (3000, 6500)  # Shelly Bulb / Duo RGBW white mode
 DUO_RANGE = (2700, 6500)         # Shelly Duo
+# Gen2+ components with a dimmable output, in the order looked for; RPC
+# namespace and colour caps of each
+GEN2_COMPONENTS = {"light": ("Light", []), "cct": ("CCT", ["ct"]), "rgbcct": ("RGBCCT", ["ct", "hs"]),
+                   "rgbw": ("RGBW", ["hs"]), "rgb": ("RGB", ["hs"])}
+
+
+def gen2_component(status: dict, ch: int) -> str | None:
+    """The dimmable component a Gen2+ Shelly.GetStatus shows at channel ch."""
+    return next((c for c in GEN2_COMPONENTS if f"{c}:{ch}" in status), None)
+
+
+def gen2_kelvin(config: dict) -> list[int] | None:
+    """A CCT / RGBCCT GetConfig's `ct_range`, when it is a sane [min, max]."""
+    got = config.get("ct_range")
+    if (isinstance(got, (list, tuple)) and len(got) == 2
+            and all(isinstance(k, (int, float)) for k in got) and 0 < got[0] < got[1]):
+        return [int(got[0]), int(got[1])]
+    return None
 
 
 def light_color(light: dict) -> dict:
@@ -83,6 +111,12 @@ class ShellyBackend(Backend):
     @staticmethod
     def _gen(config: dict) -> int:
         return 1 if int(config.get("gen", 2) or 2) == 1 else 2
+
+    @staticmethod
+    def _component(config: dict) -> str:
+        """A Gen2+ bulb's component (`light` for configs from before colour)."""
+        comp = config.get("component") or "light"
+        return comp if comp in GEN2_COMPONENTS else "light"
 
     def _session(self, key: str, config: dict):
         import aiohttp
@@ -136,8 +170,10 @@ class ShellyBackend(Backend):
 
     # ------------------------------------------------------------------ contract
     def caps(self, bulb) -> set[str]:
-        caps = {"onoff", "dim", "powerup", "flick"}
-        return caps | color_caps(bulb.config) if self._gen(bulb.config) == 1 else caps
+        caps = {"onoff", "dim", "powerup", "flick"} | color_caps(bulb.config)
+        if self._gen(bulb.config) == 1:
+            return caps
+        return caps - ({"ct", "hs"} - set(GEN2_COMPONENTS[self._component(bulb.config)][1]))
 
     def ct_range(self, bulb) -> tuple[int, int]:
         return kelvin_range(bulb.config, DUO_RANGE)
@@ -197,7 +233,7 @@ class ShellyBackend(Backend):
             params = {"id": ch, "on": on}
             if on:
                 params["brightness"] = level
-            return await self._rpc(s, host, "Light.Set", params)
+            return await self._rpc(s, host, f"{self._ns(bulb)}.Set", params)
 
         try:
             await self._call(bulb, gen1, gen2)
@@ -207,11 +243,17 @@ class ShellyBackend(Backend):
         if self.presence.get(bulb.id) is not True:
             self.presence.contact(bulb.id)
 
+    def _ns(self, bulb) -> str:
+        """The Gen2+ RPC namespace of the bulb's component (Light, CCT, ...)."""
+        return GEN2_COMPONENTS[self._component(bulb.config)][0]
+
     async def apply_color(self, bulb, color: dict) -> bool:
         last = self.last.get(bulb.id) or {}
+        if not last.get("on"):
+            return False  # dark: leave it dark
+        if self._gen(bulb.config) != 1:
+            return await self._apply_color_gen2(bulb, color)
         caps = self.caps(bulb)
-        if not last.get("on") or self._gen(bulb.config) != 1:
-            return False  # dark: leave it dark (Gen2 lights have no colour)
         level = str(max(1, min(100, round(last["percent"]))))
         colour_bulb = "hs" in caps
         if color.get("mode") == "hs" and colour_bulb:
@@ -239,6 +281,38 @@ class ShellyBackend(Backend):
             self.mode[bulb.id] = params["mode"]
         return True
 
+    async def _apply_color_gen2(self, bulb, color: dict) -> bool:
+        """RGB / RGBW / CCT / RGBCCT.Set with only the colour: no `on`, no
+        `brightness` (the level stays what apply set)."""
+        caps = self.caps(bulb)
+        comp = self._component(bulb.config)
+        ch = int(bulb.config.get("channel", 0) or 0)
+        params: dict = {"id": ch}
+        if color.get("mode") == "hs" and "hs" in caps:
+            params["rgb"] = list(hs_rgb(color))
+            if comp == "rgbw":
+                params["white"] = 0
+            elif comp == "rgbcct":
+                params["mode"] = "rgb"
+        elif color.get("mode") == "ct" and "ct" in caps:
+            lo, hi = self.ct_range(bulb)
+            params["ct"] = int(max(lo, min(hi, round(float(color["kelvin"])))))
+            if comp == "rgbcct":
+                params["mode"] = "cct"
+        else:
+            return False
+        throttle = self.throttle[2]
+        await throttle.wait(bulb.id)
+
+        async def gen2(s, host):
+            return await self._rpc(s, host, f"{self._ns(bulb)}.Set", params)
+
+        try:
+            await self._call(bulb, gen2, gen2)
+        finally:
+            throttle.sent(bulb.id)
+        return True
+
     async def set_powerup(self, bulb, value: str) -> bool:
         ch = int(bulb.config.get("channel", 0) or 0)
 
@@ -246,7 +320,7 @@ class ShellyBackend(Backend):
             return await self._get(s, host, f"/settings/light/{ch}", {"default_state": GEN1_POWERUP[value]})
 
         async def gen2(s, host):
-            return await self._rpc(s, host, "Light.SetConfig",
+            return await self._rpc(s, host, f"{self._ns(bulb)}.SetConfig",
                                    {"id": ch, "config": {"initial_state": GEN2_POWERUP[value]}})
 
         await self._call(bulb, gen1, gen2)
@@ -276,7 +350,9 @@ class ShellyBackend(Backend):
 
         async def gen2(s, host):
             st = await self._rpc(s, host, "Shelly.GetStatus")
-            light = st.get(f"light:{ch}", {})
+            light = st.get(f"{self._component(bulb.config)}:{ch}", {})
+            if light and "color" not in bulb.config:  # an older config (a `light`): no colour
+                learn_color(self.ctx, bulb, GEN2_COMPONENTS[self._component(bulb.config)][1])
             return (st.get("sys") or {}).get("uptime"), light.get("output"), light.get("brightness")
 
         try:
@@ -313,7 +389,7 @@ class ShellyBackend(Backend):
                         return None
                 elif not info.get("auth_en"):
                     st = await self._rpc(s, host, "Shelly.GetStatus")
-                    if "light:0" not in st:
+                    if gen2_component(st, 0) is None:
                         return None
         except (aiohttp.ClientError, asyncio.TimeoutError, OSError, UserError, ShellyError, ValueError):
             return None
@@ -346,7 +422,19 @@ class ShellyBackend(Backend):
                         probe.update(light_color(st["lights"][ch]))
                 else:
                     st = await self._rpc(session, host, "Shelly.GetStatus")
-                    has_light = f"light:{ch}" in st
+                    comp = gen2_component(st, ch)
+                    has_light = comp is not None
+                    if has_light:
+                        probe["component"] = comp
+                        probe["color"] = GEN2_COMPONENTS[comp][1]
+                        if "ct" in probe["color"]:
+                            try:
+                                got = await self._rpc(session, host, f"{GEN2_COMPONENTS[comp][0]}.GetConfig",
+                                                      {"id": ch})
+                            except ShellyError:  # no config to read: the documented default
+                                got = {}
+                            if kelvin := gen2_kelvin(got or {}):
+                                probe["kelvin"] = kelvin
             finally:
                 await self.sessions.pop("add").close()
         except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as exc:
@@ -357,10 +445,11 @@ class ShellyBackend(Backend):
             raise UserError(f"Shelly {host} has no light channel {ch} (a relay or a roller is not dimmable)")
         config["gen"] = gen
         config["model"] = info.get("model") or info.get("type") or ""
-        if gen == 1:
-            config["color"] = probe.get("color", [])
-            if "kelvin" in probe:
-                config["kelvin"] = probe["kelvin"]
+        if gen != 1:
+            config["component"] = probe["component"]
+        config["color"] = probe.get("color", [])
+        if "kelvin" in probe:
+            config["kelvin"] = probe["kelvin"]
         mac = str(info.get("mac") or "").replace(":", "").lower()
         if mac:
             config["id"] = mac if ch == 0 else f"{mac}-{ch}"

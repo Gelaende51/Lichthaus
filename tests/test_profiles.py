@@ -150,3 +150,26 @@ def test_a_mesh_bulbs_model_is_the_product_never_its_name():
     got = Daemon.bulb_details(bulb({"model": "Hauslicht", "address": "0x0002", "cid": "0x052e", "pid": "0x0006"}))
     assert got["model"] == "LEDVANCE Fil VL T-W" and got["address"] == "0x0002"
     assert "model" not in Daemon.bulb_details(bulb({"model": "Hauslicht", "address": "0x0002"}))
+
+
+def test_details_name_the_colour_ability():
+    """2700–6500 K for ct, colour for hs, both, or nothing for brightness only."""
+    from types import SimpleNamespace
+
+    from haus.daemon import Daemon
+
+    def bulb(caps, kind="wiz", details=None):
+        return SimpleNamespace(id=f"{kind}:1", kind=kind, backend=SimpleNamespace(
+            details=lambda b: dict(details or {"model": "X"}), caps=lambda b: set(caps),
+            ct_range=lambda b: (2200, 6500)))
+    assert Daemon.bulb_details(bulb({"onoff", "dim", "ct"}))["ct_range"] == "2200–6500 K"
+    hs = Daemon.bulb_details(bulb({"onoff", "dim", "hs"}))
+    assert hs["colour"] is True and "ct_range" not in hs
+    both = Daemon.bulb_details(bulb({"onoff", "dim", "ct", "hs"}))
+    assert both["ct_range"] == "2200–6500 K" and both["colour"] is True
+    plain = Daemon.bulb_details(bulb({"onoff", "dim"}))
+    assert plain == {"model": "X"}
+    # mesh: only the range the bulb reported, never the default
+    assert "ct_range" not in Daemon.bulb_details(bulb({"ct"}, kind="mesh", details={"address": "0x0002"}))
+    assert Daemon.bulb_details(bulb({"ct"}, kind="mesh", details={"ct_range": "2700–6500 K"}))["ct_range"] \
+        == "2700–6500 K"

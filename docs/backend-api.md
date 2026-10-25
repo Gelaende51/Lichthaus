@@ -132,7 +132,7 @@ each backend sends it only while it last lit the bulb.
 | `yeelight` | discovery `support` (set_hsv, set_ct_abx), else get_prop `ct`/`hue` "" | 1700-6500 (colour), 2700-6500 (white) | set_hsv / set_ct_abx (music mode when on) |
 | `kasa` | Light module features `hsv`, `color_temp` | the `color_temp` feature's | set_hsv / set_color_temp (IOT: with the level, as python-kasa switches on) |
 | `hue` | light resource `color`, `color_temperature` | mirek_schema | CLIP v2 `color.xy` (from hue/sat) / `color_temperature.mirek` |
-| `shelly` | Gen1 /status light `mode` (colour bulbs: hs+ct), `temp` (Duo: ct); Gen2+: none | 3000-6500 / 2700-6500 | `/light/N?mode=color&red&green&blue&white=0&gain` / `mode=white&temp&brightness` (Duo: `temp`) |
+| `shelly` | Gen1 /status light `mode` (colour bulbs: hs+ct), `temp` (Duo: ct); Gen2+ the channel's component in Shelly.GetStatus (`light`: none, `cct`: ct, `rgb`/`rgbw`: hs, `rgbcct`: hs+ct) | Gen1 3000-6500 / 2700-6500; Gen2+ `CCT.GetConfig` `ct_range`, else 2700-6500 | Gen1 `/light/N?mode=color&red&green&blue&white=0&gain` / `mode=white&temp&brightness` (Duo: `temp`); Gen2+ `RGB.Set rgb`, `RGBW.Set rgb, white=0`, `CCT.Set ct`, `RGBCCT.Set mode=rgb, rgb` / `mode=cct, ct`, never `on` or `brightness` |
 | `tasmota` | Status 11 `HSBColor`, `CT` | 153-500 mired | `HSBColor h,s,<level>` / `CT <mired>` |
 | `govee` | devStatus `color`, `colorTemInKelvin` | 2000-9000 | `colorwc`, checked with devStatus |
 | `esphome` | light entity `supported_color_modes` (RGB bit: hs; COLOR_TEMPERATURE / COLD_WARM_WHITE bit: ct) | the entity's min/max mireds, else 2700-6500 | `light_command` with `color_mode` and `rgb` (white channels 0) / `color_temperature` (mired), no `state` or `brightness` |

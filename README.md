@@ -153,7 +153,7 @@ colour temperature, each where the device reports it.
 | Govee LAN API (`govee`) | – (own LAN code) | hs, white | host (search; enable LAN control) |
 | TP-Link Kasa / Tapo (`kasa`) | python-kasa | hs, white | host (search); Tapo: TP-Link account e-mail and password |
 | Tuya / Smart Life (`tuya`) | tinytuya | hs, white | host, device ID, local key |
-| Shelly (`shelly`) | aiohttp | hs, white (Gen1 colour bulbs), white (Duo); Gen2+ brightness only | host (search), password if set |
+| Shelly (`shelly`) | aiohttp | hs, white (Gen1 colour bulbs, Gen2+ RGBCCT), white (Duo, Gen2+ CCT), hs (Gen2+ RGB/RGBW); Gen2+ dimmers brightness only | host (search), password if set |
 | Tasmota (`tasmota`) | aiohttp | hs, white | host (search), user/password if set |
 | ESPHome (`esphome`) | aioesphomeapi | hs, white | host, encryption key |
 | WLED (`wled`) | aiohttp, zeroconf | hs; white on CCT/RGBW strips | host (search) |

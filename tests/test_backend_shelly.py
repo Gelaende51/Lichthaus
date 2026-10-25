@@ -77,9 +77,22 @@ class FakeGen1:
 class FakeGen2:
     """Shelly Plus Wall Dimmer-like Gen2 device (RPC over HTTP)."""
 
-    def __init__(self, has_light=True):
+    NS = {"light": "Light", "cct": "CCT", "rgbcct": "RGBCCT", "rgbw": "RGBW", "rgb": "RGB"}
+
+    def __init__(self, has_light=True, component="light", ct_range=None):
         self.has_light = has_light
+        self.component = component
+        self.ns = self.NS[component]
+        self.ct_range = ct_range
         self.light = {"id": 0, "output": False, "brightness": 40}
+        if component in ("rgb", "rgbw", "rgbcct"):
+            self.light["rgb"] = [255, 255, 255]
+        if component == "rgbw":
+            self.light["white"] = 255
+        if component in ("cct", "rgbcct"):
+            self.light["ct"] = 4000
+        if component == "rgbcct":
+            self.light["mode"] = "cct"
         self.initial_state = "restore_last"
         self.uptime = 500
         self.calls: list[tuple] = []
@@ -96,14 +109,16 @@ class FakeGen2:
             if method == "Shelly.GetStatus":
                 result = {"sys": {"uptime": self.uptime}}
                 if self.has_light:
-                    result["light:0"] = self.light
+                    result[f"{self.component}:0"] = self.light
                 return web.json_response({"id": body["id"], "result": result})
-            if method == "Light.Set":
-                self.light["output"] = params["on"]
-                if "brightness" in params:
-                    self.light["brightness"] = params["brightness"]
+            if method == f"{self.ns}.Set":
+                for key in ("on", "brightness", "rgb", "white", "ct", "mode"):
+                    if key in params:
+                        self.light["output" if key == "on" else key] = params[key]
                 return web.json_response({"id": body["id"], "result": None})
-            if method == "Light.SetConfig":
+            if method == f"{self.ns}.GetConfig" and self.ct_range:
+                return web.json_response({"id": body["id"], "result": {"id": 0, "ct_range": self.ct_range}})
+            if method == f"{self.ns}.SetConfig":
                 self.initial_state = params["config"]["initial_state"]
                 return web.json_response({"id": body["id"], "result": {"restart_required": False}})
             return web.json_response({"id": body["id"], "error": {"code": 404, "message": "No handler"}})
@@ -359,8 +374,87 @@ def test_duo_temp_alone_and_gen2_without_colour():
             assert await be.apply_color(b, {"mode": "hs", "hue": 10, "sat": 10}) is False  # white only
             assert await be.apply_color(b, {"mode": "ct", "kelvin": 5000})
             assert duo.requests[-1][1] == {"temp": "5000"} and duo.light["brightness"] == 60
-            gen2 = bulb("shelly", "g", host=host, gen=2, color=["ct", "hs"])
+            gen2 = bulb("shelly", "g", host=host, gen=2, color=["ct", "hs"])  # a `light`: never colour
             assert be.caps(gen2) == {"onoff", "dim", "powerup", "flick"}
+        finally:
+            await be.stop()
+            await runner.cleanup()
+    run(main())
+
+
+def test_gen2_colour_caps_per_component():
+    async def main():
+        be = ShellyBackend(FakeCtx())
+        for comp, ct_range, caps, kelvin in (("light", None, set(), (2700, 6500)),
+                                             ("cct", [3000, 5700], {"ct"}, (3000, 5700)),
+                                             ("rgbcct", None, {"ct", "hs"}, (2700, 6500)),
+                                             ("rgbw", None, {"hs"}, (2700, 6500)),
+                                             ("rgb", None, {"hs"}, (2700, 6500))):
+            runner, host = await serve(FakeGen2(component=comp, ct_range=ct_range).app())
+            config = await be.add({"host": host})
+            assert config["component"] == comp
+            b = bulb("shelly", comp, **config)
+            assert be.caps(b) == {"onoff", "dim", "powerup", "flick"} | caps, comp
+            assert be.ct_range(b) == kelvin
+            await runner.cleanup()
+        await be.stop()
+    run(main())
+
+
+def test_gen2_colour_is_sent_only_while_lit_and_keeps_the_level():
+    async def main():
+        be = ShellyBackend(FakeCtx())
+        try:
+            dev = FakeGen2(component="rgbcct")
+            runner, host = await serve(dev.app())
+            config = await be.add({"host": host})
+            b = bulb("shelly", "rc", **config)
+            assert await be.apply_color(b, {"mode": "hs", "hue": 0, "sat": 100}) is False  # dark
+            assert not any(m == "RGBCCT.Set" for m, _ in dev.calls)
+            await be.apply(b, 30)
+            assert dev.calls[-1] == ("RGBCCT.Set", {"id": 0, "on": True, "brightness": 30})
+            assert await be.apply_color(b, {"mode": "hs", "hue": 120, "sat": 50})
+            assert dev.calls[-1] == ("RGBCCT.Set", {"id": 0, "rgb": [128, 255, 128], "mode": "rgb"})
+            assert await be.apply_color(b, {"mode": "ct", "kelvin": 9000})  # clamped to 6500
+            assert dev.calls[-1] == ("RGBCCT.Set", {"id": 0, "ct": 6500, "mode": "cct"})
+            assert dev.light["brightness"] == 30 and dev.light["output"] is True
+            assert await be.set_powerup(b, "off") and dev.initial_state == "off"
+            await runner.cleanup()
+
+            dev = FakeGen2(component="rgbw")
+            runner, host = await serve(dev.app())
+            b = bulb("shelly", "rw", **await be.add({"host": host}))
+            await be.apply(b, 50)
+            assert await be.apply_color(b, {"mode": "ct", "kelvin": 3000}) is False  # no white temperature
+            assert await be.apply_color(b, {"mode": "hs", "hue": 240, "sat": 100})
+            assert dev.calls[-1] == ("RGBW.Set", {"id": 0, "rgb": [0, 0, 255], "white": 0})
+            await runner.cleanup()
+
+            dev = FakeGen2(component="cct", ct_range=[2700, 6500])
+            runner, host = await serve(dev.app())
+            b = bulb("shelly", "cc", **await be.add({"host": host}))
+            await be.apply(b, 70)
+            assert await be.apply_color(b, {"mode": "hs", "hue": 10, "sat": 10}) is False
+            assert await be.apply_color(b, {"mode": "ct", "kelvin": 4321})
+            assert dev.calls[-1] == ("CCT.Set", {"id": 0, "ct": 4321})
+            await runner.cleanup()
+        finally:
+            await be.stop()
+    run(main())
+
+
+def test_gen2_older_config_is_a_light_and_learns_no_colour():
+    async def main():
+        dev = FakeGen2()
+        runner, host = await serve(dev.app())
+        be = ShellyBackend(FakeCtx())
+        b = bulb("shelly", "old", host=host, gen=2, channel=0)
+        try:
+            await be._probe(b)
+            assert b.config["color"] == [] and "component" not in b.config
+            await be.apply(b, 20)
+            assert dev.calls[-1] == ("Light.Set", {"id": 0, "on": True, "brightness": 20})
+            assert await be.apply_color(b, {"mode": "hs", "hue": 0, "sat": 100}) is False
         finally:
             await be.stop()
             await runner.cleanup()

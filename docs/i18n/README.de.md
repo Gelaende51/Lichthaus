@@ -171,7 +171,7 @@ meldet.
 | Govee LAN-API (`govee`) | – (eigener LAN-Code) | hs, Weiß | Adresse (Suche; LAN-Steuerung einschalten) |
 | TP-Link Kasa / Tapo (`kasa`) | python-kasa | hs, Weiß | Adresse (Suche); Tapo: E-Mail und Passwort des TP-Link-Kontos |
 | Tuya / Smart Life (`tuya`) | tinytuya | hs, Weiß | Adresse, Geräte-ID, Local Key |
-| Shelly (`shelly`) | aiohttp | hs, Weiß (Gen1-Farblampen), Weiß (Duo); Gen2+ nur Helligkeit | Adresse (Suche), Passwort falls gesetzt |
+| Shelly (`shelly`) | aiohttp | hs, Weiß (Gen1-Farblampen, Gen2+ RGBCCT), Weiß (Duo, Gen2+ CCT), hs (Gen2+ RGB/RGBW); Gen2+-Dimmer nur Helligkeit | Adresse (Suche), Passwort falls gesetzt |
 | Tasmota (`tasmota`) | aiohttp | hs, Weiß | Adresse (Suche), Benutzer/Passwort falls gesetzt |
 | ESPHome (`esphome`) | aioesphomeapi | hs, Weiß | Adresse, Verschlüsselungsschlüssel |
 | WLED (`wled`) | aiohttp, zeroconf | hs; Weiß bei CCT-/RGBW-Streifen | Adresse (Suche) |

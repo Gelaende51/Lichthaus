@@ -395,3 +395,12 @@ onto Linux. Worth reporting upstream where marked.
   pushed by accident. Unexpected coupling: dev/gen-man.py took the man
   pages' version from the widget's metadata.json; the daemon now has its own
   `VERSION` in haus/common.py.
+- Shelly Gen2+ colour (2026-10): each light type is its own RPC component
+  (`light`, `cct`, `rgb`, `rgbw`, `rgbcct`) with its own namespace for
+  Set/SetConfig, and a device shows only the one its profile selects. `Light`
+  has no colour temperature at all. CCT's config documents `ct_range`
+  (1000-10000 K accepted); RGBCCT's config page names no range key (only a
+  `temp` [2700, 6500] in the HTTP endpoint docs), so 2700-6500 is assumed.
+  Every component keeps one `brightness` across its modes, so a colour can be
+  sent without it; RGBCCT switches with `mode` (rgb / cct). Untested on a
+  real device.
