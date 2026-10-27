@@ -346,7 +346,7 @@ def test_setup_rule_covers_busylight_hid_ids():
     assert want <= listed
     serial = re.search(r'SERIAL_IDS="([^"]*)"', script).group(1).split()
     assert {"1a86:7523", "10c4:ea60", "0403:6001", "0403:6015", "2341:*", "303a:*"} <= set(serial)
-    assert (ROOT / "install" / "setup-version").read_text().strip() == "5"
+    assert int((ROOT / "install" / "setup-version").read_text()) >= 5  # 6: usb-port-power (test_usbport)
 
 
 # ------------------------------------------------------------------ serial

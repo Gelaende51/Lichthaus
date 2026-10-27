@@ -8,7 +8,8 @@ the stamp existed) or "current". History: 1 uleds and its udev rule,
 the stamp and a bluetoothd restart when the tuning changed, 4 the hci-claim
 helper (flick mode exclusive) in the sudoers rule, 5 the udev rule giving
 the logged-in user USB status lights and USB-serial LED controllers
-(uaccess; the usblight and serial kinds).
+(uaccess; the usblight and serial kinds), 6 the usb-port-power helper in
+the sudoers rule (the usbport kind).
 """
 
 from __future__ import annotations

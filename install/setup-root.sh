@@ -8,6 +8,8 @@
 # - lets the logged-in user open /dev/uleds (systemd uaccess, like audio devices);
 # - lets the logged-in user open USB status lights and USB-serial LED
 #   controllers (uaccess, rule file 70-haus-licht-devices.rules);
+# - installs the root helpers conn-update, hci-claim and usb-port-power and
+#   lets the installing user run them via sudo without a password;
 # - checks that BlueZ scans Bluetooth Low Energy (the bulbs speak nothing else).
 set -eu
 
@@ -59,15 +61,19 @@ echo "device access rules: $devrules"
 #   conn-update: a short link timeout (fast wall-switch toggles);
 #   hci-claim:   lends one adapter to the daemon for flick mode exclusive
 #                (BlueZ powers it off, the daemon gets its HCI user channel;
-#                given back and powered on when the daemon lets go or exits).
+#                given back and powered on when the daemon lets go or exits);
+#   usb-port-power: switches the 5 V of one hotplug USB port and its peer
+#                (sysfs `disable`, the usbport kind; ports have no udev
+#                subsystem, so no udev rule could grant it).
 install -D -o root -g root -m 0755 "$here/conn-update" /usr/local/lib/hauslicht/conn-update
 install -D -o root -g root -m 0755 "$here/hci-claim" /usr/local/lib/hauslicht/hci-claim
+install -D -o root -g root -m 0755 "$here/usb-port-power" /usr/local/lib/hauslicht/usb-port-power
 user=${SUDO_USER:-}
 if [ -z "$user" ] && [ -n "${PKEXEC_UID:-}" ]; then
     user=$(id -nu "$PKEXEC_UID")
 fi
 if [ -n "$user" ]; then
-    rule="$user ALL=(root) NOPASSWD: /usr/local/lib/hauslicht/conn-update, /usr/local/lib/hauslicht/hci-claim"
+    rule="$user ALL=(root) NOPASSWD: /usr/local/lib/hauslicht/conn-update, /usr/local/lib/hauslicht/hci-claim, /usr/local/lib/hauslicht/usb-port-power"
     tmp=$(mktemp)
     echo "$rule" > "$tmp"
     if visudo -cf "$tmp" >/dev/null; then

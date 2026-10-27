@@ -1,0 +1,152 @@
+#!/usr/bin/python3 -I
+"""Haus.Licht root helper: switch the 5 V of one USB port (the usbport kind).
+
+    usb-port-power PORT on|off|get
+
+PORT is a USB port as the kernel names it: usbN-portM on a root hub,
+<hub>-portM on an external hub (1-1-port3, 1-1.4-port2). Writes the port's
+sysfs `disable` attribute (Linux 6.0+): 1 makes the kernel clear the port's
+power (PORT_POWER), 0 powers it again. A USB 3 socket has two logical ports
+(USB 2 and USB 3, linked by `peer`) on one 5 V supply: both are switched.
+`get` prints "off" when every one of them is disabled, else "on".
+
+Whether the 5 V really drops is the hub's business: many laptops' own ports
+keep it, hubs with per-port power switching drop it (uhubctl's list).
+
+Refuses (exit 2) anything but a well-formed port name found as
+/sys/bus/usb/devices/<hub interface>/PORT whose connect_type is "hotplug"
+(never "hardwired" or "not used": a built-in camera, Bluetooth adapter...),
+and a peer that is not such a port. Writes nothing but the `disable` of that
+port and of its peer. Exit 1: a write or read failed.
+Installed root-owned by setup-root.sh; the user may run it via sudo only.
+
+HAUSLICHT_TEST_USB_SYSFS (a fake /sys for the tests) is honoured only when
+neither the real nor the effective user is root: under sudo it never counts.
+"""
+import os
+import re
+import stat
+import sys
+
+PORT_RE = re.compile(r"(usb[0-9]+|[0-9]+-[0-9.]+)-port[0-9]+")
+# the stricter form actually accepted: no empty or ".." hub path components
+STRICT_RE = re.compile(r"(usb[0-9]{1,3}|[0-9]{1,3}-[0-9]{1,3}(\.[0-9]{1,3}){0,6})-port[0-9]{1,3}")
+INTERFACE_RE = re.compile(r"[0-9]{1,3}-[0-9]{1,3}(\.[0-9]{1,3}){0,6}:[0-9]{1,3}\.[0-9]{1,3}|[0-9]{1,3}-0:1\.0")
+TEST_ENV = "HAUSLICHT_TEST_USB_SYSFS"
+
+
+class Refused(Exception):
+    pass
+
+
+def sysfs_root() -> str:
+    test = os.environ.get(TEST_ENV, "")
+    if test and os.getuid() != 0 and os.geteuid() != 0:
+        return os.path.realpath(test)
+    return "/sys"
+
+
+def valid_name(port: str) -> bool:
+    return bool(PORT_RE.fullmatch(port) and STRICT_RE.fullmatch(port))
+
+
+def read(path: str) -> str:
+    with open(path, encoding="ascii", errors="replace") as f:
+        return f.read().strip()
+
+
+def check_port(real: str, devices: str) -> str:
+    """real: a port directory's resolved path. Returns the path of its
+    `disable` attribute, or raises Refused."""
+    name = os.path.basename(real)
+    if not valid_name(name):
+        raise Refused(f"{name}: not a USB port name")
+    if not real.startswith(devices + os.sep):
+        raise Refused(f"{name}: not under {devices}")
+    if not INTERFACE_RE.fullmatch(os.path.basename(os.path.dirname(real))):
+        raise Refused(f"{name}: not on a hub interface")
+    try:
+        kind = read(os.path.join(real, "connect_type"))
+    except OSError as exc:
+        raise Refused(f"{name}: no connect_type ({exc.strerror})") from exc
+    if kind != "hotplug":
+        raise Refused(f"{name}: connect_type is {kind!r}, not hotplug: never switched")
+    disable = os.path.join(real, "disable")
+    try:
+        st = os.lstat(disable)
+    except OSError as exc:
+        raise Refused(f"{name}: no disable attribute (needs Linux 6.0 or newer)") from exc
+    if not stat.S_ISREG(st.st_mode):
+        raise Refused(f"{name}: disable is not a plain attribute")
+    return disable
+
+
+def resolve(port: str, root: str) -> list[str]:
+    """The `disable` attributes to write: the port's, then its peer's."""
+    if not valid_name(port):
+        raise Refused(f"not a USB port name: {port!r}")
+    base = os.path.join(root, "bus", "usb", "devices")
+    devices = os.path.realpath(os.path.join(root, "devices"))
+    found = set()
+    try:
+        entries = os.listdir(base)
+    except OSError as exc:
+        raise Refused(f"no {base}") from exc
+    for entry in entries:
+        if not INTERFACE_RE.fullmatch(entry):
+            continue
+        candidate = os.path.join(base, entry, port)
+        if os.path.isdir(candidate):
+            found.add(os.path.realpath(candidate))
+    if len(found) != 1:
+        raise Refused(f"no USB port {port}" if not found else f"{port}: found {len(found)} times")
+    real = found.pop()
+    if os.path.basename(real) != port:
+        raise Refused(f"{port}: resolves to {os.path.basename(real)}")
+    out = [check_port(real, devices)]
+    peer_link = os.path.join(real, "peer")
+    if os.path.islink(peer_link):
+        peer = os.path.realpath(peer_link)
+        if peer == real:
+            raise Refused(f"{port}: its peer is itself")
+        out.append(check_port(peer, devices))
+    elif os.path.lexists(peer_link):
+        raise Refused(f"{port}: peer is not a link")
+    return out
+
+
+def write(path: str, value: str) -> None:
+    fd = os.open(path, os.O_WRONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_TRUNC)
+    try:
+        os.write(fd, value.encode())
+    finally:
+        os.close(fd)
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) != 2 or argv[1] not in ("on", "off", "get"):
+        print(__doc__, file=sys.stderr)
+        return 2
+    port, action = argv
+    try:
+        targets = resolve(port, sysfs_root())
+    except Refused as exc:
+        print(f"refused: {exc}", file=sys.stderr)
+        return 2
+    try:
+        if action == "get":
+            states = [read(t) for t in targets]
+            print("off" if all(s == "1" for s in states) else "on")
+            return 0
+        for t in targets:
+            write(t, "1" if action == "off" else "0")
+    except OSError as exc:
+        print(f"{port}: {action} failed: {exc.strerror or exc}", file=sys.stderr)
+        return 1
+    print(f"{port}: {action}" + (f" (with its peer {os.path.basename(os.path.dirname(targets[1]))})"
+                                 if len(targets) > 1 else ""), file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
