@@ -85,8 +85,9 @@
     hauslicht notify-test RULE       run a rule's pattern now
     hauslicht notify-status          watching or not, Do Not Disturb, the last match
     hauslicht backends --requires KIND[,KIND...]|all   pip names to install (no daemon)
-    hauslicht config                 the settings window: the widget's Configure pages
-                                     (bulbs, profiles, sound, video, notifications), no Plasma needed
+    hauslicht config [--window]      the widget's Configure pages (bulbs, profiles, sound, video,
+                                     notifications): System Settings on Plasma when its KCMs are
+                                     installed, otherwise (and with --window) a window, no Plasma needed
     hauslicht debug                  window with each bulb's intended state, live
                                      (PyQt6; detached, see haus/debugview.py)
     hauslicht disarm [--if-armed]    no daemon: OnPowerUp back to "on" (the unit's
@@ -808,8 +809,14 @@ def build_parser() -> argparse.ArgumentParser:
         "no daemon: OnPowerUp back to \"on\" so that the wall switch just switches on (the service's stop)"))
     p.add_argument("--if-armed", action="store_true", help=_(
         "only the bulbs the daemon left armed (its marker); nothing at all when there are none"))
-    add("config", _("open the settings window: the Plasma widget's Configure pages (bulbs, profiles, sound, "
-                    "video, notifications), also on other desktops"))
+    p = add("config", _("open the settings: the Plasma widget's Configure pages (bulbs, profiles, sound, video, "
+                        "notifications); on Plasma in System Settings (Connected Devices → Haus.Licht) when they are "
+                        "installed there, otherwise in a window of their own, also on other desktops"))
+    where = p.add_mutually_exclusive_group()
+    where.add_argument("--window", action="store_true", help=_("the settings window, also on Plasma"))
+    where.add_argument("--system-settings", action="store_true", help=_(
+        "only System Settings: where Haus.Licht's pages are not there, open nothing and exit with 3"))
+    p.add_argument("--add-bulb", action="store_true", help=_("System Settings: the Bulbs page with its Add dialog"))
     add("debug", _("open a window showing each bulb's intended state and the daemon's events, live (PyQt6)"))
     p = add("adverts", _("debug: print the bulbs' adverts with timestamps"))
     p.add_argument("seconds", type=float, nargs="?", default=30.0)
@@ -858,7 +865,7 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_debug()
     if args.cmd == "config":
         from . import configwin
-        return configwin.run()
+        return configwin.run(window=args.window, system_settings_only=args.system_settings, add_bulb=args.add_bulb)
     if args.cmd == "adverts":
         from .backends import mesh
         return asyncio.run(mesh.adverts(read_state(STATE_PATH) or {}, args.seconds))

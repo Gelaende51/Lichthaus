@@ -1,11 +1,15 @@
-"""`hauslicht config`: the Plasma widget's Configure pages in a window of their own.
+"""`hauslicht config`: the Plasma widget's Configure pages, in System Settings or
+in a window of their own.
 
 The pages (Bulbs, Profiles, Sound, Video, Notifications) live in the widget's
-package, Haus.Licht-plasma. Its contents/standalone/main.qml hosts them in a
-window, run by Qt's own qml runtime with contents/standalone/imports first on
-the import path: small stand-ins for the two Plasma-only modules the pages
-import. Kirigami, KCMUtils, KIconThemes and Plasma5Support are the system's
-real QML modules, so no Plasma session is needed (docs/settings-window.md).
+package, Haus.Licht-plasma. On Plasma with its KCMs installed (its kcm/:
+System Settings → Hardware → Haus.Licht), `hauslicht config` opens System
+Settings there (docs/system-settings.md). Otherwise, and with --window, the
+package's contents/standalone/main.qml hosts them in a window, run by Qt's own
+qml runtime with contents/standalone/imports first on the import path: small
+stand-ins for the two Plasma-only modules the pages import. Kirigami,
+KCMUtils, KIconThemes and Plasma5Support are the system's real QML modules,
+so no Plasma session is needed (docs/settings-window.md).
 """
 
 from __future__ import annotations
@@ -29,6 +33,16 @@ IMPORTS = Path("contents", "standalone", "imports")
 # the runtime runs through a link named RUNNER: io.github.gelaende51.HausLicht,
 # Haus.Licht's desktop file, whose icon and name the compositor then shows.
 RUNNER = "HausLicht"
+
+# System Settings: Haus.Licht-plasma's KCMs, one per page, Bulbs first. Per
+# user, install/install.sh puts them in USER_PLUGINS, which Qt searches only
+# when QT_PLUGIN_PATH names it (from the next login: ENV_SCRIPT).
+KCM_FIRST = "kcm_hauslicht_bulbs"
+KCM_NAMESPACE = Path("plasma", "kcms", "systemsettings_qwidgets")
+USER_PLUGINS = Path(".local", "lib", "qt6", "plugins")
+ENV_SCRIPT = Path(".config", "plasma-workspace", "env", "hauslicht-kcm.sh")
+# --system-settings where Haus.Licht's pages are not in System Settings
+NO_SYSTEM_SETTINGS = 3
 
 
 def package_dirs(env: dict[str, str] | None = None, home: Path | None = None) -> list[Path]:
@@ -158,6 +172,75 @@ def launch_env(env: dict[str, str] | None = None) -> dict[str, str]:
     return out
 
 
+# --------------------------------------------------------- System Settings
+
+def on_plasma(env: dict[str, str] | None = None) -> bool:
+    env = os.environ if env is None else env
+    return "KDE" in env.get("XDG_CURRENT_DESKTOP", "").split(":")
+
+
+def kcm_plugin(env: dict[str, str] | None = None, home: Path | None = None) -> Path | None:
+    """The first page's KCM: where Qt looks anyway (QT_PLUGIN_PATH, its own
+    plugin directory), then where install/install.sh puts it per user."""
+    home = Path.home() if home is None else home
+    for d in qml_dirs(env)["plugins"] + [home / USER_PLUGINS]:
+        f = d / KCM_NAMESPACE / f"{KCM_FIRST}.so"
+        if f.is_file():
+            return f
+    return None
+
+
+def in_plugin_path(plugin: Path, env: dict[str, str] | None = None) -> bool:
+    """Whether a process with this environment finds the plugin without help:
+    its directory is on QT_PLUGIN_PATH, or it is Qt's own (a system install)."""
+    env = os.environ if env is None else env
+    root = plugin.parents[len(KCM_NAMESPACE.parts)]
+    named = [Path(p) for p in env.get("QT_PLUGIN_PATH", "").split(os.pathsep) if p]
+    return root in named or root in qml_dirs({})["plugins"]
+
+
+def systemsettings_env(plugin: Path, env: dict[str, str] | None = None) -> dict[str, str]:
+    """System Settings' environment: the plugin's directory added to
+    QT_PLUGIN_PATH when it would not find it otherwise."""
+    out = dict(os.environ if env is None else env)
+    if not in_plugin_path(plugin, out):
+        root = str(plugin.parents[len(KCM_NAMESPACE.parts)])
+        out["QT_PLUGIN_PATH"] = os.pathsep.join(p for p in (out.get("QT_PLUGIN_PATH", ""), root) if p)
+    return out
+
+
+def systemsettings_running() -> bool:
+    """A System Settings of this user is open: a new start only hands its
+    arguments over to it (one instance per session)."""
+    try:
+        return subprocess.run(["pgrep", "-u", str(os.getuid()), "-x", "systemsettings"],
+                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+    except OSError:
+        return False
+
+
+def system_settings(add_bulb: bool = False, env: dict[str, str] | None = None,
+                    home: Path | None = None) -> tuple[list[str], dict[str, str]] | str:
+    """How to open System Settings at Haus.Licht (its command and
+    environment), or why not: not Plasma, no System Settings, no KCMs, or a
+    System Settings already open that cannot see them (the KCMs are in
+    ~/.local/lib/qt6/plugins and this session has not been told yet: they
+    show after the next login)."""
+    env = os.environ if env is None else env
+    if not on_plasma(env):
+        return _("not a Plasma session")
+    program = shutil.which("systemsettings", path=env.get("PATH"))
+    if not program:
+        return _("System Settings (systemsettings) is not installed")
+    plugin = kcm_plugin(env, home)
+    if plugin is None:
+        return _("Haus.Licht's pages are not installed in System Settings (Haus.Licht-plasma's kcm/)")
+    if not in_plugin_path(plugin, env) and systemsettings_running():
+        return _("System Settings is open without Haus.Licht's pages; they show there after the next login")
+    argv = [program, KCM_FIRST] + (["--args", "add"] if add_bulb else [])
+    return argv, systemsettings_env(plugin, env)
+
+
 def log_path() -> Path:
     base = os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local" / "state")
     return Path(base) / "hauslicht" / "config-window.log"
@@ -180,7 +263,27 @@ def runner(qml: str) -> str:
         return qml
 
 
-def run() -> int:
+def run(window: bool = False, system_settings_only: bool = False, add_bulb: bool = False) -> int:
+    """On Plasma with Haus.Licht's KCMs: System Settings at Haus.Licht (Bulbs;
+    add_bulb: with its Add dialog). Otherwise, or with window, the settings
+    window. system_settings_only: never the window; NO_SYSTEM_SETTINGS, with
+    nothing opened, where System Settings has no Haus.Licht."""
+    if not window:
+        how = system_settings(add_bulb)
+        if not isinstance(how, str):
+            argv, env = how
+            subprocess.Popen(argv, env=env, start_new_session=True, stdin=subprocess.DEVNULL,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return 0
+        if system_settings_only:
+            print(_("hauslicht config: {why}").format(why=how), file=sys.stderr)
+            return NO_SYSTEM_SETTINGS
+        if on_plasma() and kcm_plugin() is not None:
+            print(_("hauslicht config: {why}").format(why=how), file=sys.stderr)
+    return run_window()
+
+
+def run_window() -> int:
     """Open the window, detached from this shell. A window that exits within
     the first seconds (a QML error) has its log printed instead."""
     package = find_package()

@@ -289,8 +289,23 @@ ohne Dienst: OnPowerUp zur\[u00FC]ck auf "on", damit der Wandschalter nur einsch
 nur die Lampen, die der Dienst scharf hinterlassen hat (seine Markierung); gar nichts, wenn keine
 .RE
 .TP
-\fBconfig\fR
-das Einstellungsfenster \[u00F6]ffnen: die Einrichtungsseiten des Plasma-Widgets (Lampen, Profile, Ton, Video, Benachrichtigungen), auch auf anderen Desktops
+\fBconfig\fR [\-\-window | \-\-system\-settings] [\-\-add\-bulb]
+die Einstellungen \[u00F6]ffnen: die Einrichtungsseiten des Plasma-Widgets (Lampen, Profile, Ton, Video, Benachrichtigungen); unter Plasma in den Systemeinstellungen (Angeschlossene Ger\[u00E4]te \[u2192] Haus.Licht), wenn sie dort installiert sind, sonst in einem eigenen Fenster, auch auf anderen Desktops
+.RS
+.TP
+\fB\-\-window\fR
+das Einstellungsfenster, auch unter Plasma
+.RE
+.RS
+.TP
+\fB\-\-system\-settings\fR
+nur die Systemeinstellungen: wo die Seiten von Haus.Licht dort fehlen, nichts \[u00F6]ffnen und mit 3 enden
+.RE
+.RS
+.TP
+\fB\-\-add\-bulb\fR
+Systemeinstellungen: die Seite Lampen mit ihrem Dialog zum Hinzuf\[u00FC]gen
+.RE
 .TP
 \fBdebug\fR
 ein Fenster \[u00F6]ffnen, das den Sollzustand jeder Lampe und die Ereignisse des Dienstes live zeigt (PyQt6)
@@ -316,6 +331,12 @@ Der Socket des Dienstes (oder \fB$HAUSLICHT_SOCK\fR).
 .TP
 \fI~/.config/systemd/user/hauslicht.service\fR
 Die Unit: \fBhauslicht sync\fR, und nach jedem Stopp \fBhauslicht disarm \-\-if\-armed\fR. Von \fBinstall/install.sh\fR geschrieben.
+.TP
+\fI~/.config/plasma\-workspace/env/hauslicht\-kcm.sh\fR
+F\[u00FC]gt bei jeder Plasma-Anmeldung ~/.local/lib/qt6/plugins zu \fBQT_PLUGIN_PATH\fR hinzu, damit die Systemeinstellungen die pro Benutzer installierten Seiten von Haus.Licht finden. Von \fBinstall/install.sh\fR geschrieben.
+.TP
+\fI~/.local/lib/qt6/plugins/plasma/kcms/systemsettings_qwidgets/\fR
+Die Seiten von Haus.Licht als Module der Systemeinstellungen (kcm_hauslicht_*), von \fBinstall/install.sh\fR pro Benutzer gebaut; \fBconfig\fR \[u00F6]ffnet unter Plasma die Systemeinstellungen dort.
 .TP
 \fI~/.cache/hauslicht/\fR
 Das Klatsch-Modell, beim ersten Gebrauch heruntergeladen; \fBHausLicht\fR, der Link auf Qts \fBqml\fR-Laufzeit, \[u00FC]ber den \fBconfig\fR das Einstellungsfenster startet.
@@ -363,6 +384,9 @@ Der Dienst l\[u00E4]uft nicht, er hat den Befehl abgelehnt (die Meldung geht auf
 .TP
 \fB2\fR
 Ein Bedienfehler, oder die Bluetooth-Verbindung ohne Dienst schlug fehl.
+.TP
+\fB3\fR
+\fBconfig \-\-system\-settings\fR: Die Seiten von Haus.Licht sind hier nicht in den Systemeinstellungen; nichts wurde ge\[u00F6]ffnet.
 .SH BEISPIELE
 .PP
 Licht einschalten und auf 40 Prozent dimmen:
