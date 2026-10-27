@@ -633,10 +633,15 @@ class MeshLink:
         }
 
     async def lit(self, addr: int) -> bool | None:
-        """Light Lightness Get: lit or dark (where it is heading while it
-        fades); None: no answer."""
-        resp = await self._request(addr, light_lightness_get(), OP_LIGHT_LIGHTNESS_STATUS)
-        return None if resp is None else lightness_of(resp) > 0
+        """Generic OnOff Get: lit or dark (where it is heading while it
+        fades); None: no answer. Not the lightness: below 1 % the Ledvance
+        firmware is set through Generic Level at twice the lightness
+        resolution (set_half_percent), so a bulb lit at 0.5 % may read 0."""
+        resp = await self._request(addr, generic_onoff_get(), OP_GENERIC_ONOFF_STATUS)
+        if resp is None:
+            return None
+        status = parse_generic_onoff_status(p0._full_payload(resp))
+        return bool(status.present_onoff if status.target_onoff is None else status.target_onoff)
 
     async def get_onpowerup(self, addr: int) -> int | None:
         resp = await self._request(addr, encode_opcode(OP_ONPOWERUP_GET), OP_ONPOWERUP_STATUS)
