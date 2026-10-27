@@ -91,7 +91,9 @@ def test_sysled_discover_skips_own_uleds_and_shows_trigger(leds):
     found = run(sysled.SysLedBackend(FakeCtx()).discover(0))
     assert [f["address"] for f in found] == ["input3::capslock", "phy0-led"]
     by = {f["address"]: f for f in found}
-    assert by["phy0-led"]["trigger"] == "phy0rx" and "phy0rx" in by["phy0-led"]["name"]
+    assert by["phy0-led"]["trigger"] == "phy0rx" and by["phy0-led"]["name"] == "phy0-led"
+    assert "phy0rx" in by["phy0-led"]["note"] and "warning" not in by["phy0-led"]
+    assert "note" not in by["input3::capslock"]  # trigger none: no note
     assert by["phy0-led"]["config"] == {"led": "phy0-led"}
     assert sysled.SysLedBackend.autoconnect is False and sysled.SysLedBackend.bluetooth is False
 
@@ -480,7 +482,7 @@ def test_serial_discover_opens_nothing(monkeypatch, tmp_path):
     monkeypatch.setattr(serialmod, "serial_for_url", no_open)
     found = run(sbackend.SerialBackend(FakeCtx()).discover(0))
     assert found == [{"kind": "serial", "address": str(byid / "usb-1a86_USB_Serial-if00-port0"),
-                      "name": "USB Serial (1a86:7523)",
+                      "name": "USB Serial", "note": "USB 1a86:7523",
                       "config": {"port": str(byid / "usb-1a86_USB_Serial-if00-port0"),
                                  "protocol": "adalight", "baud": 115200, "leds": 1}}]
     assert sbackend.SerialBackend.autoconnect is False and sbackend.SerialBackend.bluetooth is False

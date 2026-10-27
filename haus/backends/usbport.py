@@ -229,12 +229,15 @@ class UsbPortBackend(Backend):
             seen.update({name} | ({peer.name} if peer else set()))
             where = location(name) + (f" / {location(peer.name)}" if peer else "")
             hub, device = port.hub(), port.device()
-            label = tr(f"USB port {where} · {hub}", f"USB-Port {where} · {hub}")
+            label = tr(f"USB port {location(name)}", f"USB-Port {location(name)}")
+            note = f"{where} · {hub}"
             if device:
-                label += tr(f" · {device}: switching off disconnects it",
-                            f" · {device}: Ausschalten trennt es")
-            entry = {"kind": self.kind, "address": name, "name": label, "location": where, "hub": hub,
-                     "device": device, "config": {"port": name}}
+                note += tr(f" · {device} attached: switching off disconnects it",
+                           f" · {device} angeschlossen: Ausschalten trennt es")
+            entry = {"kind": self.kind, "address": name, "name": label, "note": note, "location": where,
+                     "hub": hub, "device": device, "config": {"port": name}}
+            if device:
+                entry["warning"] = True
             found.append(entry)
         return found
 

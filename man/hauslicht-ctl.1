@@ -129,8 +129,9 @@ for people sensitive to flashing light.
 .SS Add and remove bulbs
 .TP
 \fBdiscover\fR [\fIKIND\fR | \fBbluetooth\fR]
-Replies \fB{discovered: [{kind, address, name, config, known}], errors, access}\fR
-after about 5 s.
+Replies \fB{discovered: [{kind, address, name, note, warning, config, known}], errors, access}\fR
+after about 5 s. \fBname\fR is a default lamp name; \fBnote\fR (optional) holds location details,
+the attached device or a hint, and \fBwarning\fR (optional, true) marks the note as a warning.
 .TP
 \fBadd\fR \fIKIND\fR \fIkey\fR=\fIvalue\fR ...
 Add a bulb; the keys are the backend's \fBfields\fR (see \fBbackends\fR),

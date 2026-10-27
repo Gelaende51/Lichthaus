@@ -212,9 +212,10 @@ class SysLedBackend(Backend):
             if self.own(name):
                 continue
             trig = trigger_of(self._read(name, "trigger"))
-            found.append({"kind": self.kind, "address": name,
-                          "name": name if trig == "none" else f"{name} ({trig})",
-                          "trigger": trig, "config": {"led": name}})
+            entry = {"kind": self.kind, "address": name, "name": name, "trigger": trig, "config": {"led": name}}
+            if trig != "none":
+                entry["note"] = tr(f"trigger: {trig}", f"Auslöser: {trig}")
+            found.append(entry)
         return found
 
     async def add(self, config: dict) -> dict:

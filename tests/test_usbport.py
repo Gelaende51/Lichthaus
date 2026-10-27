@@ -246,14 +246,16 @@ def test_scan_lists_hotplug_sockets_with_location_hub_and_device(ports):
     by = {f["address"]: f for f in found}
     assert by["usb1-port1"] == {
         "kind": "usbport", "address": "usb1-port1", "location": "1-1 / 2-1", "hub": "xHCI Host Controller",
-        "device": "GenesysLogic USB2.0 Hub",
-        "name": "USB port 1-1 / 2-1 · xHCI Host Controller · GenesysLogic USB2.0 Hub: switching off disconnects it",
+        "device": "GenesysLogic USB2.0 Hub", "name": "USB port 1-1", "warning": True,
+        "note": "1-1 / 2-1 · xHCI Host Controller · GenesysLogic USB2.0 Hub attached: switching off disconnects it",
         "config": {"port": "usb1-port1"}}
     assert by["1-1-port1"]["location"] == "1-1.1" and by["1-1-port1"]["hub"] == "GenesysLogic USB2.0 Hub"
     assert by["1-1-port1"]["device"] == "Logitech USB Receiver"
     assert by["usb1-port2"]["device"] is None
-    assert by["usb1-port2"]["name"] == "USB port 1-2 / 2-2 · xHCI Host Controller"
-    assert "disconnects" not in by["1-1-port2"]["name"]
+    assert by["usb1-port2"]["name"] == "USB port 1-2" and by["usb1-port2"]["note"] == "1-2 / 2-2 · xHCI Host Controller"
+    assert "warning" not in by["usb1-port2"]
+    assert by["1-1-port2"]["name"] == "USB port 1-1.2" and "warning" not in by["1-1-port2"]
+    assert "disconnects" not in by["1-1-port2"]["note"]
     # hardwired, not used and the USB 3 halves of a socket are never listed
     assert not {"usb1-port3", "1-1-port4", "usb2-port1", "usb2-port2"} & set(by)
     assert usbport.UsbPortBackend.autoconnect is False and usbport.UsbPortBackend.bluetooth is False
@@ -264,7 +266,8 @@ def test_a_device_on_the_usb3_peer_counts_as_attached(ports):
     os.symlink(os.path.relpath(ports.root / PCI / "usb1/1-3", d), d / "device")
     found = asyncio.run(usbport.UsbPortBackend(FakeCtx()).discover(0))
     entry = next(f for f in found if f["address"] == "usb1-port2")
-    assert entry["device"] == "Chicony Integrated Camera" and "switching off disconnects it" in entry["name"]
+    assert entry["device"] == "Chicony Integrated Camera" and entry["name"] == "USB port 1-2"
+    assert entry["warning"] is True and "Chicony Integrated Camera attached: switching off disconnects it" in entry["note"]
 
 
 def test_add_names_the_socket_by_its_lower_port_and_refuses_others(ports):

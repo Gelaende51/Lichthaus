@@ -343,6 +343,7 @@ def test_ola_set_dmx_and_discover(monkeypatch):
         try:
             found = await be.discover(0.1)
             assert [f["config"]["universe"] for f in found] == [2] and found[0]["config"]["output"] == "ola"
+            assert found[0]["name"].startswith("OLA") and "(" not in found[0]["name"] and "2" in found[0]["note"]
             c = await be.add({"output": "ola", "host": host, "universe": 2, "address": 3, "layout": "dimmer,x=9"})
             b = bulb("dmx", c["id"], **c)
             await be.apply(b, 100)
@@ -358,6 +359,7 @@ def test_ola_set_dmx_and_discover(monkeypatch):
 
 
 def test_artpoll_discover_with_a_fake_node(monkeypatch):
+    monkeypatch.setattr(dmx, "tr", lambda en, de: en)
     node = listener()
     monkeypatch.setattr(dmx, "ARTNET_PORT", node.getsockname()[1])
     monkeypatch.setattr(dmx, "POLL_BIND_PORT", 0)
@@ -385,7 +387,7 @@ def test_artpoll_discover_with_a_fake_node(monkeypatch):
     found = run(main())
     node.close()
     assert found == [{"kind": "dmx", "address": "artnet/192.0.2.9/293",
-                      "name": "Stage box (Art-Net 192.0.2.9, universe 293)",
+                      "name": "Stage box", "note": "Art-Net 192.0.2.9, universe 293",
                       "config": {"output": "artnet", "host": "192.0.2.9", "universe": 293,
                                  "address": 1, "layout": "dimmer"}}]
 
@@ -499,7 +501,7 @@ def test_dmx_discover_opens_no_port(monkeypatch, tmp_path):
     monkeypatch.setattr(dmx.DmxBackend, "_artpoll", nothing)
     monkeypatch.setattr(dmx.DmxBackend, "_ola_universes", nothing)
     found = run(dmx.DmxBackend(FakeCtx()).discover(0.1))
-    assert found == [{"kind": "dmx", "address": str(link), "name": "DMX USB PRO (enttec-pro)",
+    assert found == [{"kind": "dmx", "address": str(link), "name": "DMX USB PRO", "note": "enttec-pro",
                       "config": {"output": "enttec-pro", "port": str(link), "address": 1, "layout": "dimmer"}}]
     assert dmx.DmxBackend.autoconnect is False
     if os.geteuid() != 0:

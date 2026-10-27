@@ -187,3 +187,18 @@ def test_man_page_lists_every_subcommand(page):
     documented = {m.replace("\\-", "-") for m in re.findall(r'^\.TP\n\\fB([a-z\\-]+)\\fR', text, re.M)}
     missing = [n for n in subcommands() if n not in documented]
     assert not missing, f"{page} lacks {missing}: run dev/gen-man.py"
+
+
+def test_discover_prints_the_note_after_the_name(capsys):
+    cli.print_discovered({"discovered": [
+        {"kind": "usbport", "address": "usb1-port1", "name": "USB port 1-1", "warning": True,
+         "note": "1-1 / 2-1 · xHCI · Cam attached: switching off disconnects it", "config": {"port": "usb1-port1"}},
+        {"kind": "usbport", "address": "usb1-port2", "name": "USB port 1-2", "note": "1-2 / 2-2 · xHCI",
+         "config": {"port": "usb1-port2"}},
+        {"kind": "mock", "address": "mock-1", "name": "Mock bulb 1", "config": {"address": "mock-1"}}]})
+    lines = capsys.readouterr().out.splitlines()
+    warn, plain = cli._("warning: "), "(1-2 / 2-2 · xHCI)"
+    assert lines[0].startswith(f"usbport  usb1-port1  'USB port 1-1'  ({warn}1-1 / 2-1 · xHCI · Cam attached")
+    assert lines[0].endswith("add: hauslicht add usbport port=usb1-port1")
+    assert lines[1] == f"usbport  usb1-port2  'USB port 1-2'  {plain}  add: hauslicht add usbport port=usb1-port2"
+    assert lines[2] == "mock  mock-1  'Mock bulb 1'  add: hauslicht add mock address=mock-1"

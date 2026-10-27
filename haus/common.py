@@ -347,6 +347,7 @@ GERMAN = {
     "(taking it leaves BlueZ without an adapter)": "(nimmt BlueZ den letzten Adapter)",
     "nothing found": "nichts gefunden",
     "(added already)": "(schon hinzugefügt)",
+    "warning: ": "Warnung: ",
     "ready": "bereit",
     "needs {missing}": "braucht {missing}",
     "required": "Pflichtfeld",

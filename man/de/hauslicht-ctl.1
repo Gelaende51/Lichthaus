@@ -131,7 +131,9 @@ Blitzt schnell: nicht f\[u00FC]r Menschen, die empfindlich auf Lichtblitze reagi
 .SS Lampen hinzuf\[u00FC]gen und entfernen
 .TP
 \fBdiscover\fR [\fIART\fR | \fBbluetooth\fR]
-Antwortet nach etwa 5 s \fB{discovered: [{kind, address, name, config, known}], errors, access}\fR.
+Antwortet nach etwa 5 s \fB{discovered: [{kind, address, name, note, warning, config, known}], errors, access}\fR.
+\fBname\fR ist ein Vorschlag f\[u00FC]r den Lampennamen; \fBnote\fR (optional) nennt Ort, angeschlossenes
+Ger\[u00E4]t oder einen Hinweis, \fBwarning\fR (optional, true) markiert den Hinweis als Warnung.
 .TP
 \fBadd\fR \fIART\fR \fISchl\[u00FC]ssel\fR=\fIWert\fR ...
 Eine Lampe hinzuf\[u00FC]gen; die Schl\[u00FC]ssel sind die \fBfields\fR des Backends (siehe

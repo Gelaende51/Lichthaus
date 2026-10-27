@@ -283,7 +283,10 @@ def print_discovered(r: dict) -> None:
         print(_("nothing found"))
     for d in found:
         config = " ".join(f"{k}={v}" for k, v in (d.get("config") or {}).items())
-        print(f"{d.get('kind')}  {d.get('address')}  {d.get('name', '')!r}  "
+        note = str(d.get("note") or "").strip()
+        if note:
+            note = f"({_('warning: ') if d.get('warning') else ''}{note})  "
+        print(f"{d.get('kind')}  {d.get('address')}  {d.get('name', '')!r}  {note}"
               + (_("(added already)") if d.get("known") else f"add: hauslicht add {d.get('kind')} {config}".rstrip()))
     for kind, why in (r.get("errors") or {}).items():
         print(f"{kind}: {why}", file=sys.stderr)

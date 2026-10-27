@@ -254,7 +254,7 @@ class SerialBackend(Backend):
             address = by_id_of(p.device) or p.device
             desc = p.description if p.description and p.description != "n/a" else p.device
             entry = {"kind": self.kind, "address": address,
-                     "name": f"{desc} ({p.vid:04x}:{p.pid:04x})",
+                     "name": desc, "note": f"USB {p.vid:04x}:{p.pid:04x}",
                      "config": {"port": address, "protocol": "adalight", "baud": BAUD, "leds": 1}}
             if not os.access(p.device, os.R_OK | os.W_OK):
                 entry["access"] = False

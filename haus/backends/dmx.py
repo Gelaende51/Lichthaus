@@ -648,7 +648,8 @@ class DmxBackend(Backend):
         finally:
             sock.close()
         return [{"kind": self.kind, "address": f"artnet/{n['ip']}/{n['universe']}",
-                 "name": f"{n['name']} (Art-Net {n['ip']}, universe {n['universe']})",
+                 "name": n["name"], "note": tr(f"Art-Net {n['ip']}, universe {n['universe']}",
+                                               f"Art-Net {n['ip']}, Universum {n['universe']}"),
                  "config": {"output": "artnet", "host": n["ip"], "universe": n["universe"],
                             "address": 1, "layout": "dimmer"}} for n in nodes.values()]
 
@@ -659,7 +660,8 @@ class DmxBackend(Backend):
         if not universes:
             universes = [{"id": 1, "name": ""}]
         return [{"kind": self.kind, "address": f"ola/{u.get('id')}",
-                 "name": f"OLA {u.get('name') or ''} (universe {u.get('id')})".replace("OLA  ", "OLA "),
+                 "name": f"OLA {u.get('name') or ''}".strip(),
+                 "note": tr(f"universe {u.get('id')}", f"Universum {u.get('id')}"),
                  "config": {"output": "ola", "host": OLA_HOST, "universe": int(u.get("id", 1)),
                             "address": 1, "layout": "dimmer"}} for u in universes]
 
@@ -676,7 +678,7 @@ class DmxBackend(Backend):
             address = by_id_of(p.device) or p.device
             desc = p.description if p.description and p.description != "n/a" else p.device
             output = "enttec-pro" if "pro" in f"{p.product or ''} {desc}".lower() else "opendmx"
-            entry = {"kind": self.kind, "address": address, "name": f"{desc} ({output})",
+            entry = {"kind": self.kind, "address": address, "name": desc, "note": output,
                      "config": {"output": output, "port": address, "address": 1, "layout": "dimmer"}}
             if not os.access(p.device, os.R_OK | os.W_OK):
                 entry["access"] = False
