@@ -114,6 +114,17 @@ mock backend (`haus/backends/mock.py`) is the smallest complete example.
   lines; the port by its `/dev/serial/by-id/` name; `discover` never opens a port
   (DTR resets an Arduino), `add` and the bulb do, and keep it open.
 
+- `usbport`: a USB port's 5 V for power-only lamps; `onoff` only (step 100).
+  The root helper `install/usb-port-power PORT on|off` (sudo, setup v6) writes
+  the port's sysfs `disable` (Linux 6.0+) and its USB 3 `peer`'s; it refuses
+  any port whose `connect_type` is not `hotplug`. The state is read from
+  `disable` (`query`: off only when the port and its peer are both disabled).
+  `discover` lists each hotplug socket once (by its lower port), with
+  `location` (bus/port path), `hub` and `device` (a data device on the port,
+  which switching off disconnects). `SYSFS`, `HELPER` and `SUDO` in the
+  module are what tests replace. Whether the 5 V really drops is the hub's
+  business: see the README.
+
 None of them autoconnects, has `powerup` or `flick`, or switches anything at
 daemon stop.
 

@@ -187,3 +187,185 @@ def test_setup_v6_installs_the_helper_for_sudo():
     assert "SETENV" not in script  # the test root can never be passed through sudo
     assert os.access(HELPER, os.X_OK)
     assert HELPER.read_text().startswith("#!/usr/bin/python3 -I\n")
+
+
+# ------------------------------------------------------------------ the backend
+
+import asyncio  # noqa: E402
+from types import SimpleNamespace  # noqa: E402
+
+from haus.backends import NeedsAccess, Offline, usbport  # noqa: E402
+from haus.common import UserError  # noqa: E402
+from haus.profiles import new_state  # noqa: E402
+from test_core import cmd as daemon_cmd, run as run_daemon, settle  # noqa: E402
+
+
+class FakeCtx:
+    def __init__(self):
+        self.events = []
+
+    def bulbs(self):
+        return []
+
+    def power_returned(self, bid, gap):
+        self.events.append(("returned", bid, gap))
+
+    def changed(self):
+        self.events.append(("changed",))
+
+
+def fake_helper(tmp_path: Path, exit_code: int = 0, message: str = "") -> tuple[Path, Path]:
+    """A stand-in for the root helper: logs its arguments, exits as told."""
+    log = tmp_path / "helper.log"
+    script = tmp_path / "fake-usb-port-power"
+    script.write_text(
+        "import sys\n"
+        f"open({str(log)!r}, 'a').write(' '.join(sys.argv[1:]) + '\\n')\n"
+        f"sys.stderr.write({message!r})\n"
+        f"sys.exit({exit_code})\n")
+    return script, log
+
+
+@pytest.fixture
+def ports(sysfs, tmp_path, monkeypatch):
+    monkeypatch.setattr(usbport, "SYSFS", sysfs)
+    monkeypatch.setattr(usbport, "SUDO", (sys.executable, "-I"))
+    monkeypatch.setattr(usbport, "tr", lambda en, de: en)
+    script, log = fake_helper(tmp_path)
+    monkeypatch.setattr(usbport, "HELPER", str(script))
+    return SimpleNamespace(root=sysfs, log=log, tmp=tmp_path)
+
+
+def bulb(bid, config):
+    return SimpleNamespace(id=bid, name=bid, config=config)
+
+
+def test_scan_lists_hotplug_sockets_with_location_hub_and_device(ports):
+    found = asyncio.run(usbport.UsbPortBackend(FakeCtx()).discover(0))
+    assert [f["address"] for f in found] == ["usb1-port1", "1-1-port1", "1-1-port2", "usb1-port2"]
+    by = {f["address"]: f for f in found}
+    assert by["usb1-port1"] == {
+        "kind": "usbport", "address": "usb1-port1", "location": "1-1 / 2-1", "hub": "xHCI Host Controller",
+        "device": "GenesysLogic USB2.0 Hub",
+        "name": "USB port 1-1 / 2-1 · xHCI Host Controller · GenesysLogic USB2.0 Hub: switching off disconnects it",
+        "config": {"port": "usb1-port1"}}
+    assert by["1-1-port1"]["location"] == "1-1.1" and by["1-1-port1"]["hub"] == "GenesysLogic USB2.0 Hub"
+    assert by["1-1-port1"]["device"] == "Logitech USB Receiver"
+    assert by["usb1-port2"]["device"] is None
+    assert by["usb1-port2"]["name"] == "USB port 1-2 / 2-2 · xHCI Host Controller"
+    assert "disconnects" not in by["1-1-port2"]["name"]
+    # hardwired, not used and the USB 3 halves of a socket are never listed
+    assert not {"usb1-port3", "1-1-port4", "usb2-port1", "usb2-port2"} & set(by)
+    assert usbport.UsbPortBackend.autoconnect is False and usbport.UsbPortBackend.bluetooth is False
+
+
+def test_a_device_on_the_usb3_peer_counts_as_attached(ports):
+    d = port_dir(ports.root, "usb2-port2")
+    os.symlink(os.path.relpath(ports.root / PCI / "usb1/1-3", d), d / "device")
+    found = asyncio.run(usbport.UsbPortBackend(FakeCtx()).discover(0))
+    entry = next(f for f in found if f["address"] == "usb1-port2")
+    assert entry["device"] == "Chicony Integrated Camera" and "switching off disconnects it" in entry["name"]
+
+
+def test_add_names_the_socket_by_its_lower_port_and_refuses_others(ports):
+    be = usbport.UsbPortBackend(FakeCtx())
+    cfg = asyncio.run(be.add({"port": " usb2-port2 "}))
+    assert cfg == {"port": "usb1-port2", "peer": "usb2-port2", "id": "usb1-port2"}
+    assert asyncio.run(be.add({"port": "1-1-port2"})) == {"port": "1-1-port2", "id": "1-1-port2"}
+    with pytest.raises(UserError, match="not a socket"):
+        asyncio.run(be.add({"port": "usb1-port3"}))
+    for bad in ("usb9-port1", "../usb1-port2", "usb1-port2/.."):
+        with pytest.raises(UserError, match="no USB port"):
+            asyncio.run(be.add({"port": bad}))
+
+
+def test_onoff_through_the_helper_state_from_disable(ports):
+    async def body():
+        ctx = FakeCtx()
+        be = usbport.UsbPortBackend(ctx)
+        b = bulb("usbport:usb1-port2", {"port": "usb1-port2", "peer": "usb2-port2"})
+        assert be.caps(b) == {"onoff"} and be.step(b) == 100.0 and be.min_lit(b) == 100.0
+        await be.apply(b, 0)
+        await be.apply(b, 37)
+        assert ports.log.read_text().splitlines() == ["usb1-port2 off", "usb1-port2 on"]
+        assert be.status(b) == {"connected": True, "online": True}
+        assert await be.query(b) == {"on": True, "percent": 100.0}
+        (port_dir(ports.root, "usb1-port2") / "disable").write_text("1\n")
+        assert await be.query(b) == {"on": True, "percent": 100.0}  # the peer still feeds the socket
+        (port_dir(ports.root, "usb2-port2") / "disable").write_text("1\n")
+        assert await be.query(b) == {"on": False, "percent": 0.0}
+        assert be.details(b)["location"] == "1-2" and be.details(b)["hub"] == "xHCI Host Controller"
+        await be.stop()
+    asyncio.run(body())
+
+
+def test_helper_errors_reach_the_user(ports, monkeypatch):
+    async def body():
+        be = usbport.UsbPortBackend(FakeCtx())
+        b = bulb("usbport:1-1-port2", {"port": "1-1-port2"})
+        script, _log = fake_helper(ports.tmp, 2, "refused: 1-1-port2: connect_type is 'hardwired'\n")
+        monkeypatch.setattr(usbport, "HELPER", str(script))
+        with pytest.raises(UserError, match="hardwired"):
+            await be.apply(b, 100)
+        script, _log = fake_helper(ports.tmp, 1, "1-1-port2: off failed: Invalid argument\n")
+        monkeypatch.setattr(usbport, "HELPER", str(script))
+        with pytest.raises(OSError, match="Invalid argument"):
+            await be.apply(b, 0)
+        monkeypatch.setattr(usbport, "HELPER", str(ports.tmp / "not-installed"))
+        with pytest.raises(NeedsAccess, match="system setup v6"):
+            await be.apply(b, 0)
+        with pytest.raises(NeedsAccess, match="system setup v6"):
+            await be.add({"port": "1-1-port2"})
+        await be.stop()
+    asyncio.run(body())
+
+
+def test_a_gone_port_is_offline(ports):
+    async def body():
+        ctx = FakeCtx()
+        be = usbport.UsbPortBackend(ctx)
+        b = bulb("usbport:1-1-port2", {"port": "1-1-port2"})
+        await be.apply(b, 100)
+        os.unlink(ports.root / "bus" / "usb" / "devices" / "1-1:1.0")  # the hub unplugged
+        with pytest.raises(Offline):
+            await be.apply(b, 0)
+        assert be.status(b) == {"connected": False, "online": False}
+        assert ports.log.read_text().splitlines() == ["1-1-port2 on"]
+        await be.stop()
+    asyncio.run(body())
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="the test sysfs is ignored as root")
+def test_backend_with_the_real_helper_on_the_fake_tree(ports, monkeypatch):
+    monkeypatch.setattr(usbport, "HELPER", str(HELPER))
+    monkeypatch.setenv("HAUSLICHT_TEST_USB_SYSFS", str(ports.root))
+
+    async def body():
+        be = usbport.UsbPortBackend(FakeCtx())
+        b = bulb("usbport:usb1-port2", {"port": "usb1-port2"})
+        await be.apply(b, 0)
+        assert disabled(ports.root, "usb1-port2") == "1" and disabled(ports.root, "usb2-port2") == "1"
+        assert await be.query(b) == {"on": False, "percent": 0.0}
+        await be.apply(b, 100)
+        assert await be.query(b) == {"on": True, "percent": 100.0}
+        await be.stop()
+    asyncio.run(body())
+
+
+def test_daemon_discover_add_and_known(ports, tmp_path, monkeypatch):
+    from haus import backends as registry
+    reg = dict(registry.registry())
+    reg["usbport"] = registry.Info("usbport", usbport.UsbPortBackend, [])
+    monkeypatch.setattr(registry, "_registry", reg)
+
+    async def body(d):
+        out = await daemon_cmd(d, "discover", "usbport")
+        assert [x["address"] for x in out["discovered"]] == ["usb1-port1", "1-1-port1", "1-1-port2", "usb1-port2"]
+        assert not any(x["known"] for x in out["discovered"])
+        await daemon_cmd(d, "add", "usbport", "port=usb2-port2", "name=Shelf")
+        assert d.bulbs["usbport:usb1-port2"].config == {"port": "usb1-port2", "peer": "usb2-port2"}
+        out = await daemon_cmd(d, "discover", "usbport")
+        assert [x["address"] for x in out["discovered"] if x["known"]] == ["usb1-port2"]
+        await settle(d)
+        assert set(ports.log.read_text().split()) <= {"usb1-port2", "on", "off"}
+    run_daemon(tmp_path, new_state(), body)

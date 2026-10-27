@@ -1,4 +1,4 @@
-"""Helpers for the wiz, lifx, yeelight, govee, huebt, ledble, sysled, usblight and serial backends
+"""Helpers for the wiz, lifx, yeelight, govee, huebt, ledble, sysled, usblight, usbport and serial backends
 (the colour helpers at the end also for kasa, hue, shelly and tasmota).
 
 Not a backend: the registry skips modules whose name starts with "_".
