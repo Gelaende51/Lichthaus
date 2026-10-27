@@ -117,6 +117,17 @@ onto Linux. Worth reporting upstream where marked.
   advert phase. Still to see on a real wall-switch flick: that a power cycle
   of ~1 s restarts the count (a supply that keeps the chip alive is no reboot
   and now rightly no flick), and the delay the extra Get adds before the toggle.
+- **The boot count wraps through the fresh zone about every 45 minutes**: it
+  goes up with every Get, and the daemon reads it on each off-beat advert
+  (several a minute). A clearing walk cut short by a broken link leaves the
+  reference inside 1–4 (2026-10-26 23:09: "moved to 2", then "2 -> 4:
+  unknown"), and "unknown" counted as a reboot made the daemon switch the
+  light on itself through the armed OnPowerUp (8 times 2026-10-23..27, also
+  by night; the "counted as power back" path too). An undecidable count is
+  now settled by the bulb's state on the new link (Light Lightness Get,
+  before anything is sent): as OnPowerUp is armed → a reboot; as last set →
+  a link drop; unread → waits for a link that reads it; what was set or the
+  arming not known (or restore) → no action, never a reboot by default.
 
 ## Several bulbs (the haus/ package)
 - KWin Night Light's `running` is true day and night whenever Night Light is

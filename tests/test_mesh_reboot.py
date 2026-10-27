@@ -65,6 +65,8 @@ class FakeLink:
         self.clock = time.monotonic
         self.dead = False  # no power: nothing adverts, connecting finds nothing
         self.on_connect = None  # called before a link comes up (a slow connect moves the clock)
+        self.lit_now: bool | None = None  # what Light Lightness Get reports (lightness > 0)
+        self.state_answers = True
 
     @property
     def connected(self) -> bool:
@@ -98,7 +100,14 @@ class FakeLink:
     async def set_level(self, addr: int, percent: float, scale: int = 100) -> float | None:
         await self._maybe_hang()
         self.log.append(("level", percent))
+        self.lit_now = percent > 0
         return percent
+
+    async def lit(self, addr: int) -> bool | None:
+        await self._maybe_hang()
+        value = self.lit_now if self.state_answers else None
+        self.log.append(("lit", value))
+        return value
 
     async def get_onpowerup(self, addr: int) -> int | None:
         await self._maybe_hang()
@@ -428,12 +437,23 @@ def test_reboot_after_drop_is_a_power_return():
     assert [e[:2] for e in events] == [("power", BID)]
 
 
-def test_unknown_keeps_todays_behaviour(caplog):
-    """A bulb that never answered the vendor Get (no counter): the old rules."""
-    device = FakeBulb(count=40, answers=False)
+def counterless_return(comes_up: bool) -> list[tuple]:
+    async def run():
+        device = FakeBulb(count=40, answers=False)
+        b = await armed(device, lit=False)  # off, OnPowerUp on
+
+        def between():
+            b.link.lit_now = comes_up
+        return await drop_and_return(b, between)
+    return asyncio.run(run())
+
+
+def test_unknown_without_a_counter_is_decided_by_the_state(caplog):
+    """A bulb that never answered the vendor Get (no counter): before, every
+    return counted as power back; now the bulb's state decides."""
     caplog.set_level("INFO", logger="hauslicht")
-    events = asyncio.run(drop_and_return(backend(device), lambda: None))
-    assert [e[:2] for e in events] == [("power", BID)]
+    assert [e[:2] for e in counterless_return(comes_up=True)] == [("power", BID)]
+    assert counterless_return(comes_up=False) == []
     assert "boot count unknown" in caplog.text
 
 
@@ -810,9 +830,178 @@ def test_a_real_second_flick_inside_the_holdoff_still_toggles(clock):
     assert verdict == REBOOTED and events == [("flick", BID)] * 2
 
 
-def test_unknown_after_the_holdoff_counts_as_before(clock):
+def test_unknown_after_the_holdoff_without_a_known_state_is_no_flick(clock):
+    """Before: counted as a reboot. Now the bulb's state decides, and with
+    nothing set since the flick there is nothing to compare it with."""
     events, verdict = flick_then_check(clock, mesh.FLICK_HOLDOFF_S + 1, reboot_again=False)
-    assert verdict == UNKNOWN and events == [("flick", BID)] * 2
+    assert verdict == UNKNOWN and events == [("flick", BID)]
+
+
+# ------------------------------------------------------------ an undecidable count: the bulb's state decides
+
+
+async def armed(device: FakeBulb, lit: bool) -> MeshBackend:
+    """Connected, the light set lit or dark, OnPowerUp armed the other way (as the core arms it)."""
+    b = backend(device)
+    b.online = True
+    await b._link_up()
+    assert await b.set_powerup(b.ctx.bulb, "off" if lit else "on")
+    await b.apply(b.ctx.bulb, 20 if lit else 0)
+    assert b.link.log[-1] == ("level", 20 if lit else 0)
+    return b
+
+
+def interrupted_clear(b: MeshBackend, device: FakeBulb) -> None:
+    """2026-10-26 23:09: the reference 252 was walked through the wrap and the
+    link broke at 2 ("reference moved to 2"); the Get cancelled on the old
+    link counted as well: the next read is 4, "2 -> 4: unknown"."""
+    b.boot_counts[2] = 2
+    device.count = 3
+
+
+def wrap_replay(lit_set: bool, comes_up: bool | None, answers: bool = True):
+    """The off-beat advert of 23:09:04 after an interrupted clearing; the new
+    link's Light Lightness Get reports `comes_up` (or nothing)."""
+    async def run():
+        device = FakeBulb(count=251)  # the first read: 252
+        b = await armed(device, lit_set)
+        interrupted_clear(b, device)
+        await asyncio.sleep(0.01)
+        b.link.lit_now = comes_up
+        b.link.state_answers = answers
+        b.link.log.clear()
+        b.force_reconnect = True
+        await b.verify_flick(b.ctx.bulb, time.monotonic())
+        return b
+    return run
+
+
+def test_unknown_count_with_the_bulb_still_as_set_is_no_flick(caplog):
+    """23:09:06 "boot count 2 -> 4: unknown: counted as a reboot", flick -> on:
+    the bulb, switched off at 22:16, came on by the daemon's own hand."""
+    caplog.set_level("INFO", logger="hauslicht")
+
+    async def run():
+        b = await wrap_replay(lit_set=False, comes_up=False)()
+        assert b.boot_verdicts[2][1] == UNKNOWN
+        assert b.ctx.events == []
+        assert b.link.log == [("boot", 4), ("lit", False)]  # read, nothing sent
+        assert not b.suspects and b.online is True
+    asyncio.run(run())
+    assert "still off as set: link drop, no flick" in caplog.text
+
+
+def test_unknown_count_with_the_bulb_up_as_armed_is_a_flick():
+    async def run():
+        b = await wrap_replay(lit_set=False, comes_up=True)()
+        assert b.ctx.events == [("flick", BID)]
+        assert b.link.log == [("boot", 4), ("lit", True)]
+    asyncio.run(run())
+
+
+def test_unknown_count_mirror_lit_and_armed_off_is_no_flick():
+    async def run():
+        b = await wrap_replay(lit_set=True, comes_up=True)()
+        assert b.ctx.events == [] and not b.suspects
+        assert b.link.log == [("boot", 4), ("lit", True)]
+    asyncio.run(run())
+
+
+def test_unknown_count_with_the_state_unread_waits_for_a_later_read():
+    async def run():
+        b = await wrap_replay(lit_set=False, comes_up=True, answers=False)()
+        assert b.ctx.events == []  # never a reboot by default
+        assert 2 in b.suspects and b.online is False  # kept: the return reads again
+        assert not [op for op in b.link.log if op[0] in ("level", "powerup_set")]
+        await asyncio.sleep(0.05)
+        b.link.state_answers = True  # the next link reads it: up as armed, a reboot
+        b.back_seen[2] = time.monotonic()
+        b.bulb_seen.set()
+        await asyncio.wait_for(b.presence_task, 2)
+        assert [e[:2] for e in b.ctx.events] == [("power", BID)]
+        assert not b.suspects and not b.state_wanted and b.online is True
+    asyncio.run(run())
+
+
+def test_unknown_count_on_a_return_with_the_bulb_as_set_is_no_power_back(caplog):
+    """2026-10-27 02:53: "boot count unknown: drop or reboot cannot be told;
+    counted as power back", then flick -> on."""
+    caplog.set_level("INFO", logger="hauslicht")
+
+    async def run():
+        device = FakeBulb(count=251)
+        b = await armed(device, lit=False)
+        interrupted_clear(b, device)
+        b.link.log.clear()
+        b.link.client = SimpleNamespace(is_connected=False)  # the link died
+        b.bulb_lost()
+        await asyncio.sleep(0.05)
+        b.bulb_seen.set()
+        await asyncio.wait_for(b.presence_task, 2)
+        assert b.ctx.events == [] and b.online is True
+        assert b.link.log == [("boot", 4), ("lit", False)]
+    asyncio.run(run())
+    assert "still off as set: link drop, no power back" in caplog.text
+
+
+def test_no_boot_count_read_with_the_bulb_as_set_is_no_flick():
+    """A bulb without a counter, an off-beat advert, no link on the first try:
+    before, "no boot count read: counted as a reboot"."""
+    async def run():
+        device = FakeBulb(count=40, answers=False)
+        b = await armed(device, lit=False)
+        await b.link.close()
+        await b._link_up()
+        assert b.boot_misses[2] == mesh.BOOT_MISSES  # no counter
+        b.suspects[2] = time.monotonic()
+        b.link.client = SimpleNamespace(is_connected=False)
+        b.link.dead = True  # the return's first connect finds nothing
+        b.bulb_lost()
+        await asyncio.sleep(0.05)
+        b.back_seen[2] = time.monotonic()
+        b.bulb_seen.set()
+        await asyncio.sleep(0.05)
+        assert b.ctx.events == [] and not b.presence_task.done()  # waits for a link that reads the state
+        b.link.dead = False
+        b.link.log.clear()
+        b.bulb_seen.set()
+        await asyncio.wait_for(b.presence_task, 2)
+        assert b.ctx.events == [] and not b.suspects
+        assert b.link.log == [("lit", False)]
+    asyncio.run(run())
+
+
+def test_unknown_count_without_a_known_setting_takes_no_action():
+    """Nothing set since the start: no state to compare with, and no default."""
+    async def run():
+        device = FakeBulb(count=251)
+        b = backend(device)
+        b.online = True
+        await b._link_up()
+        assert await b.set_powerup(b.ctx.bulb, "on")
+        interrupted_clear(b, device)
+        await asyncio.sleep(0.01)
+        b.force_reconnect = True
+        b.link.log.clear()
+        await b.verify_flick(b.ctx.bulb, time.monotonic())
+        assert b.ctx.events == [] and not b.suspects
+        assert b.link.log == [("boot", 4)]  # no state read either
+    asyncio.run(run())
+
+
+def test_unknown_count_with_restore_armed_takes_no_action():
+    async def run():
+        device = FakeBulb(count=251)
+        b = await armed(device, lit=False)
+        assert await b.set_powerup(b.ctx.bulb, "restore")
+        interrupted_clear(b, device)
+        await asyncio.sleep(0.01)
+        b.link.lit_now = True
+        b.force_reconnect = True
+        b.link.log.clear()
+        await b.verify_flick(b.ctx.bulb, time.monotonic())
+        assert b.ctx.events == [] and not b.suspects
+    asyncio.run(run())
 
 
 # ------------------------------------------------------------ the scanner after a failed connect

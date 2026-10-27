@@ -632,6 +632,12 @@ class MeshLink:
             "percent": percent,
         }
 
+    async def lit(self, addr: int) -> bool | None:
+        """Light Lightness Get: lit or dark (where it is heading while it
+        fades); None: no answer."""
+        resp = await self._request(addr, light_lightness_get(), OP_LIGHT_LIGHTNESS_STATUS)
+        return None if resp is None else lightness_of(resp) > 0
+
     async def get_onpowerup(self, addr: int) -> int | None:
         resp = await self._request(addr, encode_opcode(OP_ONPOWERUP_GET), OP_ONPOWERUP_STATUS)
         return None if resp is None or not resp.params else resp.params[0]
@@ -896,6 +902,12 @@ class MeshBackend(Backend):
         self.decided_at: dict[int, float] = {}  # addr -> when its last flick/return was reported (FLICK_HOLDOFF_S)
         self.rearm: dict[int, float] = {}  # addr -> connected_at of a link after a reboot, OnPowerUp not yet sent
         self.held: dict[int, tuple[float, int]] = {}  # addr -> (percent, scale) waiting for the OnPowerUp Set
+        # An undecidable boot count is settled by the bulb's state (_by_state):
+        # what the last answered level Set made it (lit or dark; unknown while
+        # one is unanswered), and what a new link read
+        self.sent_on: dict[int, bool] = {}
+        self.state_reads: dict[int, tuple[float, bool | None]] = {}  # addr -> (connected_at, lit or None: unanswered)
+        self.state_wanted: set[int] = set()  # addrs whose decision waits for a link that reads the state
         self.arm_on = 0.0  # connected_at of the link whose first arming is done (the link-timeout update waits)
         # Exclusive: connected_at of the last session not proven to be the same
         # boot of the same bulb (status()'s link_epoch; see _link_up)
@@ -1208,6 +1220,7 @@ class MeshBackend(Backend):
                 self.force_reconnect = False
                 self.suspects.clear()
                 self.back_seen.clear()
+                self.state_wanted.clear()
                 await self.link.close()
                 await self._stop_scanner()
             if self.radio is not None:
@@ -1269,6 +1282,8 @@ class MeshBackend(Backend):
                     # exclusive: a session is no new connection; the same boot kept
                     # the OnPowerUp read on the last one (one Get less per check)
                     self.read_on[addr] = at
+                if self._wants_state(addr, at, verdict):
+                    await self._read_state(addr, at)
                 self._settle_suspect(addr, verdict)
             same = bool(addrs) and all(self.boot_verdicts[a] == (at, SAME) for a in addrs)
         finally:
@@ -1303,6 +1318,8 @@ class MeshBackend(Backend):
         self.reports[addr] = self.reports.get(addr, 0) + 1
         self.decided_at[addr] = time.monotonic()
         self.colour_now.pop(addr, None)  # rebooted: it may show its power-up colour now
+        self.sent_on.pop(addr, None)  # it shows its power-up state now, until the core sets the new one
+        self.state_wanted.discard(addr)
         link_at = self.link.connected_at if self.link is not None and self.link.connected else None
         if link_at is None or self.boot_read_on.get(addr) != link_at:
             self.boot_unread.add(addr)
@@ -1315,12 +1332,25 @@ class MeshBackend(Backend):
         """An off-beat advert of `addr` is waiting for this verdict, read on a
         new link: the same boot is a link drop; a reboot (or when it cannot be
         told) is decided by how long the bulb was gone (_decide), right here,
-        so the core's next call already carries the new state."""
+        so the core's next call already carries the new state. When the count
+        cannot tell, the bulb's state read on the new link does (_by_state),
+        never a default."""
         at = self.suspects.get(addr)
         if at is None or self.stopping:
             return
-        if verdict == UNKNOWN and self._count_unread(addr, at):
+        if verdict == SAME and addr in self.state_wanted:
+            # on from a reference that could not tell: says nothing about the
+            # advert waited on; only the state (or a restarted count) decides
+            verdict = UNKNOWN
+        by_state = self._by_state(addr, at) if verdict == UNKNOWN else None
+        if verdict == UNKNOWN and by_state in (None, UNKNOWN) and self._count_unread(addr, at):
             return  # kept: a link that reads the count decides (verify_flick / await_bulb)
+        if by_state == UNKNOWN and not self._holding_off(addr):
+            self.state_wanted.add(addr)
+            log.info("0x%04x: off-beat advert, boot count unknown, on/off state unread: kept: "
+                     "a link that reads the count or the state decides", addr)
+            return
+        self.state_wanted.discard(addr)
         self.suspects.pop(addr, None)
         back = self.back_seen.pop(addr, None)
         bulb = self._bulb_at(addr)
@@ -1334,7 +1364,8 @@ class MeshBackend(Backend):
                 log.info("%s: off-beat advert %.1f s after the last flick, boot count unknown: "
                          "no second flick without a restarted count", bulb.id, at - self.decided_at[addr])
                 return
-            log.info("%s: off-beat advert, boot count unknown: counted as a reboot", bulb.id)
+            if not self._rebooted_by_state(bulb, by_state, "off-beat advert, boot count unknown"):
+                return
         link_at = self.link.connected_at if self.link is not None else time.monotonic()
         self._decide(bulb, at, link_at if back is None else min(back, link_at))
 
@@ -1355,6 +1386,78 @@ class MeshBackend(Backend):
         of 2026-10-20: 30 "flicks" from failed connects, the count went on
         5 -> 38 through all of them)."""
         return self._has_counter(addr) and self.boot_read_on.get(addr, 0.0) <= since
+
+    # An undecidable boot count (the counter wraps through 1..BOOT_SLACK about
+    # every 45 minutes; a clearing cut short leaves the reference there: 2026-10-26
+    # 23:09 "2 -> 4: unknown") is settled by the bulb's state. OnPowerUp is armed
+    # to the opposite of what was set: a reboot brings the bulb up in the armed
+    # state, a link drop leaves it as set. Counted as a reboot by default, every
+    # such drop toggled the light (8 times 2026-10-23..27, by night as well).
+
+    def _set_state(self, addr: int) -> bool | None:
+        """Lit or dark as last set, while OnPowerUp is armed the other way;
+        None: a reboot cannot be told from the state (not known what was set,
+        or OnPowerUp unknown, the same, or restore)."""
+        lit = self.sent_on.get(addr)
+        armed = self.device_powerup.get(addr)
+        if lit is None or armed not in (POWERUP_CODES["off"], POWERUP_CODES["on"]):
+            return None
+        return lit if bool(armed) != lit else None
+
+    def _wants_state(self, addr: int, at: float, verdict: str) -> bool:
+        """Read the state on the new link `at`: a count that cannot tell, for
+        an off-beat advert or a return waiting for its verdict."""
+        if self._set_state(addr) is None or self._holding_off(addr):
+            return False
+        if addr in self.state_wanted:
+            return True
+        if verdict != UNKNOWN:
+            return False
+        if self._has_counter(addr) and self.boot_read_on.get(addr) != at:
+            return False  # unread count: a link that reads it decides (_count_unread)
+        return addr in self.suspects or self.online is False
+
+    async def _read_state(self, addr: int, at: float) -> None:
+        """The state on the new link, before anything is sent on it (the held
+        level goes after the arm). Under the lock."""
+        try:
+            lit = await self.link.lit(addr)
+        except Exception as exc:  # LinkAborted too: the link went
+            log.info("0x%04x: on/off state read failed: %s", addr, exc)
+            lit = None
+        self.state_reads[addr] = (at, lit)
+        log.info("0x%04x: on/off state %s, set %s", addr, "unanswered" if lit is None else "on" if lit else "off",
+                 "on" if self._set_state(addr) else "off")
+
+    def _by_state(self, addr: int, since: float) -> str | None:
+        """SAME (as set: a link drop) or REBOOTED (as OnPowerUp is armed) from
+        the state read on a link after `since`; UNKNOWN: not read yet; None:
+        the state cannot tell (_set_state)."""
+        set_lit = self._set_state(addr)
+        if set_lit is None:
+            return None
+        at, lit = self.state_reads.get(addr, (0.0, None))
+        if at <= since or lit is None:
+            return UNKNOWN
+        return SAME if lit == set_lit else REBOOTED
+
+    def _rebooted_by_state(self, bulb, by_state: str | None, what: str, nothing: str = "no flick") -> bool:
+        """Log how the state decided `what` (an unknown count); True: a reboot."""
+        addr = self.addr(bulb)
+        set_lit = self._set_state(addr)
+        word = "on" if set_lit else "off"
+        if by_state == REBOOTED:
+            log.info("%s: %s, the bulb came up %s as OnPowerUp is armed: a reboot",
+                     bulb.id, what, "off" if set_lit else "on")
+            return True
+        if by_state == SAME:
+            log.info("%s: %s, the bulb is still %s as set: link drop, %s", bulb.id, what, word, nothing)
+        elif by_state is None:
+            log.info("%s: %s, not known what it was set to or OnPowerUp not armed the other way: %s",
+                     bulb.id, what, nothing)
+        else:
+            log.info("%s: %s, on/off state unread: %s", bulb.id, what, nothing)
+        return False
 
     def _decide(self, bulb, drop: float, back: float) -> None:
         """A reboot after an off-beat advert at `drop`, the bulb up again at
@@ -1452,6 +1555,7 @@ class MeshBackend(Backend):
                           addr, verdict_at - at, now - verdict_at)
         held = self.held.pop(addr, None)
         if held is not None:
+            self.sent_on.pop(addr, None)
             try:
                 got = await link.set_level(addr, *held)
             except Exception as exc:
@@ -1460,6 +1564,7 @@ class MeshBackend(Backend):
             if got is None:
                 self.held.setdefault(addr, held)  # the next arm or wait sends it
             else:
+                self.sent_on[addr] = held[0] > 0
                 log.debug("0x%04x: held level %.1f %% sent after the arm", addr, held[0])
         color = self.held_color.pop(addr, None)
         bulb = self._bulb_at(addr) if color is not None else None
@@ -1576,12 +1681,14 @@ class MeshBackend(Backend):
                     log.debug("0x%04x: level %.1f %% waits for the OnPowerUp Set", addr, percent)
                     return
                 self.held.pop(addr, None)
+                self.sent_on.pop(addr, None)  # until answered the bulb may show either
                 got = await self.link.set_level(addr, percent, self.scale(bulb))
             except LinkAborted as exc:
                 raise Offline(str(exc)) from exc
             if got is None:
                 await self.link.close()
                 raise ConnectionError(f"0x{addr:04x}: no answer")
+            self.sent_on[addr] = percent > 0
             self._contact()
 
     async def fade(self, bulb, percent: float, seconds: float) -> bool:
@@ -1596,12 +1703,14 @@ class MeshBackend(Backend):
                 if self.reports.get(addr, 0) != asked or self.rearm.get(addr) == self.link.connected_at:
                     return False
                 self.held.pop(addr, None)
+                self.sent_on.pop(addr, None)
                 got = await self.link.set_level(addr, percent, self.scale(bulb), transition_time(seconds))
             except LinkAborted as exc:
                 raise Offline(str(exc)) from exc
             if got is None:
                 await self.link.close()
                 raise ConnectionError(f"0x{addr:04x}: no answer")
+            self.sent_on[addr] = percent > 0  # where it fades to
             self._contact()
         return True
 
@@ -1932,7 +2041,7 @@ class MeshBackend(Backend):
         else:
             log.info("bulb back %.1f s after the drop", gap)
             verdicts = await self.judge_boot(lost, self.lost_at)
-            await self._read_before_deciding(lost, verdicts)
+            await self._read_before_deciding(lost, verdicts, pending)
             for bulb in lost:
                 addr = self.addr(bulb)
                 if addr in pending:  # settled on the new link (_settle_suspect), or decided by the advert now
@@ -1942,8 +2051,9 @@ class MeshBackend(Backend):
                             log.info("%s: off-beat advert right after a flick, no boot count read: no second flick",
                                      bulb.id)
                             continue
-                        log.info("%s: off-beat advert, no boot count read: counted as a reboot", bulb.id)
-                        self._decide(bulb, pending[addr], back)
+                        if self._rebooted_by_state(bulb, self._by_state(addr, pending[addr]),
+                                                   "off-beat advert, no boot count read"):
+                            self._decide(bulb, pending[addr], back)
                     continue
                 verdict = verdicts.get(bulb.id, UNKNOWN)
                 if verdict == SAME:
@@ -1953,26 +2063,62 @@ class MeshBackend(Backend):
                     if self._holding_off(addr):
                         log.info("%s: back right after a flick, boot count unknown: no second flick", bulb.id)
                         continue
-                    log.info("%s: boot count unknown: drop or reboot cannot be told; counted as power back", bulb.id)
+                    if not self._rebooted_by_state(bulb, self._by_state(addr, self.lost_at), "boot count unknown",
+                                                   "no power back"):
+                        continue
                 self._report(self.addr(bulb), self.ctx.power_returned, bulb.id, gap)
+        for bulb in lost:
+            self.state_wanted.discard(self.addr(bulb))
         self.online = True
         self.ctx.changed()
 
-    async def _read_before_deciding(self, lost, verdicts: dict[str, str]) -> None:
+    def _state_unread(self, bulb, verdicts: dict[str, str], pending: dict[int, float]) -> bool:
+        """A returned bulb whose count cannot tell and whose state was not
+        read yet (while the state could tell): never counted as a reboot."""
+        addr = self.addr(bulb)
+        if self._holding_off(addr):
+            return False
+        if addr in pending:
+            if addr not in self.suspects:
+                return False  # settled on a new link (_settle_suspect)
+            since = pending[addr]
+        elif verdicts.get(bulb.id, UNKNOWN) == UNKNOWN:
+            since = self.lost_at
+        else:
+            return False
+        return self._by_state(addr, since) == UNKNOWN
+
+    async def _read_before_deciding(self, lost, verdicts: dict[str, str], pending: dict[int, float]) -> None:
         """A returned bulb with a boot counter is decided on a read count only:
-        until a link reads it, each new advert tries one more connect. While
-        it waits the bulb stays lost (nothing could reach it anyway)."""
-        waiting = [b for b in lost if self._count_unread(self.addr(b), self.lost_at)]
+        until a link reads it, each new advert tries one more connect. An
+        unknown count waits the same way for a link that reads the bulb's
+        state (_by_state). While it waits the bulb stays lost (nothing could
+        reach it anyway)."""
+        def undecided(b) -> bool:
+            return self._count_unread(self.addr(b), self.lost_at) or self._state_unread(b, verdicts, pending)
+
+        waiting = [b for b in lost if undecided(b)]
         if not waiting:
             return
-        log.info("%s: boot count not read yet: drop or reboot is decided on the first link that reads it",
-                 ", ".join(b.id for b in waiting))
+        unread = [b.id for b in waiting if self._count_unread(self.addr(b), self.lost_at)]
+        if unread:
+            log.info("%s: boot count not read yet: drop or reboot is decided on the first link that reads it",
+                     ", ".join(unread))
+        if len(unread) < len(waiting):
+            log.info("%s: boot count unknown, on/off state not read yet: decided on the first link that reads "
+                     "the count or the state", ", ".join(b.id for b in waiting if b.id not in unread))
         while waiting and not (self.stopping or self.idle_mode):
+            for b in waiting:
+                if self._state_unread(b, verdicts, pending):
+                    self.state_wanted.add(self.addr(b))
             self.bulb_seen.clear()
             await self.bulb_seen.wait()
             self.force_reconnect = True  # a link whose read went unanswered: a new one
-            verdicts.update(await self.judge_boot(waiting, self.lost_at))
-            waiting = [b for b in waiting if self._count_unread(self.addr(b), self.lost_at)]
+            wanted = {b.id for b in waiting if self.addr(b) in self.state_wanted}
+            for bid, verdict in (await self.judge_boot(waiting, self.lost_at)).items():
+                if not (verdict == SAME and bid in wanted):
+                    verdicts[bid] = verdict  # a count on from an unknown one still cannot tell (_settle_suspect)
+            waiting = [b for b in waiting if undecided(b)]
 
     async def _wait_back(self, pending: dict[int, float]) -> None:
         """Until the bulb adverts again (bulb_seen: set while it is lost).
