@@ -307,10 +307,25 @@ GERMAN = {
         "die Benachrichtigungsregeln des Profils der Auswahl (Dienst läuft)",
     "the system setup: missing, outdated or current, read anew (daemon running)":
         "die Systemeinrichtung: missing (fehlt), outdated (veraltet) oder current (aktuell), neu gelesen (Dienst läuft)",
-    "open the settings window: the Plasma widget's Configure pages (bulbs, profiles, sound, video, notifications), "
-    "also on other desktops":
-        "das Einstellungsfenster öffnen: die Einrichtungsseiten des Plasma-Widgets (Lampen, Profile, Ton, Video, "
-        "Benachrichtigungen), auch auf anderen Desktops",
+    "open the settings: the Plasma widget's Configure pages (bulbs, profiles, sound, video, notifications); "
+    "on Plasma in System Settings (Connected Devices → Haus.Licht) when they are installed there, otherwise in a window "
+    "of their own, also on other desktops":
+        "die Einstellungen öffnen: die Einrichtungsseiten des Plasma-Widgets (Lampen, Profile, Ton, Video, "
+        "Benachrichtigungen); unter Plasma in den Systemeinstellungen (Angeschlossene Geräte → Haus.Licht), wenn sie "
+        "dort installiert sind, sonst in einem eigenen Fenster, auch auf anderen Desktops",
+    "the settings window, also on Plasma": "das Einstellungsfenster, auch unter Plasma",
+    "only System Settings: where Haus.Licht's pages are not there, open nothing and exit with 3":
+        "nur die Systemeinstellungen: wo die Seiten von Haus.Licht dort fehlen, nichts öffnen und mit 3 enden",
+    "System Settings: the Bulbs page with its Add dialog":
+        "Systemeinstellungen: die Seite Lampen mit ihrem Dialog zum Hinzufügen",
+    "hauslicht config: {why}": "hauslicht config: {why}",
+    "not a Plasma session": "keine Plasma-Sitzung",
+    "System Settings (systemsettings) is not installed": "die Systemeinstellungen (systemsettings) sind nicht installiert",
+    "Haus.Licht's pages are not installed in System Settings (Haus.Licht-plasma's kcm/)":
+        "die Seiten von Haus.Licht sind nicht in den Systemeinstellungen installiert (kcm/ aus Haus.Licht-plasma)",
+    "System Settings is open without Haus.Licht's pages; they show there after the next login":
+        "die Systemeinstellungen sind ohne die Seiten von Haus.Licht geöffnet; sie erscheinen dort nach der "
+        "nächsten Anmeldung",
     "hauslicht config needs: {parts}": "hauslicht config braucht: {parts}",
     "Install them with:": "Installieren mit:",
     "Older Debian and Ubuntu releases have the executable engine in plasma-workspace.":

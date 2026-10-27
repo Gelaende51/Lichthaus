@@ -59,6 +59,12 @@ TEXT = {
             ("$XDG_RUNTIME_DIR/hauslicht.sock", "The daemon's socket (or \\fB$HAUSLICHT_SOCK\\fR)."),
             ("~/.config/systemd/user/hauslicht.service", "The unit: \\fBhauslicht sync\\fR, and "
              "\\fBhauslicht disarm \\-\\-if\\-armed\\fR after every stop. Written by \\fBinstall/install.sh\\fR."),
+            ("~/.config/plasma-workspace/env/hauslicht-kcm.sh", "Adds ~/.local/lib/qt6/plugins to "
+             "\\fBQT_PLUGIN_PATH\\fR at each Plasma login, so System Settings finds Haus.Licht's pages "
+             "installed per user. Written by \\fBinstall/install.sh\\fR."),
+            ("~/.local/lib/qt6/plugins/plasma/kcms/systemsettings_qwidgets/", "Haus.Licht's pages as System "
+             "Settings modules (kcm_hauslicht_*), built per user by \\fBinstall/install.sh\\fR; \\fBconfig\\fR "
+             "opens System Settings there on Plasma."),
             ("~/.cache/hauslicht/", "The clap model, downloaded on first use; \\fBHausLicht\\fR, the link to Qt's "
              "\\fBqml\\fR runtime that \\fBconfig\\fR starts the settings window through."),
             ("~/.local/share/hauslicht/plasmoid/", "The Plasma widget's package where Plasma is missing "
@@ -88,6 +94,8 @@ TEXT = {
             ("1", "The daemon is not running, it refused the command (the message goes to standard error), "
              "a bulb did not answer, or a test ended early."),
             ("2", "A usage error, or the Bluetooth link failed without the daemon."),
+            ("3", "\\fBconfig \\-\\-system\\-settings\\fR: Haus.Licht's pages are not in System Settings here; "
+             "nothing was opened."),
         ],
         "examples": [
             ("Switch the lights on and dim them to 40 percent:", "hauslicht on\nhauslicht dim 40"),
@@ -144,6 +152,12 @@ TEXT = {
             ("$XDG_RUNTIME_DIR/hauslicht.sock", "Der Socket des Dienstes (oder \\fB$HAUSLICHT_SOCK\\fR)."),
             ("~/.config/systemd/user/hauslicht.service", "Die Unit: \\fBhauslicht sync\\fR, und nach jedem "
              "Stopp \\fBhauslicht disarm \\-\\-if\\-armed\\fR. Von \\fBinstall/install.sh\\fR geschrieben."),
+            ("~/.config/plasma-workspace/env/hauslicht-kcm.sh", "Fügt bei jeder Plasma-Anmeldung "
+             "~/.local/lib/qt6/plugins zu \\fBQT_PLUGIN_PATH\\fR hinzu, damit die Systemeinstellungen die pro "
+             "Benutzer installierten Seiten von Haus.Licht finden. Von \\fBinstall/install.sh\\fR geschrieben."),
+            ("~/.local/lib/qt6/plugins/plasma/kcms/systemsettings_qwidgets/", "Die Seiten von Haus.Licht als "
+             "Module der Systemeinstellungen (kcm_hauslicht_*), von \\fBinstall/install.sh\\fR pro Benutzer "
+             "gebaut; \\fBconfig\\fR öffnet unter Plasma die Systemeinstellungen dort."),
             ("~/.cache/hauslicht/", "Das Klatsch-Modell, beim ersten Gebrauch heruntergeladen; \\fBHausLicht\\fR, "
              "der Link auf Qts \\fBqml\\fR-Laufzeit, über den \\fBconfig\\fR das Einstellungsfenster startet."),
             ("~/.local/share/hauslicht/plasmoid/", "Das Paket des Plasma-Widgets, wo Plasma fehlt "
@@ -174,6 +188,8 @@ TEXT = {
             ("1", "Der Dienst läuft nicht, er hat den Befehl abgelehnt (die Meldung geht auf die "
              "Standardfehlerausgabe), eine Lampe hat nicht geantwortet, oder ein Test endete vorzeitig."),
             ("2", "Ein Bedienfehler, oder die Bluetooth-Verbindung ohne Dienst schlug fehl."),
+            ("3", "\\fBconfig \\-\\-system\\-settings\\fR: Die Seiten von Haus.Licht sind hier nicht in den "
+             "Systemeinstellungen; nichts wurde geöffnet."),
         ],
         "examples": [
             ("Licht einschalten und auf 40 Prozent dimmen:", "hauslicht on\nhauslicht dim 40"),

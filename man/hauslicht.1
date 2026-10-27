@@ -289,8 +289,23 @@ no daemon: OnPowerUp back to "on" so that the wall switch just switches on (the 
 only the bulbs the daemon left armed (its marker); nothing at all when there are none
 .RE
 .TP
-\fBconfig\fR
-open the settings window: the Plasma widget's Configure pages (bulbs, profiles, sound, video, notifications), also on other desktops
+\fBconfig\fR [\-\-window | \-\-system\-settings] [\-\-add\-bulb]
+open the settings: the Plasma widget's Configure pages (bulbs, profiles, sound, video, notifications); on Plasma in System Settings (Connected Devices \[u2192] Haus.Licht) when they are installed there, otherwise in a window of their own, also on other desktops
+.RS
+.TP
+\fB\-\-window\fR
+the settings window, also on Plasma
+.RE
+.RS
+.TP
+\fB\-\-system\-settings\fR
+only System Settings: where Haus.Licht's pages are not there, open nothing and exit with 3
+.RE
+.RS
+.TP
+\fB\-\-add\-bulb\fR
+System Settings: the Bulbs page with its Add dialog
+.RE
 .TP
 \fBdebug\fR
 open a window showing each bulb's intended state and the daemon's events, live (PyQt6)
@@ -316,6 +331,12 @@ The daemon's socket (or \fB$HAUSLICHT_SOCK\fR).
 .TP
 \fI~/.config/systemd/user/hauslicht.service\fR
 The unit: \fBhauslicht sync\fR, and \fBhauslicht disarm \-\-if\-armed\fR after every stop. Written by \fBinstall/install.sh\fR.
+.TP
+\fI~/.config/plasma\-workspace/env/hauslicht\-kcm.sh\fR
+Adds ~/.local/lib/qt6/plugins to \fBQT_PLUGIN_PATH\fR at each Plasma login, so System Settings finds Haus.Licht's pages installed per user. Written by \fBinstall/install.sh\fR.
+.TP
+\fI~/.local/lib/qt6/plugins/plasma/kcms/systemsettings_qwidgets/\fR
+Haus.Licht's pages as System Settings modules (kcm_hauslicht_*), built per user by \fBinstall/install.sh\fR; \fBconfig\fR opens System Settings there on Plasma.
 .TP
 \fI~/.cache/hauslicht/\fR
 The clap model, downloaded on first use; \fBHausLicht\fR, the link to Qt's \fBqml\fR runtime that \fBconfig\fR starts the settings window through.
@@ -363,6 +384,9 @@ The daemon is not running, it refused the command (the message goes to standard 
 .TP
 \fB2\fR
 A usage error, or the Bluetooth link failed without the daemon.
+.TP
+\fB3\fR
+\fBconfig \-\-system\-settings\fR: Haus.Licht's pages are not in System Settings here; nothing was opened.
 .SH EXAMPLES
 .PP
 Switch the lights on and dim them to 40 percent:

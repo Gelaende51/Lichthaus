@@ -7,7 +7,9 @@
 #   install/install.sh --all-backends         the libraries of every kind
 #   install/install.sh --dry-run ...          print the pip command, change nothing
 #   install/install.sh --plasmoid PATH        the tray widget from this .plasmoid file or
-#                                             package dir (default: its latest release)
+#                                             package dir (default: its latest release); the
+#                                             package dir of a Haus.Licht-plasma checkout
+#                                             also gives its System Settings pages (kcm/)
 set -eu
 dir=$(cd "$(dirname "$0")/.." && pwd)
 
@@ -24,7 +26,7 @@ while [ $# -gt 0 ]; do
         --plasmoid) [ $# -ge 2 ] || { echo "$1 needs a .plasmoid file or a package directory" >&2; exit 2; }
             plasmoid=$2; shift 2 ;;
         --plasmoid=*) plasmoid=${1#*=}; shift ;;
-        -h|--help) sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -h|--help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "unknown option $1 (try --help)" >&2; exit 2 ;;
     esac
 done
@@ -39,11 +41,13 @@ widget_repo=Gelaende51/Haus.Licht-plasma
 widget_api=${HAUSLICHT_WIDGET_API:-https://api.github.com/repos/$widget_repo/releases/latest}
 
 # fetch_widget DIR: download the latest release's .plasmoid and .sha256 into
-# DIR, check the sum, print the .plasmoid's path. On failure: the reason on
+# DIR, check the sum, print the .plasmoid's path; the release's description
+# stays in DIR/release.json (fetch_kcm_source). On failure: the reason on
 # stderr, status 1.
 fetch_widget() {
     json=$(curl -fsSL --max-time 30 -H "Accept: application/vnd.github+json" "$widget_api" 2>&1) \
         || { echo "the GitHub API did not answer ($json)" >&2; return 1; }
+    printf '%s' "$json" > "$1/release.json"
     url=$(printf '%s' "$json" | python3 -c '
 import json, sys
 try:
@@ -63,6 +67,37 @@ print(plasmoid[0])') \
     (cd "$1" && sha256sum -c --status "$name.sha256") \
         || { echo "$name does not match its .sha256" >&2; return 1; }
     printf '%s\n' "$1/$name"
+}
+
+# fetch_kcm_source DIR: the source of the release in DIR/release.json,
+# unpacked in DIR/src; prints its kcm/ directory. Status 1 when there is none
+# (a release from before the System Settings pages) or the download failed.
+fetch_kcm_source() {
+    src=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1])).get("tarball_url") or "")' \
+        "$1/release.json" 2>/dev/null) && [ -n "$src" ] || return 1
+    mkdir -p "$1/src" \
+        && curl -fsSL --max-time 120 -o "$1/src.tar.gz" "$src" \
+        && tar -xzf "$1/src.tar.gz" -C "$1/src" || return 1
+    for d in "$1"/src/*/kcm; do
+        [ -f "$d/CMakeLists.txt" ] && { printf '%s\n' "$d"; return 0; }
+    done
+    return 1
+}
+
+# build_kcm SRC: configure, build and install Haus.Licht-plasma's kcm/ per
+# user (~/.local/lib/qt6/plugins, ~/.local/share/systemsettings/categories)
+build_kcm() {
+    build=$(mktemp -d)
+    if cmake -S "$1" -B "$build" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$HOME/.local" \
+            -DKDE_INSTALL_USE_QT_SYS_PATHS=OFF -DKDE_INSTALL_QTPLUGINDIR=lib/qt6/plugins >"$build.log" 2>&1 \
+        && cmake --build "$build" -j "$(nproc 2>/dev/null || echo 2)" >>"$build.log" 2>&1 \
+        && cmake --install "$build" >>"$build.log" 2>&1; then
+        rm -rf "$build" "$build.log"
+        return 0
+    fi
+    echo "Haus.Licht's System Settings pages did not build (log: $build.log)" >&2
+    rm -rf "$build"
+    return 1
 }
 
 # install_widget PATH: a .plasmoid file or a package directory
@@ -115,11 +150,6 @@ rm -f "$HOME/.local/share/applications/io.github.gelaende51.HausLicht.desktop"
 sed "s|^Exec=hauslicht |Exec=$HOME/.local/bin/hauslicht |" "$dir/install/io.github.gelaende51.HausLicht.desktop" \
     > "$HOME/.local/share/applications/io.github.gelaende51.HausLicht.desktop"
 command -v update-desktop-database >/dev/null && update-desktop-database -q "$HOME/.local/share/applications" || true
-# Plasma 6 System Settings: an entry under Hardware that runs hauslicht config
-# (an external application, no KCM); harmless where there is no Plasma
-mkdir -p "$HOME/.local/share/plasma/systemsettings/externalmodules"
-sed "s|^Exec=hauslicht |Exec=$HOME/.local/bin/hauslicht |" "$dir/install/hauslicht-systemsettings.desktop" \
-    > "$HOME/.local/share/plasma/systemsettings/externalmodules/hauslicht-systemsettings.desktop"
 # Plasma tray widget (shows up in the system tray after the next Plasma start).
 # Without Plasma (no kpackagetool6) its package is only unpacked, to
 # ~/.local/share/hauslicht/plasmoid: hauslicht config shows its Configure pages.
@@ -146,10 +176,10 @@ else
     widget=unpack_pages
     echo "no kpackagetool6 (not KDE Plasma 6?): the tray widget's pages go to $pages for hauslicht config"
 fi
+tmp=$(mktemp -d)
 if [ -n "$plasmoid" ]; then
     $widget "$plasmoid" || echo "the tray widget from $plasmoid did not install" >&2
 else
-    tmp=$(mktemp -d)
     if file=$(fetch_widget "$tmp"); then
         $widget "$file" || echo "the tray widget did not install" >&2
     else
@@ -158,8 +188,57 @@ else
         echo "later, or download the .plasmoid from https://github.com/$widget_repo/releases" >&2
         echo "and run install/install.sh --plasmoid FILE." >&2
     fi
-    rm -rf "$tmp"
 fi
+
+# Plasma 6 System Settings: Haus.Licht's pages as KCMs, System Settings →
+# Hardware ("Connected Devices") → Haus.Licht → Bulbs, Profiles, Sound, Video,
+# Notifications, from Haus.Licht-plasma's kcm/ (docs/system-settings.md).
+# Built here when there is System Settings and the build tools (cmake, a C++
+# compiler, extra-cmake-modules, the KF6 KCMUtils headers): per user into
+# ~/.local/lib/qt6/plugins, where Qt looks only when QT_PLUGIN_PATH names it,
+# which ~/.config/plasma-workspace/env/hauslicht-kcm.sh does from the next
+# login. Without them, or when the build fails, the entry under Hardware is
+# an external application that runs hauslicht config. Never both: the
+# category replaces that entry. Harmless where there is no Plasma.
+kcm_user="$HOME/.local/lib/qt6/plugins/plasma/kcms/systemsettings_qwidgets"
+kcm_category="$HOME/.local/share/systemsettings/categories/settings-hardware-hauslicht.desktop"
+kcm_env="$HOME/.config/plasma-workspace/env/hauslicht-kcm.sh"
+external="$HOME/.local/share/plasma/systemsettings/externalmodules/hauslicht-systemsettings.desktop"
+qt_plugins=$(qtpaths6 --query QT_INSTALL_PLUGINS 2>/dev/null || qtpaths --query QT_INSTALL_PLUGINS 2>/dev/null) \
+    || qt_plugins=/usr/lib/qt6/plugins
+if [ -f "$qt_plugins/plasma/kcms/systemsettings_qwidgets/kcm_hauslicht_bulbs.so" ]; then
+    # installed with the system (a distribution package): a copy per user
+    # would list every page twice
+    rm -f "$kcm_user"/kcm_hauslicht_*.so "$kcm_category" "$kcm_env" "$external"
+    echo "System Settings: Haus.Licht's pages come with the system ($qt_plugins)"
+else
+    kcm_src=""
+    if [ -n "$plasmoid" ] && [ -d "$plasmoid" ] && [ -f "$plasmoid/../kcm/CMakeLists.txt" ]; then
+        kcm_src=$(cd "$plasmoid/../kcm" && pwd)
+    elif [ -f "$tmp/release.json" ]; then
+        kcm_src=$(fetch_kcm_source "$tmp") || kcm_src=""
+    fi
+    if [ -n "$kcm_src" ] && command -v systemsettings >/dev/null && command -v cmake >/dev/null \
+            && { command -v c++ >/dev/null || command -v g++ >/dev/null || command -v clang++ >/dev/null; }; then
+        build_kcm "$kcm_src" || true
+    fi
+    if [ -f "$kcm_user/kcm_hauslicht_bulbs.so" ] && [ -f "$kcm_category" ]; then
+        mkdir -p "$(dirname "$kcm_env")"
+        cp "$dir/install/hauslicht-kcm-env.sh" "$kcm_env"
+        rm -f "$external"
+        case ":${QT_PLUGIN_PATH:-}:" in
+            *":$HOME/.local/lib/qt6/plugins:"*) echo "System Settings: Haus.Licht's pages are under Hardware" ;;
+            *) echo "System Settings: Haus.Licht's pages show under Hardware from the next login" \
+                    "(hauslicht config opens them before that, unless System Settings is already open)" ;;
+        esac
+    else
+        rm -f "$kcm_category" "$kcm_env"
+        mkdir -p "$(dirname "$external")"
+        sed "s|^Exec=hauslicht |Exec=$HOME/.local/bin/hauslicht |" "$dir/install/hauslicht-systemsettings.desktop" \
+            > "$external"
+    fi
+fi
+rm -rf "$tmp"
 
 systemctl --user daemon-reload
 echo "installed. Adopt a bulb (hauslicht adopt), then:"

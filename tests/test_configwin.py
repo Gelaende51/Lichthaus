@@ -116,3 +116,105 @@ def test_messages_have_german():
                  "install/install.sh fetches them; or point HAUSLICHT_PLASMOID at a package directory.",
                  "hauslicht config: the window did not open (exit {code}); log: {log}"):
         assert text in GERMAN
+
+
+# ------------------------------------------------------ System Settings
+
+def kcm(root: Path) -> Path:
+    f = root / configwin.KCM_NAMESPACE / f"{configwin.KCM_FIRST}.so"
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text("")
+    return f
+
+
+@pytest.fixture
+def system(monkeypatch, tmp_path):
+    """Qt's own plugin directory is tmp_path/sys-plugins; systemsettings is on
+    PATH; no System Settings is open."""
+    sysdir = tmp_path / "sys-plugins"
+    sysdir.mkdir()
+
+    def dirs(env=None):
+        env = {} if env is None else env
+        named = [Path(p) for p in env.get("QT_PLUGIN_PATH", "").split(":") if p]
+        return {"qml": [], "plugins": [d for d in named + [sysdir] if d.is_dir()]}
+    monkeypatch.setattr(configwin, "qml_dirs", dirs)
+    monkeypatch.setattr(configwin, "systemsettings_running", lambda: False)
+    bin_ = tmp_path / "bin"
+    bin_.mkdir()
+    (bin_ / "systemsettings").write_text("#!/bin/sh\n")
+    (bin_ / "systemsettings").chmod(0o755)
+    return {"sys": sysdir, "home": tmp_path / "home",
+            "env": {"XDG_CURRENT_DESKTOP": "KDE", "PATH": str(bin_)}}
+
+
+def test_kcm_found_per_user_or_where_qt_looks(system):
+    home, env = system["home"], system["env"]
+    assert configwin.kcm_plugin(env, home) is None
+    user = kcm(home / configwin.USER_PLUGINS)
+    assert configwin.kcm_plugin(env, home) == user
+    # Qt's own directory (a distribution package) comes first
+    sysfile = kcm(system["sys"])
+    assert configwin.kcm_plugin(env, home) == sysfile
+
+
+def test_system_settings_gets_the_user_plugin_dir(system):
+    home, env = system["home"], system["env"]
+    user = kcm(home / configwin.USER_PLUGINS)
+    argv, run_env = configwin.system_settings(add_bulb=True, env=env, home=home)
+    assert argv[1:] == ["kcm_hauslicht_bulbs", "--args", "add"]
+    assert run_env["QT_PLUGIN_PATH"] == str(home / configwin.USER_PLUGINS)
+    # a session that names it already (the env script): unchanged
+    named = {**env, "QT_PLUGIN_PATH": f"/opt/plugins:{home / configwin.USER_PLUGINS}"}
+    argv, run_env = configwin.system_settings(env=named, home=home)
+    assert argv[1:] == ["kcm_hauslicht_bulbs"] and run_env["QT_PLUGIN_PATH"] == named["QT_PLUGIN_PATH"]
+    # installed system-wide: nothing to add
+    user.unlink()
+    kcm(system["sys"])
+    _argv, run_env = configwin.system_settings(env=env, home=home)
+    assert "QT_PLUGIN_PATH" not in run_env
+
+
+def test_no_system_settings_without_plasma_systemsettings_or_kcm(system, monkeypatch):
+    home, env = system["home"], system["env"]
+    assert configwin.system_settings(env=env, home=home) == (
+        "Haus.Licht's pages are not installed in System Settings (Haus.Licht-plasma's kcm/)")
+    kcm(home / configwin.USER_PLUGINS)
+    assert configwin.system_settings(env={**env, "XDG_CURRENT_DESKTOP": "GNOME"}, home=home) == "not a Plasma session"
+    assert configwin.system_settings(env={**env, "PATH": str(home)}, home=home) == (
+        "System Settings (systemsettings) is not installed")
+    # an open System Settings started before the env script: it cannot see them
+    monkeypatch.setattr(configwin, "systemsettings_running", lambda: True)
+    assert "after the next login" in configwin.system_settings(env=env, home=home)
+    named = {**env, "QT_PLUGIN_PATH": str(home / configwin.USER_PLUGINS)}
+    assert not isinstance(configwin.system_settings(env=named, home=home), str)
+
+
+def test_run_prefers_system_settings_and_window_on_request(monkeypatch):
+    started, windows = [], []
+    monkeypatch.setattr(configwin.subprocess, "Popen", lambda argv, **kw: started.append((argv, kw["env"])))
+    monkeypatch.setattr(configwin, "run_window", lambda: windows.append(1) or 0)
+    monkeypatch.setattr(configwin, "system_settings",
+                        lambda add_bulb=False: (["systemsettings", "kcm_hauslicht_bulbs"] + (["--args", "add"] if add_bulb else []), {"A": "1"}))
+    assert configwin.run(add_bulb=True) == 0
+    assert started == [(["systemsettings", "kcm_hauslicht_bulbs", "--args", "add"], {"A": "1"})] and windows == []
+    assert configwin.run(window=True) == 0
+    assert len(started) == 1 and windows == [1]
+
+
+def test_system_settings_only_opens_nothing_and_exits_3(monkeypatch, capsys):
+    monkeypatch.setattr(configwin, "system_settings", lambda add_bulb=False: "not a Plasma session")
+    monkeypatch.setattr(configwin, "run_window", lambda: pytest.fail("the window opened"))
+    monkeypatch.setattr(configwin.subprocess, "Popen", lambda *a, **kw: pytest.fail("something started"))
+    assert configwin.run(system_settings_only=True, add_bulb=True) == configwin.NO_SYSTEM_SETTINGS == 3
+    assert "not a Plasma session" in capsys.readouterr().err
+
+
+def test_system_settings_messages_have_german():
+    for text in ("not a Plasma session", "System Settings (systemsettings) is not installed",
+                 "Haus.Licht's pages are not installed in System Settings (Haus.Licht-plasma's kcm/)",
+                 "System Settings is open without Haus.Licht's pages; they show there after the next login",
+                 "the settings window, also on Plasma",
+                 "only System Settings: where Haus.Licht's pages are not there, open nothing and exit with 3",
+                 "System Settings: the Bulbs page with its Add dialog"):
+        assert text in GERMAN
