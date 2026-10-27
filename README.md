@@ -108,7 +108,7 @@ only; nothing is stored or sent, and notification text is never logged.
   widget lives in [Haus.Licht-plasma](https://github.com/Gelaende51/Haus.Licht-plasma); `install/install.sh`
   installs its latest release.
 - **Settings:** the widget's Configure pages (Bulbs, Profiles, Sound, Video,
-  Notifications). On Plasma they live in System Settings → Hardware →
+  Notifications). On Plasma they live in System Settings → Connected Devices →
   Haus.Licht, where `hauslicht config` opens them
   ([System Settings](docs/system-settings.md)); elsewhere, and with
   `hauslicht config --window`, in a window of their own, also on GNOME, XFCE

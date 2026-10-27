@@ -123,7 +123,7 @@ Benachrichtigungstexte werden nie protokolliert.
   `install/install.sh` installiert seine neueste Version.
 - **Einstellungen:** die Einrichtungsseiten des Widgets (Lampen, Profile,
   Ton, Video, Benachrichtigungen). Unter Plasma stehen sie in den
-  Systemeinstellungen → Hardware → Haus.Licht, und `hauslicht config` öffnet
+  Systemeinstellungen → Angeschlossene Geräte → Haus.Licht, und `hauslicht config` öffnet
   sie dort ([Systemeinstellungen](../system-settings.md), englisch); sonst,
   und mit `hauslicht config --window`, in einem eigenen Fenster, auch unter
   GNOME, XFCE oder einem Tiling-WM ([Einstellungsfenster](../settings-window.md),

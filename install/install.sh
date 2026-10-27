@@ -2,6 +2,7 @@
 # Per-user install of Haus.Licht from this checkout (no root; for the slider
 # also run install/setup-root.sh once with sudo). On Plasma it also builds and
 # installs the System Settings pages (KCMs) and their login env script.
+#
 #   install/install.sh                        mesh bulbs only (Ledvance Volkslicht)
 #   install/install.sh --backend wiz,hue      also the libraries these kinds need
 #   install/install.sh --all-backends         the libraries of every kind
@@ -26,7 +27,7 @@ while [ $# -gt 0 ]; do
         --plasmoid) [ $# -ge 2 ] || { echo "$1 needs a .plasmoid file or a package directory" >&2; exit 2; }
             plasmoid=$2; shift 2 ;;
         --plasmoid=*) plasmoid=${1#*=}; shift ;;
-        -h|--help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -h|--help) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "unknown option $1 (try --help)" >&2; exit 2 ;;
     esac
 done
@@ -191,13 +192,13 @@ else
 fi
 
 # Plasma 6 System Settings: Haus.Licht's pages as KCMs, System Settings →
-# Hardware ("Connected Devices") → Haus.Licht → Bulbs, Profiles, Sound, Video,
+# Connected Devices (category `hardware`) → Haus.Licht → Bulbs, Profiles, Sound, Video,
 # Notifications, from Haus.Licht-plasma's kcm/ (docs/system-settings.md).
 # Built here when there is System Settings and the build tools (cmake, a C++
 # compiler, extra-cmake-modules, the KF6 KCMUtils headers): per user into
 # ~/.local/lib/qt6/plugins, where Qt looks only when QT_PLUGIN_PATH names it,
 # which ~/.config/plasma-workspace/env/hauslicht-kcm.sh does from the next
-# login. Without them, or when the build fails, the entry under Hardware is
+# login. Without them, or when the build fails, the entry under Connected Devices is
 # an external application that runs hauslicht config. Never both: the
 # category replaces that entry. Harmless where there is no Plasma.
 kcm_user="$HOME/.local/lib/qt6/plugins/plasma/kcms/systemsettings_qwidgets"
@@ -227,8 +228,8 @@ else
         cp "$dir/install/hauslicht-kcm-env.sh" "$kcm_env"
         rm -f "$external"
         case ":${QT_PLUGIN_PATH:-}:" in
-            *":$HOME/.local/lib/qt6/plugins:"*) echo "System Settings: Haus.Licht's pages are under Hardware" ;;
-            *) echo "System Settings: Haus.Licht's pages show under Hardware from the next login" \
+            *":$HOME/.local/lib/qt6/plugins:"*) echo "System Settings: Haus.Licht's pages are under Connected Devices" ;;
+            *) echo "System Settings: Haus.Licht's pages show under Connected Devices from the next login" \
                     "(hauslicht config opens them before that, unless System Settings is already open)" ;;
         esac
     else

@@ -1,7 +1,7 @@
 # Haus.Licht in System Settings (Plasma 6)
 
 On Plasma 6, Haus.Licht's settings are part of System Settings: the group
-Hardware (category id `hardware`, shown as *Connected Devices*) →
+*Connected Devices* (*Angeschlossene Geräte*; category id `hardware`) →
 **Haus.Licht**, with five pages: **Bulbs**, **Profiles**, **Sound**,
 **Video** and **Notifications** (German: Lampen, Profile, Ton, Video,
 Benachrichtigungen). They are the widget's own Configure pages, the same
@@ -14,7 +14,7 @@ three. There is no Apply button; the pages change the daemon directly.
 - **Five KCMs** (`kcm_hauslicht_bulbs`, `_profiles`, `_sound`, `_video`,
   `_notifications`), built from Haus.Licht-plasma's `kcm/`, and a category
   file `settings-hardware-hauslicht.desktop` that puts "Haus.Licht" under
-  Hardware.
+  Connected Devices.
 - **QWidget KCMs, not QML KCMs.** They are installed in the plugin namespace
   `plasma/kcms/systemsettings_qwidgets`. Each hosts its page
   (`contents/standalone/kcm.qml` of the installed widget) in a QQuickWidget
@@ -49,7 +49,7 @@ headers). The source is the `kcm/` beside a checkout given with
   install.sh removes the per-user plugins, category, env script and
   external-app entry, or every page would be listed twice.
 - **Fallback:** without the build tools, or when the build fails, the entry
-  under Hardware is an external application instead:
+  under Connected Devices is an external application instead:
   `install/hauslicht-systemsettings.desktop`, installed in
   `~/.local/share/plasma/systemsettings/externalmodules/`, runs
   `hauslicht config`. Never both: once the KCMs are installed, install.sh
@@ -77,7 +77,7 @@ headers). The source is the `kcm/` beside a checkout given with
 - **The pages do not show:** `QT_PLUGIN_PATH` is read at login; log out and
   in once after the first install. Until then `hauslicht config` can open
   them while System Settings is closed.
-- **No "Haus.Licht" under Hardware:** System Settings hides a category
+- **No "Haus.Licht" under Connected Devices:** System Settings hides a category
   without modules, so a category file without plugins it can find shows
   nothing.
 - **Is the plugin found?**

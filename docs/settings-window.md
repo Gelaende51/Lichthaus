@@ -95,6 +95,6 @@ QML error), it prints the log instead.
 
 ## System Settings (Plasma 6)
 
-On Plasma the same pages are KCMs in System Settings → Hardware →
+On Plasma the same pages are KCMs in System Settings → Connected Devices →
 Haus.Licht, with an external-app entry as the fallback: see
 [system-settings.md](system-settings.md).
