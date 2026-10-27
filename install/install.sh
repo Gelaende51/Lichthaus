@@ -1,7 +1,7 @@
 #!/bin/sh
 # Per-user install of Haus.Licht from this checkout (no root; for the slider
-# also run install/setup-root.sh once with sudo).
-#
+# also run install/setup-root.sh once with sudo). On Plasma it also builds and
+# installs the System Settings pages (KCMs) and their login env script.
 #   install/install.sh                        mesh bulbs only (Ledvance Volkslicht)
 #   install/install.sh --backend wiz,hue      also the libraries these kinds need
 #   install/install.sh --all-backends         the libraries of every kind

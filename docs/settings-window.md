@@ -4,9 +4,10 @@
 Sound, Video, Notifications) in a window of their own, titled "Haus.Licht
 settings" ("Haus.Licht-Einstellungen" in German). It is for desktops without
 the widget (GNOME, XFCE, Cinnamon, tiling window managers) and for other
-front ends that want a "Settings…" entry; on Plasma it is also listed in
-System Settings under Hardware. The pages are the widget's own files, not a
-second copy: a change to a page shows in both places.
+front ends that want a "Settings…" entry; on Plasma, `hauslicht config`
+opens System Settings instead when Haus.Licht's pages are installed there
+(`--window` still opens the window). The pages are the widget's own files,
+not a second copy: a change to a page shows everywhere.
 
 ## How it works
 
@@ -94,10 +95,6 @@ QML error), it prints the log instead.
 
 ## System Settings (Plasma 6)
 
-System Settings lists external applications from desktop files in
-`~/.local/share/plasma/systemsettings/externalmodules/` (and the same path
-under the system data directories) and starts their `Exec` when the entry is
-chosen; no compiled KCM is needed. `install/install.sh` installs
-`install/hauslicht-systemsettings.desktop` there: "Haus.Licht" under
-Hardware, running `hauslicht config`. `systemsettings --list` shows it as
-`hauslicht-systemsettings`.
+On Plasma the same pages are KCMs in System Settings → Hardware →
+Haus.Licht, with an external-app entry as the fallback: see
+[system-settings.md](system-settings.md).

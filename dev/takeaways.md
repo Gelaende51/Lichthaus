@@ -487,3 +487,28 @@ onto Linux. Worth reporting upstream where marked.
   - The QML tests run the real HausCtl.qml under `qml6` against a fake
     `hauslicht-ctl` in a temporary `$HOME` (HausCtl runs
     `$HOME/.local/bin/hauslicht-ctl`): no socket, no live daemon.
+- System Settings KCMs (2026-10-27; Haus.Licht-plasma's kcm/,
+  [docs/system-settings.md](../docs/system-settings.md)):
+  - System Settings runs all its QML KCMs and its own window on one shared
+    QML engine, and the import path belongs to the engine. The pages need a
+    stand-in for `org.kde.plasma.plasmoid`; on the shared engine it would
+    answer that import for every module. Hence QWidget KCMs
+    (`plasma/kcms/systemsettings_qwidgets`) whose QQuickWidget has a QML
+    engine of its own, with the stand-in on its import path only.
+  - Plugins built per user (`~/.local/lib/qt6/plugins`) are invisible: Qt
+    searches its own plugin directory and `QT_PLUGIN_PATH`, nothing under
+    the home directory. A script in `~/.config/plasma-workspace/env/`
+    (sourced by Plasma at login) appends it, so the pages show from the next
+    login on. Until then `hauslicht config` starts System Settings with the
+    variable set, which only helps while none is open: a second start hands
+    its arguments to the running one.
+  - Categories are read from `systemsettings/categories` under the XDG data
+    directories, `~/.local/share` included, so the category file can be
+    installed per user without any setup.
+  - System Settings hides a category without modules: a category file whose
+    KCMs are not found shows nothing at all, not an empty "Haus.Licht".
+  - Size hint: KCMUtils' host of QML KCMs gives the page's implicit size as
+    the widget's size hint (kcmshell6 opens its window at that size), while
+    QQuickWidget's own is the root item's size when it was loaded, before it
+    follows the view. The KCM overrides `sizeHint()` with the root item's
+    implicit width and height.
