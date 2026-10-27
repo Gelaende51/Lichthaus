@@ -42,6 +42,7 @@ from .profiles import (
     SCHEMA, check_profile_value, check_widget_count, clean_selected, clean_widget_bulbs, clean_widget_clap, color_moved,
     color_rgb, color_want, compute_want, is_tracking, kbd_to_value, mesh_product, migrate, new_state, parse_bool, powerup_target, value_to_kbd,
     NOTIFY_RULES, check_notify_rules, notify_match,
+    CLAP_LAST, check_widget_setting, clean_widget_settings,
 )
 
 log = logging.getLogger("hauslicht")
@@ -1141,6 +1142,8 @@ class Daemon:
             raise UserError(_("clap detection is not installed ({missing}): {cmd}").format(
                 missing=", ".join(clapmod.missing()), cmd=clapmod.install_hint()))
         self.settings["widget_clap"][str(w)] = value
+        if value in CLAP_LAST:  # what the widget's Clap switch turns on next time
+            self.settings["widget_settings"].setdefault(str(w), {})["clap_last"] = value
         log.info("widget %d: clap %s", w, value)
         self.apply_clap()
 
@@ -1474,6 +1477,7 @@ class Daemon:
         self.settings["widgets"] = n
         self.clean_selection()
         self.settings["widget_clap"] = clean_widget_clap(self.settings["widget_clap"], n)
+        self.settings["widget_settings"] = clean_widget_settings(self.settings["widget_settings"], n)
         self.apply_clap()
         self.save()
         log.info("widgets: %d", n)
@@ -1489,6 +1493,28 @@ class Daemon:
         self.clean_selection()
         self.save()
         log.info("widget %d: %s", w, ", ".join(self.widget_list(w)) or "-")
+
+    def widget_settings(self, w: int) -> dict:
+        """Widget w's own settings stored so far (WIDGET_SETTING_KEYS; a key
+        missing: the widget has not written it yet)."""
+        return dict(self.settings["widget_settings"].get(str(w), {}))
+
+    def set_widget_settings(self, w: int, words: list[str]) -> None:
+        """widget-settings-set KEY=VALUE ...: all checked first, then stored at once."""
+        if not words:
+            raise UserError("widget-settings-set KEY=VALUE ...")
+        values = {}
+        for word in words:
+            key, sep, value = word.partition("=")
+            if not sep:
+                raise UserError("widget-settings-set KEY=VALUE ...")
+            try:
+                values[key.strip()] = check_widget_setting(key.strip(), value.strip())
+            except ValueError as exc:
+                raise UserError(str(exc)) from None
+        self.settings["widget_settings"].setdefault(str(w), {}).update(values)
+        self.save()
+        log.info("widget %d: %s", w, ", ".join(f"{k}={v}" for k, v in values.items()))
 
     def nudge(self, step: float, w: int = 1) -> None:
         """Scroll on the tray icon: move the keyboard slider by step (or, in
@@ -1987,6 +2013,7 @@ class Daemon:
             "profile": name,
             "widget": w, "widgets": self.widget_count,
             "in_widget": [b.id for b in self.in_widget(w)],
+            "widget_settings": self.widget_settings(w),
             "bulbs_list": [self.describe_bulb(b) for b in self.bulbs.values()],
             "identifying": [bid for bid, a in self.actions.items() if a.kind == "identify"],
             "testing": {bid: dict(r) for bid, r in self.test_results.items() if bid in self.bulbs}
@@ -2244,6 +2271,11 @@ class Daemon:
             return get()
         if cmd == "widget-bulbs":
             self.set_widget_bulbs(w, args)
+            return get()
+        if cmd == "widget-settings":
+            return {"results": [{"widget": w, "widget_settings": self.widget_settings(w)}]}
+        if cmd == "widget-settings-set":
+            self.set_widget_settings(w, args)
             return get()
         if cmd == "bulb-set":
             if len(args) < 2:

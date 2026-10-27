@@ -13,6 +13,9 @@
     hauslicht-ctl order ID ID ...         the list order (every bulb id once)
     hauslicht-ctl bulb-set ID name=... profile=... use=on|off icon_on=... icon_off=...
     hauslicht-ctl widget-bulbs ID,ID...   the bulbs of the widget (none: empty)
+    hauslicht-ctl widget-settings | widget-settings-set KEY=VALUE...
+                                          the widget's own settings: invert_scroll,
+                                          icon_set, clap_last, auto_scan_bluetooth
     hauslicht-ctl profile save|apply|delete NAME | profile rename OLD NEW
                                           (preset ... is the same)
     hauslicht-ctl discover [KIND] | add KIND key=value... | remove ID | backends

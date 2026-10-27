@@ -45,6 +45,8 @@
     hauslicht range LO HI | curve N | hue N | sat N | shift N | follow-ct on|off
                                      the selection's profile; set KEY=VALUE: any key
     hauslicht widgets N | widget-bulbs ID... | order ID...   widgets and lists
+    hauslicht widget-settings [KEY=VALUE...]   the widget's own settings (invert_scroll,
+                                     icon_set, clap_last, auto_scan_bluetooth)
     hauslicht exclusive-adapter hciN | setup-status
     hauslicht bulb-set ID name=X profile=Y use=on|off icon_on=...
     hauslicht profile list|save|apply|rename|delete NAME...
@@ -119,7 +121,7 @@ DAEMON_ONLY = ("pause", "resume", "connect", "disconnect", "mode", "track", "off
                "audio-color", "audio-rate", "audio-sources", "audio-status", "video", "video-region",
                "video-max", "video-smooth", "video-forget", "video-status", "follow-rate", "notify",
                "notify-rules", "notify-rules-set", "notify-test", "notify-status", "info", "bulbs", "level",
-               "range", "curve", "hue", "sat", "shift", "follow-ct", "set", "widgets", "widget-bulbs", "order",
+               "range", "curve", "hue", "sat", "shift", "follow-ct", "set", "widgets", "widget-bulbs", "widget-settings", "order",
                "exclusive-adapter", "setup-status", "watch")
 DIRECT = ("on", "off", "dim", "status", "raw")  # mesh, without the daemon
 LIST_REPLIES = ("status", "dim", "raw")  # the daemon replies one entry per bulb
@@ -146,6 +148,7 @@ SHOW = {
     "range": ("profile", "range_lo", "range_hi"), "curve": ("profile", "curve"), "hue": ("profile", "hue"),
     "sat": ("profile", "sat"), "shift": ("profile", "shift"), "follow-ct": ("profile", "follow_ct"),
     "widgets": ("widgets",), "widget-bulbs": ("widget", "in_widget"),
+    "widget-settings": ("widget", "widget_settings"),
     "identify": ("identifying",), "setup-root": ("setup",), "setup-status": ("setup",),
     "level": ("selected", "power", "bulbs", "level", "following"),
     "connect": ("selected", "link", "link_reason"), "disconnect": ("selected", "link", "link_reason"),
@@ -387,6 +390,8 @@ def requests_for(args) -> list[tuple[str, list[str]]]:
     if cmd == "widget-bulbs":
         ids = [w for w in words if w != "none"]
         return [("widget-bulbs", [",".join(ids)] if ids else [])]
+    if cmd == "widget-settings":
+        return [("widget-settings-set", words)] if words else [("widget-settings", [])]
     if cmd == "set":
         return [("set", [w]) for w in words]
     return [(PROTOCOL.get(cmd, cmd), words)]
@@ -682,6 +687,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("percent", metavar="N", nargs="?", type=int, choices=range(1, 9))
     p = add("widget-bulbs", _("the bulbs of the widget (-w N), kept in list order; none: no bulb (daemon running)"))
     p.add_argument("words", metavar="ID", nargs="*")
+    p = add("widget-settings", _(
+        "the widget's (-w N) own settings, the same in the Plasma widget and the settings window: "
+        "invert_scroll=on|off, icon_set=NAME, clap_last=clap|snap|both, auto_scan_bluetooth=on|off; "
+        "none: show them (daemon running)"))
+    p.add_argument("words", metavar="KEY=VALUE", nargs="*")
     p = add("identify", _(
         "blink a bulb slowly to find it, off: stop; it stops by itself after 2 minutes (daemon running)"))
     p.add_argument("percent", metavar="BULB")

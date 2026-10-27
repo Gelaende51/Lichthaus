@@ -1,4 +1,4 @@
-.TH HAUSLICHT 1 "2026-10-25" "Haus.Licht 0.2" "Benutzerbefehle"
+.TH HAUSLICHT 1 "2026-10-27" "Haus.Licht 0.2" "Benutzerbefehle"
 .SH BEZEICHNUNG
 hauslicht \- Lampen, die dem Bildschirm folgen (Bluetooth Mesh und mehr)
 .SH \[u00DC]BERSICHT
@@ -9,7 +9,7 @@ hauslicht \- Lampen, die dem Bildschirm folgen (Bluetooth Mesh und mehr)
 .PP
 Der Dienst, \fBhauslicht sync\fR (normalerweise von der systemd-Benutzer-Unit gestartet), h\[u00E4]lt die Bluetooth-Verbindung und die Mesh-Sequenznummer. W\[u00E4]hrend er l\[u00E4]uft, gehen die anderen Befehle \[u00FC]ber seinen Unix-Socket an ihn (das Protokoll steht in \fBhauslicht-ctl\fR(1)). Ohne Dienst sprechen \fBon\fR, \fBoff\fR, \fBdim\fR, \fBstatus\fR und \fBraw\fR Bluetooth-Mesh-Lampen direkt an; die mit \(BqDienst l\[u00E4]uft\(lq markierten Befehle brauchen ihn.
 .PP
-Das Plasma-Widget bietet dieselben Funktionen. Seine reinen Anzeige-Einstellungen (der Symbolsatz, umgekehrtes Scrollen auf dem Tray-Symbol) verwaltet das Widget selbst; daf\[u00FC]r gibt es keinen Befehl. Antworten erscheinen als Text; \fB\-\-json\fR gibt die Antwort des Dienstes f\[u00FC]r Skripte als JSON aus.
+Das Plasma-Widget bietet dieselben Funktionen. Seine eigenen Einstellungen (der Symbolsatz, umgekehrtes Scrollen, der Klatschmodus seines Schalters, Automatisch suchen) speichert der Dienst je Widget, sodass Widget und Einstellungsfenster dasselbe zeigen: \fBwidget\-settings\fR. Antworten erscheinen als Text; \fB\-\-json\fR gibt die Antwort des Dienstes f\[u00FC]r Skripte als JSON aus.
 .SH OPTIONEN
 .TP
 \fB\-h\fR, \fB\-\-help\fR
@@ -120,6 +120,9 @@ wie viele Widgets, 1-8 (Dienst l\[u00E4]uft)
 .TP
 \fBwidget\-bulbs\fR [ID ...]
 die Lampen des Widgets (-w N), in Listenreihenfolge; none: keine Lampe (Dienst l\[u00E4]uft)
+.TP
+\fBwidget\-settings\fR [KEY=VALUE ...]
+die eigenen Einstellungen des Widgets (-w N), gleich im Plasma-Widget und im Einstellungsfenster: invert_scroll=on|off, icon_set=NAME, clap_last=clap|snap|both, auto_scan_bluetooth=on|off; ohne: anzeigen (Dienst l\[u00E4]uft)
 .TP
 \fBidentify\fR BULB [on|off ...]
 eine Lampe langsam blinken lassen, um sie zu finden, off: aufh\[u00F6]ren; endet von selbst nach 2 Minuten (Dienst l\[u00E4]uft)
@@ -319,9 +322,6 @@ Das Klatsch-Modell, beim ersten Gebrauch heruntergeladen; \fBHausLicht\fR, der L
 .TP
 \fI~/.local/share/hauslicht/plasmoid/\fR
 Das Paket des Plasma-Widgets, wo Plasma fehlt (\fBinstall/install.sh\fR entpackt es dorthin): seine Einrichtungsseiten f\[u00FC]r \fBconfig\fR.
-.TP
-\fI~/.config/hauslicht/settings\-window.ini\fR
-Die eigenen Widget-Einstellungen des Einstellungsfensters (Symbolsatz, Bildlaufrichtung, Klatschmodus).
 .TP
 \fI~/.local/state/hauslicht/config\-window.log\fR
 Die Meldungen des Einstellungsfensters seit seinem letzten Start.
