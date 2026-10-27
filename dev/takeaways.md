@@ -466,3 +466,24 @@ onto Linux. Worth reporting upstream where marked.
   entry is the one shipped example), ~/.local/share included
   (`systemsettings --list` shows them). `systemsettings <that id>` did not
   start an external entry here; it is meant to start on a click (not tried).
+- Widget settings in the daemon (2026-10-27): the Plasma widget's invert
+  scroll, icon set, clap mode and Auto scan moved from its per-instance
+  KConfig into `settings.widget_settings`, so the settings window (widget 1)
+  and the tray widget show the same.
+  - Only the keys written so far are stored, not defaults: a missing key is
+    how a widget knows to carry its old KConfig value over once. Filling in
+    defaults would have hidden the user's icon set behind "lighthouse".
+  - The window must not carry anything over: its stand-in only has defaults,
+    and it often starts before the tray widget's first poll.
+  - In QML, a handler on `stChanged` can run before a binding that reads
+    `st` is re-evaluated: WidgetSettings.qml read a stale value through a
+    `readonly property var stored: ctl.st.widget_settings` and missed a
+    change. The same trap is noted in main.qml (clapOn); read `ctl.st`
+    itself in the handler.
+  - A daemon change is taken over only when the daemon's value changes, not
+    whenever it differs from the cache, and not while our own send of that
+    key is unanswered: a poll's reply that left before the send would
+    otherwise put the old value back for a moment.
+  - The QML tests run the real HausCtl.qml under `qml6` against a fake
+    `hauslicht-ctl` in a temporary `$HOME` (HausCtl runs
+    `$HOME/.local/bin/hauslicht-ctl`): no socket, no live daemon.

@@ -21,8 +21,12 @@ second copy: a change to a page shows in both places.
   holds stand-ins for the two modules that only work inside Plasma:
   - `org.kde.plasma.plasmoid`: `Plasmoid.configuration` with the keys and
     defaults of the widget's `config/main.xml` (a test in Haus.Licht-plasma
-    checks they match), saved in `~/.config/hauslicht/settings-window.ini`.
-    The window acts as widget 1.
+    checks they match). The window acts as widget 1: invert scroll, icon
+    set, clap mode and Auto scan are widget 1's in the daemon
+    (`widget-settings-set`, `widget_settings` in `get`), the same values
+    the tray widget shows; nothing is kept in a file of the window's own.
+    The window never writes its defaults there: the widget carries its old
+    values over the first time it meets a daemon that keeps them.
   - `org.kde.plasma.configuration`: `ConfigModel` and `ConfigCategory`, so
     `config.qml` loads unchanged.
 - **Everything else is the real thing:** Kirigami, KCMUtils (the pages are
@@ -30,8 +34,10 @@ second copy: a change to a page shows in both places.
   executable engine runs `hauslicht-ctl`) are ordinary QML modules that work
   without a Plasma session. The pages talk to the daemon as in the widget.
 - **No Apply button:** the pages change the daemon directly; the few widget
-  settings they hold (icon set, scroll direction, clap mode) are saved as
-  soon as they change.
+  settings they hold (icon set, scroll direction, clap mode, Auto scan) go
+  to the daemon as soon as they change, and a change made in the tray
+  widget shows here with the next poll (10 s). With a daemon from before
+  these settings they last until the window closes.
 
 ## Where the pages are looked for
 

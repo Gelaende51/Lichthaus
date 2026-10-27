@@ -35,12 +35,18 @@ hauslicht.json (schema 4), next to the mesh network keys btmesh keeps at the top
               token (never in `get`); a bulb's `video: true` follows its
               `video_region` of the screen (whole, a half or a quarter);
               notify: notification blinks on (default off; the rules are per
-              profile: a profile's `notify_rules`, see NOTIFY_RULE_DEFAULTS)
+              profile: a profile's `notify_rules`, see NOTIFY_RULE_DEFAULTS);
+              widget_settings: per widget ("1", ...) the front end's own
+              choices, only the keys set so far (a widget missing a key
+              writes its old local value once): invert_scroll, icon_set,
+              clap_last (what its Clap switch turns on), auto_scan_bluetooth;
+              see WIDGET_SETTING_KEYS
 Pure functions only: the core and the tests share them.
 """
 
 from __future__ import annotations
 
+import contextlib
 import copy
 import math
 import re
@@ -74,7 +80,7 @@ GLOBAL_DEFAULTS = {"mode": "maximum", "slider": 100, "lid": "both", "flick": "on
                    "exclusive_adapter": "", "monitor_power": True,
                    "audio_source": "", "audio_color": True, "follow_rate": _rate.DEFAULT_RATE,
                    "video_max": _video.DEFAULT_MAX, "video_smooth": _video.DEFAULT_SMOOTH, "video_token": "",
-                   "notify": False}
+                   "notify": False, "widget_settings": {}}
 AUDIO_KEYS = ("audio_source", "audio_color")  # global; on/off is per bulb (entry `audio`)
 FOLLOW_KEYS = ("follow_rate",)  # audio and video: the bulb's rate cap
 VIDEO_KEYS = ("video_max", "video_smooth")  # global; on/off and the region are per bulb
@@ -82,6 +88,11 @@ CLAP_KEYS = ("clap_source", "clap_sensitivity")  # global; the mode is per widge
 SETTABLE_GLOBALS = ("mode", "lid", "monitor_power", "flick", "autoconnect", *CLAP_KEYS, "exclusive_adapter", *AUDIO_KEYS,
                     *FOLLOW_KEYS, *VIDEO_KEYS, "notify")  # `set key=value`; slider and selected have commands
 MAX_WIDGETS = 8
+# A widget's own choices (the Plasma widget, the settings window as widget 1):
+# kept here so every front end shows the same. The daemon only stores them.
+WIDGET_SETTING_KEYS = ("invert_scroll", "icon_set", "clap_last", "auto_scan_bluetooth")
+CLAP_LAST = ("clap", "snap", "both")  # what a widget's Clap switch turns on
+ICON_SET_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")  # a folder name of the widget's icon sets
 BULB_DEFAULTS = {"name": "", "use": True, "icon_on": "", "icon_off": "", "config": {}}
 POWERUP = ("off", "on", "restore")  # OnPowerUp values of the backend contract
 LEDVANCE_NAME = "Hauslicht"  # Ledvance mesh bulbs (CID 0x052e): "Hauslicht - 0002"
@@ -415,6 +426,45 @@ def clean_widget_bulbs(lists, bulbs: dict, count: int) -> dict:
     return out
 
 
+def check_widget_setting(key: str, value):
+    """One widget setting, validated: booleans as on/off, icon_set a plain
+    name (the widget knows the sets), clap_last clap|snap|both."""
+    if key in ("invert_scroll", "auto_scan_bluetooth"):
+        try:
+            return parse_bool(value)
+        except ValueError:
+            raise ValueError(f"{key} must be on or off") from None
+    if key == "icon_set":
+        if not isinstance(value, str) or not ICON_SET_RE.fullmatch(value):
+            raise ValueError("icon_set must be a name of 1-64 letters, digits, '.', '_' or '-'")
+        return value
+    if key == "clap_last":
+        if value not in CLAP_LAST:
+            raise ValueError(f"clap_last must be one of {', '.join(CLAP_LAST)}")
+        return value
+    raise ValueError(f"unknown widget setting {key}; known: {', '.join(WIDGET_SETTING_KEYS)}")
+
+
+def clean_widget_settings(stored, count: int) -> dict:
+    """Per widget 1..count its valid settings; invalid keys and values,
+    higher widgets and widgets without any setting dropped."""
+    if not isinstance(stored, dict):
+        return {}
+    out = {}
+    for w in range(1, count + 1):
+        entry = stored.get(str(w))
+        if not isinstance(entry, dict):
+            continue
+        kept = {}
+        for key in WIDGET_SETTING_KEYS:
+            if key in entry:
+                with contextlib.suppress(ValueError):
+                    kept[key] = check_widget_setting(key, entry[key])
+        if kept:
+            out[str(w)] = kept
+    return out
+
+
 def clean_widget_clap(modes, count: int) -> dict:
     """Per widget 1..count its clap mode; unknown or missing ones off."""
     if not isinstance(modes, dict):
@@ -560,6 +610,7 @@ def migrate(state: dict) -> bool:
     except (TypeError, ValueError):
         settings["widgets"] = 1
     settings["widget_clap"] = clean_widget_clap(settings["widget_clap"], settings["widgets"])
+    settings["widget_settings"] = clean_widget_settings(settings["widget_settings"], settings["widgets"])
     for entry in bulbs.values():
         for key, default in BULB_DEFAULTS.items():
             entry.setdefault(key, copy.deepcopy(default))

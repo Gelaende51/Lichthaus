@@ -290,6 +290,12 @@ GERMAN = {
     "the list order: every bulb id once (daemon running)":
         "die Reihenfolge der Liste: jede Lampen-ID genau einmal (Dienst läuft)",
     "how many widgets, 1-8 (daemon running)": "wie viele Widgets, 1-8 (Dienst läuft)",
+    "the widget's (-w N) own settings, the same in the Plasma widget and the settings window: "
+    "invert_scroll=on|off, icon_set=NAME, clap_last=clap|snap|both, auto_scan_bluetooth=on|off; "
+    "none: show them (daemon running)":
+        "die eigenen Einstellungen des Widgets (-w N), gleich im Plasma-Widget und im Einstellungsfenster: "
+        "invert_scroll=on|off, icon_set=NAME, clap_last=clap|snap|both, auto_scan_bluetooth=on|off; "
+        "ohne: anzeigen (Dienst läuft)",
     "the bulbs of the widget (-w N), kept in list order; none: no bulb (daemon running)":
         "die Lampen des Widgets (-w N), in Listenreihenfolge; none: keine Lampe (Dienst läuft)",
     "the Bluetooth adapter flick mode exclusive takes: hciN, its address or auto (daemon running)":

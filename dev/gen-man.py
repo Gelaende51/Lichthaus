@@ -39,8 +39,9 @@ TEXT = {
             "(the protocol is in \\fBhauslicht-ctl\\fR(1)). Without the daemon, \\fBon\\fR, \\fBoff\\fR, "
             "\\fBdim\\fR, \\fBstatus\\fR and \\fBraw\\fR talk to Bluetooth mesh bulbs directly; the commands "
             "marked \\(lqdaemon running\\(rq need it.",
-            "The Plasma widget offers the same features. Its pure display preferences (the icon set, inverted "
-            "scrolling on the tray icon) are kept by the widget and have no command. Replies are printed as "
+            "The Plasma widget offers the same features. Its own preferences (the icon set, inverted "
+            "scrolling, the clap mode its switch turns on, Auto scan) are kept by the daemon per widget, so the "
+            "widget and the settings window show the same: \\fBwidget\\-settings\\fR. Replies are printed as "
             "text; \\fB\\-\\-json\\fR prints the daemon's reply as JSON for scripts.",
         ],
         "options": "OPTIONS", "commands": "COMMANDS", "files": "FILES", "environment": "ENVIRONMENT",
@@ -62,8 +63,6 @@ TEXT = {
              "\\fBqml\\fR runtime that \\fBconfig\\fR starts the settings window through."),
             ("~/.local/share/hauslicht/plasmoid/", "The Plasma widget's package where Plasma is missing "
              "(\\fBinstall/install.sh\\fR unpacks it there): its Configure pages for \\fBconfig\\fR."),
-            ("~/.config/hauslicht/settings-window.ini", "The settings window's own widget settings (icon set, "
-             "scroll direction, clap mode)."),
             ("~/.local/state/hauslicht/config-window.log", "The settings window's messages from its last start."),
             ("/usr/local/lib/hauslicht/setup-version", "The stamp of the one-time system setup "
              "(\\fBsetup\\-root\\fR)."),
@@ -123,8 +122,9 @@ TEXT = {
             "über seinen Unix-Socket an ihn (das Protokoll steht in \\fBhauslicht-ctl\\fR(1)). Ohne Dienst "
             "sprechen \\fBon\\fR, \\fBoff\\fR, \\fBdim\\fR, \\fBstatus\\fR und \\fBraw\\fR Bluetooth-Mesh-Lampen "
             "direkt an; die mit \\(BqDienst läuft\\(lq markierten Befehle brauchen ihn.",
-            "Das Plasma-Widget bietet dieselben Funktionen. Seine reinen Anzeige-Einstellungen (der Symbolsatz, "
-            "umgekehrtes Scrollen auf dem Tray-Symbol) verwaltet das Widget selbst; dafür gibt es keinen Befehl. "
+            "Das Plasma-Widget bietet dieselben Funktionen. Seine eigenen Einstellungen (der Symbolsatz, "
+            "umgekehrtes Scrollen, der Klatschmodus seines Schalters, Automatisch suchen) speichert der Dienst je "
+            "Widget, sodass Widget und Einstellungsfenster dasselbe zeigen: \\fBwidget\\-settings\\fR. "
             "Antworten erscheinen als Text; \\fB\\-\\-json\\fR gibt die Antwort des Dienstes für Skripte als "
             "JSON aus.",
         ],
@@ -148,8 +148,6 @@ TEXT = {
              "der Link auf Qts \\fBqml\\fR-Laufzeit, über den \\fBconfig\\fR das Einstellungsfenster startet."),
             ("~/.local/share/hauslicht/plasmoid/", "Das Paket des Plasma-Widgets, wo Plasma fehlt "
              "(\\fBinstall/install.sh\\fR entpackt es dorthin): seine Einrichtungsseiten für \\fBconfig\\fR."),
-            ("~/.config/hauslicht/settings-window.ini", "Die eigenen Widget-Einstellungen des Einstellungsfensters "
-             "(Symbolsatz, Bildlaufrichtung, Klatschmodus)."),
             ("~/.local/state/hauslicht/config-window.log", "Die Meldungen des Einstellungsfensters seit seinem "
              "letzten Start."),
             ("/usr/local/lib/hauslicht/setup-version", "Der Stempel der einmaligen Systemeinrichtung "

@@ -34,7 +34,8 @@ def test_v1_becomes_one_dark_volkslicht_on_the_default_profile():
                                  "widget_clap": {"1": "off"}, "clap_source": "", "clap_sensitivity": 50,
                                  "exclusive_adapter": "", "monitor_power": True,
                                  "audio_source": "", "audio_color": True, "follow_rate": 2,
-                                 "video_max": 100, "video_smooth": 0.5, "video_token": "", "notify": False}
+                                 "video_max": 100, "video_smooth": 0.5, "video_token": "", "notify": False,
+                                 "widget_settings": {}}
     assert "sync" not in state and "presets" not in state
 
 

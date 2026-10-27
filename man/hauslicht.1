@@ -9,7 +9,7 @@ hauslicht \- lights that follow the screen (Bluetooth mesh and more)
 .PP
 The daemon, \fBhauslicht sync\fR (normally run by the systemd user unit), owns the Bluetooth link and the mesh sequence number. While it runs, the other commands go to it over its Unix socket (the protocol is in \fBhauslicht-ctl\fR(1)). Without the daemon, \fBon\fR, \fBoff\fR, \fBdim\fR, \fBstatus\fR and \fBraw\fR talk to Bluetooth mesh bulbs directly; the commands marked \(lqdaemon running\(rq need it.
 .PP
-The Plasma widget offers the same features. Its pure display preferences (the icon set, inverted scrolling on the tray icon) are kept by the widget and have no command. Replies are printed as text; \fB\-\-json\fR prints the daemon's reply as JSON for scripts.
+The Plasma widget offers the same features. Its own preferences (the icon set, inverted scrolling, the clap mode its switch turns on, Auto scan) are kept by the daemon per widget, so the widget and the settings window show the same: \fBwidget\-settings\fR. Replies are printed as text; \fB\-\-json\fR prints the daemon's reply as JSON for scripts.
 .SH OPTIONS
 .TP
 \fB\-h\fR, \fB\-\-help\fR
@@ -120,6 +120,9 @@ how many widgets, 1-8 (daemon running)
 .TP
 \fBwidget\-bulbs\fR [ID ...]
 the bulbs of the widget (-w N), kept in list order; none: no bulb (daemon running)
+.TP
+\fBwidget\-settings\fR [KEY=VALUE ...]
+the widget's (-w N) own settings, the same in the Plasma widget and the settings window: invert_scroll=on|off, icon_set=NAME, clap_last=clap|snap|both, auto_scan_bluetooth=on|off; none: show them (daemon running)
 .TP
 \fBidentify\fR BULB [on|off ...]
 blink a bulb slowly to find it, off: stop; it stops by itself after 2 minutes (daemon running)
@@ -319,9 +322,6 @@ The clap model, downloaded on first use; \fBHausLicht\fR, the link to Qt's \fBqm
 .TP
 \fI~/.local/share/hauslicht/plasmoid/\fR
 The Plasma widget's package where Plasma is missing (\fBinstall/install.sh\fR unpacks it there): its Configure pages for \fBconfig\fR.
-.TP
-\fI~/.config/hauslicht/settings\-window.ini\fR
-The settings window's own widget settings (icon set, scroll direction, clap mode).
 .TP
 \fI~/.local/state/hauslicht/config\-window.log\fR
 The settings window's messages from its last start.

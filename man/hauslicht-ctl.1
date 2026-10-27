@@ -1,4 +1,4 @@
-.TH HAUSLICHT\-CTL 1 "2026-10-22" "Haus.Licht 0.2" "User Commands"
+.TH HAUSLICHT\-CTL 1 "2026-10-27" "Haus.Licht 0.2" "User Commands"
 .SH NAME
 hauslicht\-ctl \- send one raw command to the hauslicht daemon and print its JSON reply
 .SH SYNOPSIS
@@ -107,6 +107,14 @@ sent to it.
 .TP
 \fBwidget\-bulbs\fR [\fIID\fR,\fIID\fR...]
 The widget's bulbs (none: empty), stored in list order.
+.TP
+\fBwidget\-settings\fR | \fBwidget\-settings\-set\fR \fIKEY\fR=\fIVALUE\fR ...
+The widget's own settings, the same in the Plasma widget and the settings
+window (widget 1): \fBinvert_scroll\fR (on off), \fBicon_set\fR (a name of the
+widget's icon sets, 1\-64 letters, digits, . _ \-), \fBclap_last\fR (clap snap
+both: what its Clap switch turns on), \fBauto_scan_bluetooth\fR (on off).
+\fBget\fR carries the keys written so far as \fBwidget_settings\fR. A bad key
+or value refuses the whole command.
 .TP
 \fBorder\fR \fIID ID\fR ...
 The list order: every bulb id once.
