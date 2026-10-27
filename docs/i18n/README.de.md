@@ -189,6 +189,15 @@ meldet.
 | Linux-LED-Klasse, `/sys/class/leds` (`sysled`) | – (sysfs, logind) | hs bei mehrfarbigen LEDs | LED-Name (Suche; zeigt ihren Trigger) |
 | USB-Statuslichter: BlinkStick, Luxafor, blink(1), Kuando, Embrava, MuteMe … (`usblight`) | busylight-core | hs | Gerät (Suche; Zugriff: Systemeinrichtung) |
 | Serielle LED-Controller: Adalight-Sketches, WLED über USB (`serial`) | pyserial | hs | Schnittstelle (die Suche listet, öffnet nie), Protokoll, Baudrate, Anzahl LEDs |
+| USB-Port-Strom, für Lampen, die nur 5 V ziehen (`usbport`) | – (sysfs, Root-Helfer) | – (nur ein/aus) | Port (Suche: Ort, Hub, angeschlossenes Gerät; Systemeinrichtung) |
+
+`usbport` schaltet die 5 V eines USB-Ports ein und aus (Linux 6.0+; bei
+einer USB-3-Buchse beide Hälften). Das geht nur, wo der Hub den Strom je
+Port wirklich schaltet: die eigenen Ports vieler Laptops behalten die 5 V.
+Identifizieren ist der Test: eine Lampe, die nicht blinkt, hängt an einem
+Port, der nicht schaltet. `uhubctl` prüft einen Hub, seine README listet
+Hubs mit Stromschaltung je Port. Ausschalten trennt auch ein Datengerät an
+diesem Port; die Suche nennt es.
 
 **Generisch**
 

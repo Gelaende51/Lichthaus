@@ -1,4 +1,4 @@
-.TH HAUSLICHT 1 "2026-10-25" "Haus.Licht 0.2" "User Commands"
+.TH HAUSLICHT 1 "2026-10-27" "Haus.Licht 0.2" "User Commands"
 .SH NAME
 hauslicht \- lights that follow the screen (Bluetooth mesh and more)
 .SH SYNOPSIS
@@ -409,6 +409,16 @@ Find, then add a bulb:
 hauslicht discover bluetooth
 hauslicht backends
 hauslicht add wiz address=192.168.1.40
+.fi
+.RE
+.PP
+A USB lamp on a hub port that switches its power (check the hub with uhubctl; the system setup lets the daemon switch it):
+.PP
+.RS
+.nf
+hauslicht discover usbport
+hauslicht add usbport port=1\-1.4\-port2 name=Shelf
+hauslicht identify usbport:1\-1.4\-port2
 .fi
 .RE
 .PP

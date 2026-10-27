@@ -83,6 +83,24 @@ onto Linux. Worth reporting upstream where marked.
   restart once the LED exists.
 - A new uleds LED reads 0 until set; ignore that first value or the saved
   slider position is lost.
+- USB port power (the usbport kind, 2026-10): since Linux 6.0 each port has
+  /sys/bus/usb/devices/<hub interface>/<port>/disable; writing 1 makes the
+  kernel clear PORT_POWER (usb_hub_set_port_power), 0 powers it again,
+  reading gives the state. A USB 3 socket is two logical ports (USB 2 and
+  USB 3, linked by `peer`) on one 5 V supply: both must be switched. Port
+  names: usbN-portM on root hubs, <hubdev>-portM on external hubs (1-1-port3,
+  1-1.4-port2). Ports have no udev subsystem, so a udev rule cannot grant the
+  write: a sudo root helper does it (install/usb-port-power), refusing every
+  port whose connect_type is not "hotplug" (hardwired / not used: the
+  Bluetooth adapter, the camera).
+  - Whether the 5 V really drops is the hardware's call: many hubs, and
+    laptops' own ports, only stop data. Hubs with real per-port power
+    switching drop it; uhubctl's README lists compatible hubs, and uhubctl
+    checks one. On this HP 15s-eq2xxx it is unconfirmed: a first try
+    (usb1-port2 + usb2-port2 disabled, the lamp stayed lit) is
+    inconclusive, the lamp was not plugged in properly; a retest is
+    pending. The sysfs attribute was used instead of uhubctl because it
+    covers root and external hubs alike and needs nothing installed.
 
 ## Generic OnPowerUp (power-up behaviour)
 - The Volkslicht has Generic Power OnOff Server/Setup Server (0x1006/0x1007);

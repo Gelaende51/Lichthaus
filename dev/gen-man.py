@@ -99,6 +99,10 @@ TEXT = {
              "hauslicht \\-w 2 widget\\-bulbs mesh:0003"),
             ("Find, then add a bulb:", "hauslicht discover bluetooth\nhauslicht backends\n"
              "hauslicht add wiz address=192.168.1.40"),
+            ("A USB lamp on a hub port that switches its power (check the hub with uhubctl; "
+             "the system setup lets the daemon switch it):",
+             "hauslicht discover usbport\nhauslicht add usbport port=1\\-1.4\\-port2 name=Shelf\n"
+             "hauslicht identify usbport:1\\-1.4\\-port2"),
             ("A test instance beside the live one:", "export HAUSLICHT_STATE=/tmp/hl.json "
              "HAUSLICHT_SOCK=$XDG_RUNTIME_DIR/hl.sock\nHAUSLICHT_BACKENDS=mock hauslicht sync "
              "\\-\\-no\\-desktop\\-writes &\nhauslicht add mock name=Desk"),
@@ -182,6 +186,10 @@ TEXT = {
              "hauslicht \\-w 2 widget\\-bulbs mesh:0003"),
             ("Eine Lampe suchen, dann hinzufügen:", "hauslicht discover bluetooth\nhauslicht backends\n"
              "hauslicht add wiz address=192.168.1.40"),
+            ("Eine USB-Lampe an einem Hub-Port, der seinen Strom schaltet (den Hub mit uhubctl prüfen; "
+             "die Systemeinrichtung lässt den Dienst schalten):",
+             "hauslicht discover usbport\nhauslicht add usbport port=1\\-1.4\\-port2 name=Regal\n"
+             "hauslicht identify usbport:1\\-1.4\\-port2"),
             ("Eine Testinstanz neben der laufenden:", "export HAUSLICHT_STATE=/tmp/hl.json "
              "HAUSLICHT_SOCK=$XDG_RUNTIME_DIR/hl.sock\nHAUSLICHT_BACKENDS=mock hauslicht sync "
              "\\-\\-no\\-desktop\\-writes &\nhauslicht add mock name=Desk"),

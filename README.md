@@ -170,6 +170,14 @@ colour temperature, each where the device reports it.
 | Linux LED class, `/sys/class/leds` (`sysled`) | – (sysfs, logind) | hs on multicolour LEDs | LED name (search; shows its trigger) |
 | USB status lights: BlinkStick, Luxafor, blink(1), Kuando, Embrava, MuteMe … (`usblight`) | busylight-core | hs | device (search; access: root setup) |
 | Serial LED controllers: Adalight sketches, WLED over USB (`serial`) | pyserial | hs | port (search lists, never opens), protocol, baud, LED count |
+| USB port power, for lamps that only draw 5 V (`usbport`) | – (sysfs, root helper) | – (on/off only) | port (search: location, hub, attached device; root setup) |
+
+`usbport` switches a USB port's 5 V on and off (Linux 6.0+; both halves of a
+USB 3 socket). It works only where the hub really switches power per port:
+many laptops' own ports keep the 5 V. Identify is the test: a lamp that does
+not blink sits on a port that does not switch. `uhubctl` checks a hub, and
+its README lists hubs with per-port power switching. Switching off also
+disconnects a data device on that port; the search names it.
 
 **Generic**
 

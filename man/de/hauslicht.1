@@ -1,4 +1,4 @@
-.TH HAUSLICHT 1 "2026-10-25" "Haus.Licht 0.2" "Benutzerbefehle"
+.TH HAUSLICHT 1 "2026-10-27" "Haus.Licht 0.2" "Benutzerbefehle"
 .SH BEZEICHNUNG
 hauslicht \- Lampen, die dem Bildschirm folgen (Bluetooth Mesh und mehr)
 .SH \[u00DC]BERSICHT
@@ -409,6 +409,16 @@ Eine Lampe suchen, dann hinzuf\[u00FC]gen:
 hauslicht discover bluetooth
 hauslicht backends
 hauslicht add wiz address=192.168.1.40
+.fi
+.RE
+.PP
+Eine USB-Lampe an einem Hub-Port, der seinen Strom schaltet (den Hub mit uhubctl pr\[u00FC]fen; die Systemeinrichtung l\[u00E4]sst den Dienst schalten):
+.PP
+.RS
+.nf
+hauslicht discover usbport
+hauslicht add usbport port=1\-1.4\-port2 name=Regal
+hauslicht identify usbport:1\-1.4\-port2
 .fi
 .RE
 .PP
