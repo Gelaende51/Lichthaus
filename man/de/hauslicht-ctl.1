@@ -1,4 +1,4 @@
-.TH HAUSLICHT\-CTL 1 "2026-10-22" "Haus.Licht 0.2" "Benutzerbefehle"
+.TH HAUSLICHT\-CTL 1 "2026-10-27" "Haus.Licht 0.2" "Benutzerbefehle"
 .SH BEZEICHNUNG
 hauslicht\-ctl \- einen rohen Befehl an den hauslicht-Dienst senden und seine JSON-Antwort ausgeben
 .SH \[u00DC]BERSICHT
@@ -108,6 +108,15 @@ nichts mehr gesendet.
 .TP
 \fBwidget\-bulbs\fR [\fIID\fR,\fIID\fR...]
 Die Lampen des Widgets (keine: leer), in Listenreihenfolge gespeichert.
+.TP
+\fBwidget\-settings\fR | \fBwidget\-settings\-set\fR \fISCHL\[u00DC]SSEL\fR=\fIWERT\fR ...
+Die eigenen Einstellungen des Widgets, gleich im Plasma\-Widget und im
+Einstellungsfenster (Widget 1): \fBinvert_scroll\fR (on off), \fBicon_set\fR
+(ein Name der Symbols\[u00E4]tze des Widgets, 1\-64 Buchstaben, Ziffern, . _ \-),
+\fBclap_last\fR (clap snap both: was sein Klatschen\-Schalter einschaltet),
+\fBauto_scan_bluetooth\fR (on off). \fBget\fR liefert die bisher geschriebenen
+Schl\[u00FC]ssel als \fBwidget_settings\fR. Ein falscher Schl\[u00FC]ssel oder Wert
+weist den ganzen Befehl ab.
 .TP
 \fBorder\fR \fIID ID\fR ...
 Die Reihenfolge der Liste: jede Lampen-ID genau einmal.

@@ -76,6 +76,8 @@ Most reply with the `get` object; the exceptions are noted.
 | `notify-status` | – | replies `get`'s `notify_status` alone |
 | `select` | `ID` \| `all` | what the slider, nudge, `set` (profile keys) and on/off act on (a used bulb of the widget); `all` uses the profile `default` |
 | `widget-bulbs` | `[ID,ID…]` | the widget's bulbs (none: empty), stored in list order. Unused bulbs the widget had stay stored (they reappear with `use=on`) |
+| `widget-settings` | – | replies `{"widget": N, "widget_settings": {...}}`: the widget's own settings stored so far (as in `get`) |
+| `widget-settings-set` | `KEY=VALUE…` | the widget's own settings, kept for its front ends (the Plasma widget, the settings window as widget 1): `invert_scroll=on\|off` (the mouse wheel reversed), `icon_set=NAME` (a set of the widget's icons: 1-64 letters, digits, `.` `_` `-`, not starting with `.` `_` `-`; the daemon does not know the names), `clap_last=clap\|snap\|both` (what the widget's Clap switch turns on; a `clap` mode other than off also sets it), `auto_scan_bluetooth=on\|off` (the Add dialog's Auto scan). All checked first, then stored at once; an unknown key or a bad value refuses the whole command. Replies `get`. Fewer `widgets` drop the higher widgets' settings |
 | `order` | `ID ID …` | the list order: every bulb id once. `get` lists bulbs and widget lists in it |
 | `bulb-set` | `ID key=value…` | `name=`, `profile=`, `use=on\|off`, `icon_on=` / `icon_off=` / `icon_disconnected=` (an icon name or an absolute path; empty: none. Without `icon_disconnected` the widget shows `icon_on` dimmed with a `network-disconnect` badge). `use=off` makes the bulb idle: OnPowerUp is set to `on` (a power cut boots it lit; retried until confirmed), then nothing else is sent to it (no levels, power, flick or lid handling); it leaves every widget's list and `all` in `get` but stays stored. A backend whose bulbs are all idle is told it may drop its link |
 | `profile save` | `NAME` | copy the selection's profile values into NAME (new or overwritten) |
@@ -375,6 +377,10 @@ values are those of `default`.
   "widget": 1,                  // the widget described (@N)
   "widgets": 2,                 // how many widgets
   "in_widget": ["mesh:0002"],   // this widget's used bulbs, in list order
+  "widget_settings": {"icon_set": "lighthouse", "invert_scroll": false},
+                                // this widget's own settings, only the keys written so far
+                                // (see widget-settings-set): a front end missing a key writes
+                                // its old local value once; missing altogether: an older daemon
   "bulbs_list": [               // every bulb, used or not, in list order
     {"id": "mesh:0002", "name": "Volkslicht", "kind": "mesh", "profile": "default",
      "power": false, "output": 0.0, "connected": true, "online": true,
