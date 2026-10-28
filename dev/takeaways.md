@@ -512,3 +512,26 @@ onto Linux. Worth reporting upstream where marked.
     QQuickWidget's own is the root item's size when it was loaded, before it
     follows the view. The KCM overrides `sizeHint()` with the root item's
     implicit width and height.
+  - Behind the lock screen nothing a page does reaches the screen
+    (2026-10-28): KWin marks every window `suspended` (xdg_toplevel
+    configure) and stops its frame callbacks; Qt Wayland then logs "Didn't
+    receive frame callback in time, window should now be inexposed", clears
+    `WA_Mapped`, and the widget repaint manager drops every sync. The KCM's
+    QQuickWidget keeps rendering offscreen (its scene had the daemon's
+    state), but the window keeps its first frame, from before the first
+    `get` answered: no bulbs, controls disabled. `spectacle -b -a` captures
+    that last committed buffer, so a screenshot taken while the session is
+    locked shows a page that "never got the daemon's state". Check
+    `qdbus6 org.freedesktop.ScreenSaver /ScreenSaver GetActive` before
+    judging a screenshot; KDE's `GetActiveTime` answers in milliseconds, not
+    the seconds the freedesktop spec names. XWayland windows stay stale too.
+    For a check while locked: `xvfb-run` with `QT_QPA_PLATFORM=xcb kcmshell6
+    kcm_hauslicht_bulbs` and `import -window root`, or `grabToImage` from
+    QML.
+  - Plasma's desktop style (qqc2-desktop-style, org.kde.desktop
+    ComboBox.qml) puts a touch-mode cursor on every ComboBox's contentItem
+    and binds it to `contentItem.positionToRectangle(selectionStart)`, as if
+    the box were editable. A custom contentItem (the Icon set box's preview)
+    throws "TypeError: Property 'positionToRectangle' … is not a function"
+    unless it answers `positionToRectangle()`, `selectionStart` and
+    `selectedText` (its `visible` reads that in tablet mode).
