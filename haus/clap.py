@@ -48,6 +48,9 @@ from collections import deque
 from collections.abc import Callable
 from pathlib import Path
 
+from . import _platform
+from . import audiocapture
+from .audiocapture import CaptureError  # noqa: F401  shared with haus/audiofollow.py
 from .common import ROOT, _
 
 log = logging.getLogger("hauslicht")
@@ -129,7 +132,9 @@ def missing() -> list[str]:
     """What the feature lacks: pip packages and capture programs."""
     out = [name for name, mod in (("numpy", "numpy"), ("ai-edge-litert", "ai_edge_litert"))
            if importlib.util.find_spec(mod) is None]
-    if not (shutil.which("pw-record") or shutil.which("parec")):
+    if not _platform.IS_LINUX:
+        out += audiocapture.missing()  # sounddevice (PortAudio)
+    elif not (shutil.which("pw-record") or shutil.which("parec")):
         out.append("pw-record")
     return out
 
@@ -528,10 +533,6 @@ def pair_label(ka: str, kb: str) -> str:
 
 # --------------------------------------------------------------------- capture
 
-class CaptureError(Exception):
-    pass
-
-
 class Capture:
     """Mono 16 kHz signed 16-bit audio from one PipeWire/Pulse source, through
     a pipe (nothing on disk), handed to on_samples(float32 −1…1, monotonic
@@ -541,7 +542,11 @@ class Capture:
     the default sink plays instead, as a passive stream (it never wakes a
     suspended sink, so it gets data only while something plays). Shared by
     the clap detector and follow-audio (haus/audiofollow.py, which only
-    replaces command())."""
+    replaces command() and device()).
+
+    Off Linux the samples come from python-sounddevice instead
+    (haus/audiocapture.py: same format, 50 ms blocks); there is no monitor
+    there, so a monitor capture ends at once with CaptureError."""
 
     def __init__(self, on_samples: Callable, source: str = "", monitor: bool = False,
                  name: str = "clap detection") -> None:
@@ -566,8 +571,17 @@ class Capture:
                 "--client-name=Haus.Licht", f"--stream-name={self.name}",
                 *([f"--device={self.source}"] if self.source else [])]
 
+    def device(self) -> str:
+        """Off Linux: the input device to open ("" the default input)."""
+        if self.monitor:
+            raise CaptureError(audiocapture.NO_LOOPBACK)
+        return self.source
+
     async def run(self) -> None:
         """Until cancelled; CaptureError when the recorder ends by itself."""
+        if not _platform.IS_LINUX:
+            await audiocapture.run(self.device(), self.on_samples, RATE, 800)  # 50 ms, as the pipe's chunks
+            return
         import numpy as np
         self.proc = await asyncio.create_subprocess_exec(
             *self.command(), stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.PIPE,
@@ -613,6 +627,9 @@ async def pactl(*args) -> str:
 
 async def list_sources() -> list[dict]:
     """Microphones (no sink monitors): [{name, description, default}], the default first."""
+    if not _platform.IS_LINUX:
+        return [{"name": d["name"], "description": d["description"], "default": d["default"], "muted": False}
+                for d in audiocapture.input_devices()]
     try:
         default = (await pactl("get-default-source")).strip()
         items = json.loads(await pactl("-f", "json", "list", "sources") or "[]")
@@ -632,7 +649,9 @@ async def list_sources() -> list[dict]:
 
 async def source_muted(source: str = "") -> bool | None:
     """The source's mute switch ("" the default source); None when pactl
-    cannot tell (no pactl, no such source)."""
+    cannot tell (no pactl, no such source; always off Linux)."""
+    if not _platform.IS_LINUX:
+        return None
     try:
         proc = await asyncio.create_subprocess_exec(
             "pactl", "get-source-mute", source or "@DEFAULT_SOURCE@", stdout=asyncio.subprocess.PIPE,

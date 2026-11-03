@@ -35,6 +35,8 @@ import time
 from collections import deque
 from collections.abc import Callable
 
+from . import _platform
+from . import audiocapture
 from . import clap as clapmod
 from . import followrate as _rate
 from .clap import CaptureError
@@ -89,7 +91,9 @@ def check_rate(value) -> int:
 def missing() -> list[str]:
     """What the mode lacks: numpy and a recorder."""
     out = ["numpy"] if importlib.util.find_spec("numpy") is None else []
-    if not (shutil.which("pw-record") or shutil.which("parec")):
+    if not _platform.IS_LINUX:
+        out += audiocapture.missing()  # sounddevice (PortAudio)
+    elif not (shutil.which("pw-record") or shutil.which("parec")):
         out.append("pw-record")
     return out
 
@@ -202,10 +206,14 @@ class Analyser:
 
 class AudioCapture(clapmod.Capture):
     """clap.Capture with follow-audio's sources: "" the monitor of the default
-    output (passive), a "….monitor" name that sink's monitor, else the source."""
+    output (passive), a "….monitor" name that sink's monitor, else the source.
+    Off Linux (no loopback): "" the default input device, else that device."""
 
     def __init__(self, on_samples: Callable, source: str = "") -> None:
         super().__init__(on_samples, source, monitor=not source, name="follow audio")
+
+    def device(self) -> str:
+        return self.source
 
     def command(self) -> list[str]:
         props = f'{{ application.name = "Haus.Licht" media.name = "{self.name}"'
@@ -228,7 +236,11 @@ class AudioCapture(clapmod.Capture):
 
 async def list_sources() -> list[dict]:
     """Every source, monitors included: [{name, description, monitor, default}];
-    default: the default output's monitor or the default microphone."""
+    default: the default output's monitor or the default microphone.
+    Off Linux: the input devices (no monitors, haus/audiocapture.py)."""
+    if not _platform.IS_LINUX:
+        return [{"name": d["name"], "description": d["description"], "monitor": False, "default": d["default"]}
+                for d in audiocapture.input_devices()]
     try:
         sink = (await clapmod.pactl("get-default-sink")).strip()
         source = (await clapmod.pactl("get-default-source")).strip()

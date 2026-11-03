@@ -6,3 +6,6 @@
 # ~/.cache/hauslicht/ and checked against a pinned sha256 (haus/clap.py).
 numpy>=2.3
 ai-edge-litert>=2.3
+# Off Linux the microphone (and follow-audio) are recorded through PortAudio
+# (CoreAudio, WASAPI); on Linux through pw-record/parec, nothing to install.
+sounddevice>=0.5; sys_platform != "linux"
