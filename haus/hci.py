@@ -34,6 +34,8 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from . import _platform
+
 log = logging.getLogger("hauslicht")
 
 # H4 packet types
@@ -632,6 +634,8 @@ def merge_adapters(sysfs: list[dict], bluez: dict[str, dict], claimed: str | Non
 
 
 async def list_adapters(claimed: str | None = None, ignore=()) -> list[dict]:
+    if not _platform.IS_LINUX:
+        return []  # raw HCI and BlueZ are Linux's: elsewhere no adapter for exclusive mode
     sysfs = await asyncio.to_thread(scan_sysfs)
     return merge_adapters(sysfs, await bluez_adapters({a.upper() for a in ignore}), claimed)
 

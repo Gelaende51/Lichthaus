@@ -75,3 +75,11 @@ GitHub Actions job `test`, strategy.matrix `os: [ubuntu-latest, macos-latest, wi
 
 ## Step 2 done
 TCP transport (haus/ipc.py) on Windows or HAUSLICHT_TRANSPORT=tcp; Unix socket unchanged on Linux.
+
+## Step 3 done
+The daemon starts and serves on macOS and Windows (tests/test_platform_daemon.py: faked darwin over the Unix socket; the IS_LINUX gate off over TCP with the token). Off Linux:
+- Desktop: haus.desktop.NullDesktop. No screen following (the screen reads 100 %, as on Linux without a backlight), no lid, no keyboard slider, no suspend guard, no Night Light or colour scheme (day, never night).
+- KDE integration (shortcuts, OSD, panel widgets) and the notification watcher: not created (None).
+- Root setup: always "missing"; `ctl setup-root` ends at once with exit 127 ("not allowed, or no password prompt available"), so flick fast and exclusive are refused as without the setup.
+- hci.list_adapters: no adapters, so `ctl adapters` lists none and exclusive mode has none to take.
+Left for later: `hauslicht setup-root` on a terminal (cli.py, sudo) is not gated yet (step 7); the status field `laptop` reads True off Linux (NullDesktop has none) and monitor_power's reason says "a laptop".

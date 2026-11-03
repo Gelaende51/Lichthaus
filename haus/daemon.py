@@ -27,6 +27,7 @@ from . import actions as actionsmod
 from . import audiofollow as audiomod
 from . import backends as registry
 from . import clap as clapmod
+from . import _platform
 from . import followrate as ratemod
 from . import ipc
 from . import hci
@@ -35,7 +36,7 @@ from . import rootsetup
 from . import videofollow as videomod
 from .backends import QUICK_GAP_S, Offline
 from .common import PROTOCOL, UserError, _, armed_path, link_lock, read_armed, read_state, save_state, write_armed
-from .desktop import Desktop, KbdSlider
+from .desktop import Desktop, KbdSlider, NullDesktop
 from .kde import Kde, panel_disabled
 from .profiles import (
     AUDIO_KEYS, CLAP_KEYS, DEFAULT, FOLLOW_KEYS, VIDEO_KEYS, FAST_FLICK, KBD_BINDING, PROFILE_KEYS, SETTABLE_GLOBALS, check_global_value, check_icon,
@@ -212,7 +213,10 @@ class Daemon:
         self.manual_saver: asyncio.Task | None = None
         self.setup_task: asyncio.Task | None = None
         self.setup_note = ""  # the last system setup's failure, for the widget
-        self.desktop = desktop or Desktop(self.slider_moved, self.before_sleep, self.after_wake, desktop_writes)
+        # off Linux an inert desktop, and none of the session-bus parts below
+        session = desktop is None and _platform.IS_LINUX
+        self.desktop = desktop or (Desktop(self.slider_moved, self.before_sleep, self.after_wake, desktop_writes)
+                                   if _platform.IS_LINUX else NullDesktop())
         self.backends: dict[str, registry.Backend] = {}  # instances, started or not
         self.started: set[str] = set()
         self.locks: dict[str, asyncio.Lock] = {}
@@ -243,7 +247,7 @@ class Daemon:
         self.test_results: dict[str, dict] = {}  # bulb id -> its last Test ({step, rate, running})
         # notification blinks: the session-bus watcher (tests inject theirs, or none), the last match
         self.notifier = notifier if notifier is not None else (
-            notifywatch.NotifyWatcher(self.on_notification) if desktop is None else None)
+            notifywatch.NotifyWatcher(self.on_notification) if session else None)
         self.notify_last: dict | None = None  # {rule, app, time}: never the notification's text
         self.autoconnect_wake = asyncio.Event()
         self.autoconnector: asyncio.Task | None = None
@@ -263,7 +267,7 @@ class Daemon:
             self.desktop.env.on_change = self.wake.set  # a Night Light step: at once
         # shortcuts, OSD, panel widgets: only with the real desktop (tests inject theirs)
         self.kde = kde if kde is not None else (
-            Kde(self, panel=not panel_disabled(not desktop_writes)) if desktop is None else None)
+            Kde(self, panel=not panel_disabled(not desktop_writes)) if session else None)
 
     # ------------------------------------------------------------------ model
 

@@ -569,3 +569,33 @@ class Desktop:
 
     def close(self) -> None:
         self.slider.close()
+
+
+class NullDesktop:
+    """The desktop off Linux (macOS, Windows): nothing of the above exists
+    there yet. No backlight to follow (the screen reads 100 %, as on Linux
+    without a backlight device), no lid, no keyboard slider, no suspend
+    guard; the environment is never read, so it is day, never night, and
+    the colour scheme unknown."""
+
+    backlight = None
+    screen_on = True
+    slider_ready = False
+
+    def __init__(self) -> None:
+        self.env = Environment()  # never started: daylight, scheme and kelvin stay None
+
+    def screen_level(self) -> float:
+        return 100.0
+
+    def lid_closed(self) -> bool:
+        return False
+
+    async def push_slider(self, value: int) -> bool:
+        return False  # no slider shows it: the caller takes the value as moved
+
+    async def start(self, slider_value: int) -> None:
+        pass
+
+    def close(self) -> None:
+        pass

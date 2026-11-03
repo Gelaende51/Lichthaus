@@ -20,6 +20,7 @@ import shutil
 import sys
 from pathlib import Path
 
+from . import _platform
 from .common import ROOT
 
 SCRIPT = ROOT / "install" / "setup-root.sh"
@@ -41,7 +42,10 @@ def installed(stamp: Path | None = None) -> int | None:
 
 
 def status(stamp: Path | None = None, legacy=None) -> dict:
-    """{"status": missing|outdated|current, "installed": int|None, "required": int}."""
+    """{"status": missing|outdated|current, "installed": int|None, "required": int}.
+    Off Linux always missing: the setup is Linux's (pkexec, udev, BlueZ)."""
+    if not _platform.IS_LINUX:
+        return {"status": "missing", "installed": None, "required": required()}
     want, have = required(), installed(stamp)
     if have is None:
         legacy = LEGACY if legacy is None else legacy
@@ -59,6 +63,8 @@ def command(tty: bool) -> list[str]:
 async def run(cmd: list[str] | None = None) -> tuple[int, str]:
     """Run the setup; (exit code, last output line). pkexec: 126 the prompt
     was dismissed, 127 no authentication agent or not allowed."""
+    if not _platform.IS_LINUX:
+        return 127, "Linux only"
     cmd = cmd or command(False)
     if shutil.which(cmd[0]) is None:
         return 127, f"{cmd[0]} not found"
