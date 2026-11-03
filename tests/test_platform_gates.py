@@ -59,3 +59,25 @@ def test_cli_setup_root_off_linux(monkeypatch):
     monkeypatch.setattr(sys, "argv", ["hauslicht", "setup-root"])
     rc = cli.main()
     assert rc == 0
+
+
+
+def test_serial_listing_off_linux(monkeypatch, tmp_path):
+    """No /dev/serial/by-id off Linux: discovery lists pyserial's ports by their own names."""
+    import asyncio
+    import types
+
+    import serial.tools.list_ports as lp
+
+    import haus.backends.serial as serial_mod
+
+    class Port:
+        def __init__(self, device):
+            self.device, self.description, self.vid, self.pid = device, "Adalight " + device, 0x1a86, 0x7523
+
+    monkeypatch.setattr(lp, "comports", lambda: [Port("COM3"), Port("/dev/cu.usbserial-10")])
+    monkeypatch.setattr(serial_mod, "BY_ID", tmp_path / "missing")
+    monkeypatch.setattr(serial_mod.os, "access", lambda *a, **k: True)
+    found = asyncio.run(serial_mod.SerialBackend.discover(types.SimpleNamespace(kind="serial"), 1.0))
+    assert [e["address"] for e in found] == ["COM3", "/dev/cu.usbserial-10"]
+    assert found[0]["note"] == "USB 1a86:7523"
