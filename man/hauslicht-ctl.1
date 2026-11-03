@@ -1,4 +1,4 @@
-.TH HAUSLICHT\-CTL 1 "2026-10-27" "Haus.Licht 0.2" "User Commands"
+.TH HAUSLICHT\-CTL 1 "2026-11-03" "Haus.Licht 0.2" "User Commands"
 .SH NAME
 hauslicht\-ctl \- send one raw command to the hauslicht daemon and print its JSON reply
 .SH SYNOPSIS
@@ -75,7 +75,8 @@ Globals: \fBmode\fR (independent minimum maximum coupling off), \fBlid\fR
 (close open both never), \fBmonitor_power\fR (on off), \fBflick\fR (off on fast
 exclusive), \fBexclusive_adapter\fR (hciN, an address, auto), \fBwidgets\fR
 (1\-8), \fBautoconnect\fR, \fBclap\fR (the widget's mode: off clap snap both),
-\fBclap_source\fR, \fBclap_sensitivity\fR (0\-100), \fBaudio_source\fR,
+\fBclap_source\fR, \fBclap_sensitivity\fR (0\-100), \fBclap_count\fR (2 3:
+claps or snaps in a row that toggle; 3 cuts false alarms), \fBaudio_source\fR,
 \fBaudio_color\fR, \fBfollow_rate\fR (1\-3), \fBvideo_max\fR (0\-100),
 \fBvideo_smooth\fR (0 0.2 0.5 1 2 5), \fBnotify\fR.
 Keys of the selection's profile: \fBtrack\fR (always night day dark light
@@ -83,7 +84,7 @@ never), \fBoff_at_zero\fR, \fBrange_lo\fR, \fBrange_hi\fR (\-100 to 200, never
 crossing), \fBcurve\fR (\-100 to 100), \fBlevel\fR (0\-100), \fBhue\fR (0\-360),
 \fBsat\fR (0\-100), \fBfollow_ct\fR (on off), \fBshift\fR (0\-200).
 .TP
-\fBmode\fR | \fBtrack\fR | \fBoff\-at\-zero\fR | \fBlid\fR | \fBmonitor\-power\fR | \fBflick\fR | \fBautoconnect\fR | \fBclap\fR | \fBclap\-source\fR | \fBclap\-sensitivity\fR [\fIVALUE\fR]
+\fBmode\fR | \fBtrack\fR | \fBoff\-at\-zero\fR | \fBlid\fR | \fBmonitor\-power\fR | \fBflick\fR | \fBautoconnect\fR | \fBclap\fR | \fBclap\-source\fR | \fBclap\-sensitivity\fR | \fBclap\-count\fR [\fIVALUE\fR]
 The same as \fBset\fR, the value optional.
 .SS Profiles
 .TP
@@ -163,10 +164,10 @@ The \fBget\fR object with the setup status read anew.
 Replies \fB{sources: [{name, description, default, muted}], selected}\fR: the microphones.
 .TP
 \fBclap\-meter\fR
-Replies the test meter: level, noise floor, the last judged sound and the last double.
+Replies the test meter: level, noise floor, the last judged sound and the last double (or triple: its \fBcount\fR).
 .TP
 \fBclap\-hits\fR
-Replies the last 30 hits with the gate's numbers, scores and verdict.
+Replies the last 30 hits with the gate's numbers, scores and verdict (\fBsequence\fR: 2 or 3 when part of a double or triple, else 0), and \fBcount\fR, the \fBclap_count\fR setting.
 .TP
 \fBaudio\fR \fBon\fR|\fBoff\fR|\fBtoggle\fR
 The selection follows what the computer plays: loudness to brightness, pitch to colour.

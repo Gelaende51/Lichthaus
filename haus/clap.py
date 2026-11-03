@@ -1,5 +1,5 @@
 """A double clap or double finger snap toggles the lights (settings.widget_clap:
-per widget, its selection).
+per widget, its selection); with settings.clap_count 3 it takes a triple.
 
     microphone ── Capture (pw-record/parec, mono 16 kHz s16, pipe only) ── 10 ms blocks
        │          DcBlocker: the microphone's DC offset off
@@ -10,9 +10,10 @@ per widget, its selection).
        │      the clap family's summed score (CLAP_CORE, SNAP_CORE, IMPULSE)
        │      against the bar, lower for a clap-like shape, unless
        │      Speech/Music/Typing scores more (VETOES)
-       ▼  DoubleHitDetector: one accepted hit and a partner (a lower bar:
-    toggle    only not clearly speech, music or typing) 120-800 ms apart,
-              quiet 600 ms before and 300 ms after, 1 s cooldown; a hit that
+       ▼  HitSequenceDetector: 2 (or 3) hits in a row, one accepted and the
+    toggle    others partners (a lower bar: only not clearly speech, music or
+              typing), each 120-800 ms after the one before, quiet 600 ms
+              before and 300 ms after, 1 s cooldown; a hit that
               the default sink's monitor shows at the same time came from
               the speakers and is dropped. The last 30 hits stay in memory
               for `ctl clap-hits` (their numbers, never audio).
@@ -52,6 +53,8 @@ from .common import ROOT, _
 log = logging.getLogger("hauslicht")
 
 MODES = ("off", "clap", "snap", "both")
+COUNTS = (2, 3)  # hits in a row that toggle (settings.clap_count): a double, a triple
+SEQUENCE_NAMES = {2: "double", 3: "triple"}
 RATE = 16000
 BLOCK = 160  # 10 ms
 WINDOW = 15600  # YAMNet's input: 0.975 s
@@ -87,10 +90,10 @@ CLAP_RISE_DB, CLAP_DECAY_MS = 15.0, 50  # clap-like: rises this much in a block,
 HISTORY = 30  # hits kept for ctl clap-hits
 
 ECHO_S = 0.1  # onsets closer than this to the previous one are the same hit
-PAIR_MIN_S, PAIR_MAX_S = 0.12, 0.8  # the second hit after the first
+PAIR_MIN_S, PAIR_MAX_S = 0.12, 0.8  # each hit of a double (or triple) after the one before
 QUIET_BEFORE_S = 0.6  # no onset this long before the first hit
-QUIET_AFTER_S = 0.3  # nor this long after the second (applause, a knock series)
-COOLDOWN_S = 1.0  # after a double
+QUIET_AFTER_S = 0.3  # nor this long after the last (applause, a knock series)
+COOLDOWN_S = 1.0  # after a double (or triple)
 DECAY_S = 0.1  # a hit falls back by DECAY_DB within this; longer is speech, music, a door
 DECAY_DB = 12.0
 JUMP_DB = 4.0  # a second hit on the first one's tail rises this much over the last 30 ms
@@ -112,7 +115,7 @@ def union_mode(modes) -> str:
 
 
 def mode_matches(mode: str, label: str) -> bool:
-    """A widget in `mode` answers a double of `label` (Clap, Snap, Clap+Snap)."""
+    """A widget in `mode` answers a double (or triple) of `label` (Clap, Snap, Clap+Snap)."""
     if mode == "both":
         return True
     return (mode, label) in (("clap", "Clap"), ("snap", "Snap"))
@@ -161,6 +164,14 @@ def check_sensitivity(value) -> int:
     if not math.isfinite(v):
         raise ValueError("clap_sensitivity must be a number 0-100")
     return int(round(max(0.0, min(100.0, v))))
+
+
+def check_count(value) -> int:
+    """Hits in a row that toggle: 2 (a double, the default) or 3 (a triple)."""
+    text = str(value).strip() if isinstance(value, (int, str)) and not isinstance(value, bool) else ""
+    if text not in {str(c) for c in COUNTS}:
+        raise ValueError(f"clap_count must be {' or '.join(map(str, COUNTS))}")
+    return int(text)
 
 
 def check_source(value) -> str:
@@ -295,7 +306,7 @@ class Hit:
         self.sample, self.t = sample, t  # stream sample of the onset; its time on the caller's clock
         self.scores = None
         self.accepted: bool | None = None  # None: not classified yet; True: passed the first bar
-        self.partner = False  # good enough as the other hit of a double
+        self.partner = False  # good enough as another hit of a double (or triple)
         self.label, self.score, self.mirrored = "", 0.0, False
         self.window = (sample - PRE, sample - PRE + WINDOW)
         self.shape = shape or {}
@@ -303,25 +314,28 @@ class Hit:
         self.record: dict | None = None  # its entry in the detector's history
 
 
-class DoubleHitDetector:
+class HitSequenceDetector:
     """Feed it the microphone (float samples, −1…1) and the times the
-    speakers played a transient; it returns the doubles it saw.
+    speakers played a transient; it returns the toggles it saw: `count`
+    hits in a row (2 a double, 3 a triple; a triple contains a double, so
+    under 3 a double alone does nothing).
 
     classify(window: float32[WINDOW]) -> scores[521] (YAMNet's classes);
     labels: index -> name for reporting what won (optional)."""
 
     def __init__(self, classify: Callable, mode: str = "both", sensitivity: int = 50,
-                 labels: list[str] | None = None) -> None:
+                 labels: list[str] | None = None, count: int = 2) -> None:
         import numpy as np
         self.np = np
         self.classify, self.labels = classify, labels or []
-        self.mode, self.sensitivity = mode, sensitivity
+        self.mode, self.sensitivity, self.count = mode, sensitivity, count
         self.gate = TransientGate(sensitivity)
         self.dc = DcBlocker()
         self.ring = np.zeros(RING, dtype=np.float32)
         self.n = 0  # samples seen
         self.rest = np.zeros(0, dtype=np.float32)
         self.hits: list[Hit] = []  # every onset of the last seconds, classified or not
+        self.dropped = -math.inf  # the stream time of the last onset gone from hits (quiet before)
         self.monitor: deque[float] = deque(maxlen=64)  # onset times the speakers played
         self.fired_at = -math.inf
         self.level_db = -120.0  # loudest 10 ms block of the last 100 ms
@@ -330,8 +344,8 @@ class DoubleHitDetector:
         self.classified = 0  # model runs (for the CPU figure)
         self.history: deque[dict] = deque(maxlen=HISTORY)  # the last hits' numbers (ctl clap-hits)
 
-    def set_options(self, mode: str, sensitivity: int) -> None:
-        self.mode, self.sensitivity = mode, sensitivity
+    def set_options(self, mode: str, sensitivity: int, count: int = 2) -> None:
+        self.mode, self.sensitivity, self.count = mode, sensitivity, count
         self.gate.set_sensitivity(sensitivity)
 
     def theta(self) -> float:
@@ -404,11 +418,14 @@ class DoubleHitDetector:
             self.n = n_end
         events = self.classify_ready()
         now_stream = self.n / RATE
-        double = self.pair(now_stream, now)
-        if double is not None:
-            events.append(double)
+        toggle = self.sequence(now_stream)
+        if toggle is not None:
+            events.append(toggle)
         cutoff = self.n - 3 * RATE
-        self.hits = [h for h in self.hits if h.sample >= cutoff]
+        old = [h for h in self.hits if h.sample < cutoff]
+        if old:
+            self.dropped = old[-1].sample / RATE
+            self.hits = self.hits[len(old):]
         return events
 
     def onset(self, sample: int, t: float, shape: dict | None = None) -> None:
@@ -448,7 +465,7 @@ class DoubleHitDetector:
             h.record = {"at": h.t, "over_db": sh.get("over_db"), "rise_db": sh.get("rise_db"),
                         "decay_ms": sh.get("decay_ms"), "clap_like": v["like"], "family": round(h.family, 3),
                         "kind": h.kind, "top": v["top"], "accepted": h.accepted, "partner": h.partner,
-                        "why": why, "paired": False}
+                        "why": why, "paired": False, "sequence": 0}
             self.history.append(h.record)
             log.debug("clap: hit %s %.2f%s | +%s dB, rise %s dB, %s ms%s, family %.2f, top %s%s",
                       h.label, h.score, " accepted" if h.accepted else " partner" if h.partner else "",
@@ -457,48 +474,56 @@ class DoubleHitDetector:
             events.append({"event": "hit", **self.last})
         return events
 
-    def pair(self, now_stream: float, now: float) -> dict | None:
-        """Two consecutive hits, one accepted and the other at least a
-        partner (they may differ in loudness and kind), PAIR_MIN-PAIR_MAX
-        apart, quiet around."""
-        hits = self.hits
-        for i in range(len(hits) - 1):
-            a, b = hits[i], hits[i + 1]
-            if a.accepted is None or b.accepted is None:
+    def sequence(self, now_stream: float) -> dict | None:
+        """`count` consecutive hits (2: a double, 3: a triple), one accepted
+        and every other at least a partner (they may differ in loudness and
+        kind), each PAIR_MIN-PAIR_MAX after the one before, quiet around."""
+        hits, n = self.hits, self.count
+        for i in range(len(hits) - n + 1):
+            run = hits[i:i + n]
+            if any(h.accepted is None for h in run):
                 return None  # in order: wait for the classifier
-            if not ((a.accepted and b.partner) or (b.accepted and a.partner)):
+            if not (any(h.accepted for h in run) and all(h.partner for h in run)):
                 continue
-            dt = (b.sample - a.sample) / RATE
-            if not PAIR_MIN_S <= dt <= PAIR_MAX_S:
+            gaps = [(b.sample - a.sample) / RATE for a, b in zip(run, run[1:])]
+            if not all(PAIR_MIN_S <= g <= PAIR_MAX_S for g in gaps):
                 continue
-            if a.sample / RATE - self.fired_at < COOLDOWN_S:
+            first, last = run[0], run[-1]
+            if first.sample / RATE - self.fired_at < COOLDOWN_S:
                 continue
-            if i > 0 and (a.sample - hits[i - 1].sample) / RATE < QUIET_BEFORE_S:
+            before = hits[i - 1].sample / RATE if i > 0 else self.dropped
+            if first.sample / RATE - before < QUIET_BEFORE_S:
                 continue
-            if now_stream < b.sample / RATE + QUIET_AFTER_S:
+            if now_stream < last.sample / RATE + QUIET_AFTER_S:
                 return None  # not decided yet
-            if i + 2 < len(hits) and (hits[i + 2].sample - b.sample) / RATE <= QUIET_AFTER_S:
+            if i + n < len(hits) and (hits[i + n].sample - last.sample) / RATE <= QUIET_AFTER_S:
                 continue
-            label = pair_label(a.kind, b.kind)
+            label = sequence_label([h.kind for h in run])
             if self.mode in ("clap", "snap") and not mode_matches(self.mode, label):
                 continue  # nobody listens for this kind
-            self.fired_at = b.sample / RATE
-            self.hits = hits[i + 2:]
-            for h in (a, b):
+            self.fired_at = last.sample / RATE
+            self.dropped = last.sample / RATE
+            self.hits = hits[i + n:]
+            for h in run:
                 if h.record is not None:
-                    h.record["paired"] = True
-            return {"event": "double", "label": label, "score": round(max(a.family, b.family), 3),
-                    "gap": round(dt, 3), "at": b.t}
+                    h.record["paired"], h.record["sequence"] = True, n
+            return {"event": "toggle", "count": n, "label": label, "score": round(max(h.family for h in run), 3),
+                    "gap": round(sum(gaps), 3), "gaps": [round(g, 3) for g in gaps], "at": last.t}
         return None
 
 
-def pair_label(ka: str, kb: str) -> str:
-    """Clap, Snap or Clap+Snap; a hit of no clear kind takes its partner's,
-    and two such are a Clap (impulsive sounds lean that way)."""
-    ka, kb = ka or kb, kb or ka
-    if not ka:
+def sequence_label(kinds) -> str:
+    """Clap, Snap or Clap+Snap; a hit of no clear kind takes the others',
+    and hits of none are a Clap (impulsive sounds lean that way)."""
+    known = {k for k in kinds if k}
+    if not known:
         return "Clap"
-    return ka if ka == kb else "Clap+Snap"
+    return known.pop() if len(known) == 1 else "Clap+Snap"
+
+
+def pair_label(ka: str, kb: str) -> str:
+    """sequence_label of a double."""
+    return sequence_label((ka, kb))
 
 
 # --------------------------------------------------------------------- capture
@@ -687,15 +712,16 @@ def fetch_model(path: Path | None = None, url: str = MODEL_URL) -> Path:
 class ClapService:
     """The daemon's side: runs the detector while any widget's mode is not off
     (mode: union_mode of them).
-    on_double(event) is called in the event loop for each double."""
+    on_double(event) is called in the event loop for each double (or
+    triple, with count 3: settings.clap_count)."""
 
     def __init__(self, on_double: Callable[[dict], None]) -> None:
         self.on_double = on_double
-        self.mode, self.source, self.sensitivity = "off", "", 50
+        self.mode, self.source, self.sensitivity, self.count = "off", "", 50, 2
         self.task: asyncio.Task | None = None
         self.state = "off"  # off | unavailable | downloading | starting | listening | error
         self.error = ""
-        self.detector: DoubleHitDetector | None = None
+        self.detector: HitSequenceDetector | None = None
         self.last_double: dict | None = None
         self.monitor_gate = TransientGate(100, min_rms=0.003)
         self.monitor_dc = DcBlocker()
@@ -704,13 +730,14 @@ class ClapService:
         self.muted: bool | None = None  # the source's mute switch; None: unknown or not listening
         self.mute_task: asyncio.Task | None = None
 
-    def apply(self, mode: str, source: str, sensitivity: int) -> None:
+    def apply(self, mode: str, source: str, sensitivity: int, count: int = 2) -> None:
         """Settings changed (or the daemon started): restart only what must.
-        mode: what any widget listens for (union_mode), off when none does."""
+        mode: what any widget listens for (union_mode), off when none does;
+        count: hits in a row that toggle (2 or 3)."""
         restart = (mode != "off") != (self.mode != "off") or source != self.source
-        self.mode, self.source, self.sensitivity = mode, source, sensitivity
+        self.mode, self.source, self.sensitivity, self.count = mode, source, sensitivity, count
         if self.detector is not None:
-            self.detector.set_options(mode, sensitivity)
+            self.detector.set_options(mode, sensitivity, count)
         if mode == "off":
             self.stop()
             self.state, self.error = "off", ""
@@ -755,12 +782,12 @@ class ClapService:
             log.warning("clap: %s", self.error)
             return
         while True:
-            self.detector = DoubleHitDetector(clf, self.mode, self.sensitivity, clf.labels)
+            self.detector = HitSequenceDetector(clf, self.mode, self.sensitivity, clf.labels, self.count)
             mic = Capture(self._mic, self.source)
             mon = Capture(self._mon, monitor=True, name="clap detection (speaker check)")
             self.state, self.error, self.started_at = "listening", "", time.monotonic()
-            log.info("clap: listening (%s, source %s, sensitivity %d)", self.mode, self.source or "default",
-                     self.sensitivity)
+            log.info("clap: listening (%s, source %s, sensitivity %d, %d hits)", self.mode,
+                     self.source or "default", self.sensitivity, self.count)
             monitor = asyncio.get_running_loop().create_task(self._monitor(mon))
             try:
                 await mic.run()
@@ -784,9 +811,10 @@ class ClapService:
         if det is None:
             return
         for ev in det.feed(samples, now):
-            if ev["event"] == "double":
+            if ev["event"] == "toggle":
                 self.last_double = {**ev, "time": time.time()}
-                log.info("clap: double %s (%.2f, %.0f ms apart)", ev["label"], ev["score"], ev["gap"] * 1000)
+                log.info("clap: %s %s (%.2f, %s ms apart)", SEQUENCE_NAMES.get(ev["count"], ev["count"]),
+                         ev["label"], ev["score"], "+".join(f"{g * 1000:.0f}" for g in ev["gaps"]))
                 try:
                     self.on_double(ev)
                 except Exception as exc:  # never let the toggle stop the capture
@@ -838,7 +866,7 @@ class ClapService:
         double = None
         if self.last_double is not None:
             double = {"label": self.last_double["label"], "score": self.last_double["score"],
-                      "age": round(max(0.0, time.time() - self.last_double["time"]), 1)}
+                      "count": self.last_double["count"], "age": round(max(0.0, time.time() - self.last_double["time"]), 1)}
         floor_db = det.gate.floor_db if listening else None
         return {**self.describe(), "level_db": None if level_db is None else round(level_db, 1),
                 "level": None if level_db is None else round(max(0.0, min(1.0, (level_db + 60.0) / 60.0)), 3),

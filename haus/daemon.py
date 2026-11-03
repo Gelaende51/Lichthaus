@@ -1122,7 +1122,7 @@ class Daemon:
         log.info("flick mode %s", mode)
 
     def set_clap(self, key: str, value) -> None:
-        """clap_source, clap_sensitivity: global (Configure → Sound)."""
+        """clap_source, clap_sensitivity, clap_count: global (Configure → Sound)."""
         try:
             value = check_global_value(key, value)
         except ValueError as exc:
@@ -1154,10 +1154,10 @@ class Daemon:
         """Capture runs while any widget has a mode, for what any of them wants."""
         s = self.settings
         mode = clapmod.union_mode(self.clap_mode(w) for w in range(1, self.widget_count + 1))
-        self.clap.apply(mode, s["clap_source"], s["clap_sensitivity"])
+        self.clap.apply(mode, s["clap_source"], s["clap_sensitivity"], s["clap_count"])
 
     def on_clap(self, event: dict) -> None:
-        """A double clap or snap: in every widget whose mode it matches, toggle
+        """A double (or, with clap_count 3, triple) clap or snap: in every widget whose mode it matches, toggle
         that widget's selection like the hotkey. A bulb in two such widgets is
         switched by the first only."""
         if self.sleeping:
@@ -1997,7 +1997,7 @@ class Daemon:
             "autoconnect": self.settings["autoconnect"],
             "autoconnect_ignore": [dict(i) for i in self.settings["autoconnect_ignore"]],
             "clap": self.clap_mode(w),
-            **{k: self.settings[k] for k in ("clap_source", "clap_sensitivity")},
+            **{k: self.settings[k] for k in CLAP_KEYS},
             "clap_status": self.clap.describe(),
             "audio": any(self.audio_following(b) for b in sel),
             "audio_level": max((self.want(b) for b in sel if self.audio_following(b)), default=None),
@@ -2144,7 +2144,7 @@ class Daemon:
             self.wake.set()
             return get()
         if cmd in ("mode", "track", "off-at-zero", "lid", "monitor-power", "flick", "autoconnect", "clap", "clap-source",
-                   "clap-sensitivity"):
+                   "clap-sensitivity", "clap-count"):
             if args:
                 self.set_value(cmd.replace("-", "_"), args[0], w=w)
             return get()
@@ -2358,7 +2358,8 @@ class Daemon:
             return {"results": [{"clap": self.clap.mode, **self.clap.meter()}]}
         if cmd == "clap-hits":
             sens = self.settings["clap_sensitivity"]
-            return {"results": [{"clap": self.clap.mode, "sensitivity": sens, "hits": self.clap.hits(),
+            return {"results": [{"clap": self.clap.mode, "sensitivity": sens, "count": self.settings["clap_count"],
+                                 "hits": self.clap.hits(),
                                  "bars": {k: round(v, 3) for k, v in clapmod.bars(sens).items()}}]}
         if cmd == "setup-root":
             self.start_setup()

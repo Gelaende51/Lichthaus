@@ -312,6 +312,16 @@ onto Linux. Worth reporting upstream where marked.
   (within 6 dB), not only against the threshold, or soft snaps never pass.
 - The default microphone here is muted at the source (pactl get-source-mute):
   the recorder then delivers exact zeros (level −120 dB), no error.
+- The detector keeps only the last 3 s of onsets, and "quiet before" looked
+  only at the onset before in that list. Once the first clap of a burst aged
+  out, the remaining two had nothing before them and became a double about
+  3 s late (three claps 250 ms apart in a 6 s signal; the older tests' 3.5 s
+  signals ended before the cutoff). The detector now remembers the last
+  dropped onset (`dropped`). Found while generalising the double to a
+  triple (`clap_count` 3), where four quick claps showed it.
+- The setting is `clap_count`, not `clap_hits`: `hauslicht clap-hits` is
+  already the hit-history command, and the CLI maps `clap-X` to the key
+  `clap_X`.
 
 ## HCI user channel (flick mode exclusive)
 - Binding HCI_CHANNEL_USER needs CAP_NET_ADMIN and a device that is down

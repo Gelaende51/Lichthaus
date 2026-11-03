@@ -104,6 +104,9 @@ GERMAN = {
     "the microphone for clap detection: a source name or default (daemon running)":
         "das Mikrofon für die Klatscherkennung: ein Quellenname oder default (Dienst läuft)",
     "clap detection sensitivity, 0-100 (daemon running)": "Empfindlichkeit der Klatscherkennung, 0-100 (Dienst läuft)",
+    "claps or snaps in a row that toggle: 2 (a double, default) or 3 (a triple; fewer false alarms) (daemon running)":
+        "Klatscher oder Schnipser in Folge, die umschalten: 2 (doppelt, Standard) oder 3 (dreifach; weniger "
+        "Fehlauslösungen) (Dienst läuft)",
     "list the microphones (daemon running)": "die Mikrofone auflisten (Dienst läuft)",
     "the selection (or one bulb) follows what the computer plays: loudness to brightness, pitch to colour (daemon running)":
         "die Auswahl (oder eine Lampe) folgt dem, was der Computer abspielt: Lautstärke wird Helligkeit, "

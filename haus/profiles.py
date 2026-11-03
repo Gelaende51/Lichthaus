@@ -23,7 +23,8 @@ hauslicht.json (schema 4), next to the mesh network keys btmesh keeps at the top
               clap/snap toggles the selection of every widget whose mode
               matches, haus/clap.py; schema 4's global `clap` became widget
               1's), clap_source: a source name ("" the default source),
-              clap_sensitivity: 0-100;
+              clap_sensitivity: 0-100, clap_count: hits in a row that
+              toggle, 2 (a double) or 3 (a triple);
               audio_source: what follow-audio listens to ("" the default
               output's monitor), audio_color: pitch colours the bulbs,
               follow_rate: updates per second per bulb while it follows audio
@@ -76,7 +77,7 @@ PROFILE_KEYS = tuple(PROFILE_DEFAULTS)
 GLOBAL_DEFAULTS = {"mode": "maximum", "slider": 100, "lid": "both", "flick": "on", "flick_last": "on", "widgets": 1,
                    "widget_bulbs": {"1": []}, "selected": {"1": "all"},
                    "autoconnect": False, "autoconnect_ignore": [],
-                   "widget_clap": {"1": "off"}, "clap_source": "", "clap_sensitivity": 50,
+                   "widget_clap": {"1": "off"}, "clap_source": "", "clap_sensitivity": 50, "clap_count": 2,
                    "exclusive_adapter": "", "monitor_power": True,
                    "audio_source": "", "audio_color": True, "follow_rate": _rate.DEFAULT_RATE,
                    "video_max": _video.DEFAULT_MAX, "video_smooth": _video.DEFAULT_SMOOTH, "video_token": "",
@@ -84,7 +85,7 @@ GLOBAL_DEFAULTS = {"mode": "maximum", "slider": 100, "lid": "both", "flick": "on
 AUDIO_KEYS = ("audio_source", "audio_color")  # global; on/off is per bulb (entry `audio`)
 FOLLOW_KEYS = ("follow_rate",)  # audio and video: the bulb's rate cap
 VIDEO_KEYS = ("video_max", "video_smooth")  # global; on/off and the region are per bulb
-CLAP_KEYS = ("clap_source", "clap_sensitivity")  # global; the mode is per widget (widget_clap)
+CLAP_KEYS = ("clap_source", "clap_sensitivity", "clap_count")  # global; the mode is per widget (widget_clap)
 SETTABLE_GLOBALS = ("mode", "lid", "monitor_power", "flick", "autoconnect", *CLAP_KEYS, "exclusive_adapter", *AUDIO_KEYS,
                     *FOLLOW_KEYS, *VIDEO_KEYS, "notify")  # `set key=value`; slider and selected have commands
 MAX_WIDGETS = 8
@@ -340,6 +341,8 @@ def check_global_value(key: str, value):
         return _clap.check_source(value)
     if key == "clap_sensitivity":
         return _clap.check_sensitivity(value)
+    if key == "clap_count":
+        return _clap.check_count(value)
     if key == "exclusive_adapter":
         return _hci.check_adapter_setting(value)
     if key == "audio_source":

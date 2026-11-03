@@ -82,9 +82,10 @@ only; nothing is stored or sent, and notification text is never logged.
 ### Sound, video and notifications
 
 - **Clap to toggle** (off by default; switch *Clap*): a double clap or
-  finger snap toggles the widget's selection. Mode (clap, snap, both) per
-  widget; microphone, sensitivity, test meter and recent sounds on Configure
-  → *Sound*. A level gate listens; only a sharp sound goes to a small sound
+  finger snap toggles the widget's selection, or a triple one with *Claps to
+  toggle* set to 3 (fewer false alarms). Mode (clap, snap, both) per
+  widget; microphone, sensitivity, claps to toggle, test meter and recent
+  sounds on Configure → *Sound*. A level gate listens; only a sharp sound goes to a small sound
   classifier (YAMNet) on this computer; sounds from the speakers are ignored.
 - **Follow audio** (per bulb, Configure → *Sound*): loudness becomes
   brightness within the profile's range, pitch becomes colour on colour bulbs.

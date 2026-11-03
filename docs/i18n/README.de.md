@@ -93,9 +93,11 @@ Benachrichtigungstexte werden nie protokolliert.
 ### Ton, Video und Benachrichtigungen
 
 - **Klatschen schaltet** (anfangs aus; Schalter *Klatschen*): doppeltes
-  Klatschen oder Fingerschnippen schaltet die Auswahl des Widgets um. Modus
-  (Klatschen, Schnippen, beides) je Widget; Mikrofon, Empfindlichkeit,
-  Testanzeige und letzte Geräusche in Einrichten → *Ton*. Ein Pegelfilter hört
+  Klatschen oder Fingerschnippen schaltet die Auswahl des Widgets um, oder
+  dreifaches, wenn *Klatscher zum Schalten* auf 3 steht (weniger
+  Fehlauslösungen). Modus (Klatschen, Schnippen, beides) je Widget; Mikrofon,
+  Empfindlichkeit, Klatscher zum Schalten, Testanzeige und letzte Geräusche in
+  Einrichten → *Ton*. Ein Pegelfilter hört
   zu; nur ein scharfes Geräusch geht an einen kleinen Klangklassifikator
   (YAMNet) auf diesem Computer; Geräusche aus den Lautsprechern zählen nicht.
 - **Audio folgen** (je Lampe, Einrichten → *Ton*): Lautstärke wird

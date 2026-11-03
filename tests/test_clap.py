@@ -10,7 +10,7 @@ import pytest
 np = pytest.importorskip("numpy")
 
 from haus import clap as clapmod  # noqa: E402
-from haus.clap import CLAP, RATE, SNAP, DcBlocker, DoubleHitDetector, TransientGate  # noqa: E402
+from haus.clap import CLAP, RATE, SNAP, DcBlocker, HitSequenceDetector, TransientGate  # noqa: E402
 from haus.common import UserError  # noqa: E402
 from haus.profiles import migrate, new_state  # noqa: E402
 from test_core import cmd, mock_state, run, settle  # noqa: E402
@@ -65,8 +65,8 @@ class FakeYamnet:
         return out
 
 
-def detect(sig, clf=None, mode="both", sensitivity=50, monitor=(), chunk=800):
-    det = DoubleHitDetector(clf or FakeYamnet(), mode, sensitivity)
+def detect(sig, clf=None, mode="both", sensitivity=50, monitor=(), chunk=800, count=2):
+    det = HitSequenceDetector(clf or FakeYamnet(), mode, sensitivity, count=count)
     for t in monitor:
         det.monitor_onset(t)
     events = []
@@ -76,7 +76,8 @@ def detect(sig, clf=None, mode="both", sensitivity=50, monitor=(), chunk=800):
 
 
 def doubles(events):
-    return [e for e in events if e["event"] == "double"]
+    """The toggles (a double, or a triple under count 3)."""
+    return [e for e in events if e["event"] == "toggle"]
 
 
 # ------------------------------------------------------------------ gate
@@ -192,6 +193,16 @@ def test_a_third_hit_soon_after_is_applause_not_a_double():
     assert doubles(detect(sig)[1]) == []
 
 
+def test_applause_stays_no_double_once_its_first_hit_ages_out():
+    """The hits list keeps 3 s; the first clap of a burst dropped out of it
+    must still count as "not quiet" before the second (it used to make the
+    last two a double 3 s late)."""
+    sig = room(6.0)
+    for at in (1.0, 1.25, 1.5):
+        add_clap(sig, at)
+    assert doubles(detect(sig)[1]) == []
+
+
 def test_cooldown_after_a_double():
     sig = room(4.0)
     for at in (1.0, 1.3, 2.05, 2.35):  # the second pair starts 750 ms after the first ended
@@ -219,6 +230,97 @@ def test_snaps_count_in_snap_and_both():
         assert d["label"] == "Snap"
 
 
+# ------------------------------------------------------------------ triple (clap_count 3)
+# Fewer false positives: three hits in a row, each gap the same as a double's,
+# the same quiet before and after; a double alone does nothing.
+
+def claps(*at, seconds=4.5, **kw):
+    sig = room(seconds)
+    for t in at:
+        add_clap(sig, t, **kw)
+    return sig
+
+
+def test_three_hits_make_a_triple_under_count_3():
+    clf = FakeYamnet()
+    det, events = detect(claps(1.0, 1.3, 1.6), clf, count=3)
+    (d,) = doubles(events)
+    assert d["label"] == "Clap" and d["count"] == 3 and abs(d["gap"] - 0.6) < 0.02
+    assert [round(g, 1) for g in d["gaps"]] == [0.3, 0.3]
+    assert [(h["paired"], h["sequence"]) for h in det.history] == [(True, 3)] * 3
+
+
+def test_a_double_alone_does_not_toggle_under_count_3():
+    det, events = detect(claps(1.0, 1.3), count=3)
+    assert doubles(events) == []
+    assert [h["paired"] for h in det.history] == [False, False]
+
+
+def test_count_2_still_toggles_on_the_double():
+    (d,) = doubles(detect(claps(1.0, 1.3))[1])
+    assert d["count"] == 2 and d["gaps"] == [d["gap"]]
+
+
+def test_a_gap_too_long_starts_the_triple_again():
+    assert doubles(detect(claps(1.0, 1.3, 2.2), count=3)[1]) == []  # 900 ms: no third hit
+    (d,) = doubles(detect(claps(1.0, 1.3, 2.2, 2.5, 2.8), count=3)[1])  # the last three count
+    assert abs(d["at"] - 2.8) < 0.05 and abs(d["gap"] - 0.6) < 0.02
+
+
+def test_a_fourth_hit_soon_after_is_applause_not_a_triple():
+    assert doubles(detect(claps(1.0, 1.25, 1.5, 1.75), count=3)[1]) == []
+
+
+def test_cooldown_after_a_triple():
+    assert len(doubles(detect(claps(1.0, 1.3, 1.6, 2.3, 2.6, 2.9), count=3)[1])) == 1  # 700 ms after
+    assert len(doubles(detect(claps(1.0, 1.3, 1.6, 2.8, 3.1, 3.4), count=3)[1])) == 2  # 1.2 s after
+
+
+@pytest.mark.parametrize("mode, toggles", [("both", 1), ("clap", 0), ("snap", 0)])
+def test_a_mixed_triple_counts_only_for_both(mode, toggles):
+    """Clap, snap, clap, far enough apart for windows of their own: a
+    Clap+Snap triple, like a mixed double."""
+    clf = FakeSequence({CLAP: 0.6}, {SNAP: 0.6}, {CLAP: 0.6})
+    det, events = detect(claps(1.0, 1.45, 1.9), clf, mode=mode, count=3)
+    assert clf.calls == 3 and [h["kind"] for h in det.history] == ["Clap", "Snap", "Clap"]
+    found = doubles(events)
+    assert len(found) == toggles and all(d["label"] == "Clap+Snap" for d in found)
+
+
+def test_a_triple_of_snaps_is_a_snap():
+    (d,) = doubles(detect(claps(1.0, 1.35, 1.7, amp=0.1, tau=0.003), FakeYamnet({SNAP: 0.6}), mode="snap",
+                          count=3)[1])
+    assert d["label"] == "Snap"
+
+
+def test_a_triple_needs_partners_throughout():
+    """The middle hit clearly typing: no triple, though the outer two pass."""
+    clf = FakeSequence({CLAP: 0.6}, {378: 0.5, CLAP: 0.05}, {CLAP: 0.6})
+    assert doubles(detect(claps(1.0, 1.45, 1.9), clf, count=3)[1]) == []
+
+
+def test_a_mirrored_hit_breaks_a_triple():
+    assert doubles(detect(claps(1.0, 1.3, 1.6), monitor=[1.31], count=3)[1]) == []
+
+
+def test_sequence_label():
+    assert clapmod.sequence_label(["Clap", "", "Clap"]) == "Clap"
+    assert clapmod.sequence_label(["", "Snap", ""]) == "Snap"
+    assert clapmod.sequence_label(["", "", ""]) == "Clap"
+    assert clapmod.sequence_label(["Snap", "Snap", "Clap"]) == "Clap+Snap"
+
+
+@pytest.mark.parametrize("value, want", [(2, 2), (3, 3), ("3", 3), (" 2 ", 2)])
+def test_check_count(value, want):
+    assert clapmod.check_count(value) == want
+
+
+@pytest.mark.parametrize("value", [1, 4, "2.5", "two", None, True])
+def test_check_count_refuses(value):
+    with pytest.raises(ValueError, match="clap_count"):
+        clapmod.check_count(value)
+
+
 # ------------------------------------------------------------------ model file
 
 def test_a_model_with_the_wrong_checksum_is_not_kept(tmp_path):
@@ -235,18 +337,20 @@ def test_a_model_with_the_wrong_checksum_is_not_kept(tmp_path):
 def test_settings_migration_fills_and_checks_the_clap_keys():
     state = new_state()
     s = state["settings"]
-    assert (s["widget_clap"], s["clap_source"], s["clap_sensitivity"]) == ({"1": "off"}, "", 50)
+    assert (s["widget_clap"], s["clap_source"], s["clap_sensitivity"], s["clap_count"]) == ({"1": "off"}, "", 50, 2)
     assert "clap" not in s and "clap_last" not in s
     s.update(widget_clap={"1": "loud", "2": "snap", "9": "both"}, widgets=2, clap_source="a b",
-             clap_sensitivity=250)
+             clap_sensitivity=250, clap_count=5)
     migrate(state)
     assert (s["widget_clap"], s["clap_source"], s["clap_sensitivity"]) == ({"1": "off", "2": "snap"}, "", 100)
+    assert s["clap_count"] == 2  # only 2 or 3
     again = copy.deepcopy(state)
     assert migrate(again) is False
-    for key in ("widget_clap", "clap_source", "clap_sensitivity"):  # an old file without them
+    for key in ("widget_clap", "clap_source", "clap_sensitivity", "clap_count"):  # an old file without them
         del state["settings"][key]
     migrate(state)
     assert state["settings"]["widget_clap"] == {"1": "off", "2": "off"}
+    assert state["settings"]["clap_count"] == 2
 
 
 @pytest.mark.parametrize("old, want", [("snap", "snap"), ("both", "both"), ("off", "off"), ("loud", "off")])
@@ -279,9 +383,9 @@ def no_capture(monkeypatch):
     """The service starts nothing: no model download, no microphone."""
     applied = []
 
-    def apply(self, mode, source, sensitivity):
+    def apply(self, mode, source, sensitivity, count=2):
         applied.append((mode, source, sensitivity))
-        self.mode, self.source, self.sensitivity = mode, source, sensitivity
+        self.mode, self.source, self.sensitivity, self.count = mode, source, sensitivity, count
         self.state = "off" if mode == "off" else "listening"
 
     monkeypatch.setattr(clapmod.ClapService, "apply", apply)
@@ -316,6 +420,17 @@ def test_ctl_clap_commands(tmp_path, monkeypatch, no_capture):
         assert no_capture[0] == ("off", "", 50) and no_capture[-1] == ("off", "", 80)
         saved = d.state_path.read_text()
         assert '"clap_sensitivity": 80' in saved
+        assert (await cmd(d, "get"))["clap_count"] == 2
+        g = await cmd(d, "clap-count", "3")
+        assert g["clap_count"] == 3 and d.clap.count == 3
+        for bad in ("4", "1", "two", "2.5"):
+            with pytest.raises(UserError, match="clap_count"):
+                await cmd(d, "set", f"clap_count={bad}")
+        assert d.settings["clap_count"] == 3
+        assert (await cmd(d, "clap-hits"))["count"] == 3
+        assert '"clap_count": 3' in d.state_path.read_text()
+        g = await cmd(d, "set", "clap_count=2")
+        assert g["clap_count"] == 2 and d.clap.count == 2
     run(tmp_path, mock_state(mock_1={}), body)
 
 
@@ -578,7 +693,7 @@ def test_the_history_keeps_the_last_30_hits():
     assert len(det.history) == 30
     h = det.history[-1]
     assert set(h) >= {"at", "over_db", "rise_db", "decay_ms", "clap_like", "family", "kind", "top", "accepted",
-                      "partner", "why", "paired"}
+                      "partner", "why", "paired", "sequence"}
     assert h["top"][0] == ["Silence", 0.5] and h["accepted"] is False and h["over_db"] > 20
 
 
@@ -597,22 +712,40 @@ def test_a_double_snap_toggles_through_the_daemon(tmp_path, no_capture, mode):
     Pinned end to end: microphone samples, detector, service, daemon."""
     async def body(d):
         await cmd(d, "clap", mode)
-        d.clap.detector = DoubleHitDetector(FakeYamnet({SNAP: 0.6}), d.clap.mode, 50)
+        d.clap.detector = HitSequenceDetector(FakeYamnet({SNAP: 0.6}), d.clap.mode, 50)
         feed_service(d, add_clap(add_clap(room(3.0), 1.0, 0.1, tau=0.003), 1.35, 0.1, tau=0.003))
         await settle(d)
         assert d.bulbs["mock:1"].power is True and d.clap.last_double["label"] == "Snap"
         hits = (await cmd(d, "clap-hits"))["hits"]
         assert len(hits) == 2 and all(h["paired"] and h["kind"] == "Snap" for h in hits)
         assert {"time", "age", "family", "top", "why"} <= set(hits[0]) and "at" not in hits[0]
-        d.clap.detector = DoubleHitDetector(FakeYamnet({SNAP: 0.6}), d.clap.mode, 50)
+        d.clap.detector = HitSequenceDetector(FakeYamnet({SNAP: 0.6}), d.clap.mode, 50)
         feed_service(d, add_clap(add_clap(room(3.0), 1.0, 0.1, tau=0.003), 1.35, 0.1, tau=0.003), now0=200.0)
         await settle(d)
         assert d.bulbs["mock:1"].power is False
     run(tmp_path, mock_state(mock_1={}), body)
 
 
+@pytest.mark.parametrize("mode", ["clap", "both"])
+def test_a_triple_clap_toggles_through_the_daemon_under_count_3(tmp_path, no_capture, mode):
+    async def body(d):
+        await cmd(d, "clap", mode)
+        await cmd(d, "set", "clap_count=3")
+        d.clap.detector = HitSequenceDetector(FakeYamnet(), d.clap.mode, 50, count=d.clap.count)
+        feed_service(d, add_clap(add_clap(room(3.0), 1.0), 1.3))  # a double: nothing
+        await settle(d)
+        assert d.bulbs["mock:1"].power is False and d.clap.last_double is None
+        feed_service(d, add_clap(add_clap(add_clap(room(3.0), 1.0), 1.3), 1.6), now0=200.0)
+        await settle(d)
+        assert d.bulbs["mock:1"].power is True and d.clap.last_double["count"] == 3
+        hits = (await cmd(d, "clap-hits"))["hits"]
+        assert [h["sequence"] for h in hits] == [0, 0, 3, 3, 3]
+        assert (await cmd(d, "clap-meter"))["double"]["count"] == 3
+    run(tmp_path, mock_state(mock_1={}), body)
+
+
 def test_clap_hits_without_a_detector(tmp_path, no_capture):
     async def body(d):
         out = await cmd(d, "clap-hits")
-        assert out["hits"] == [] and out["bars"]["first"] == 0.3 and out["sensitivity"] == 50
+        assert out["hits"] == [] and out["bars"]["first"] == 0.3 and out["sensitivity"] == 50 and out["count"] == 2
     run(tmp_path, mock_state(mock_1={}), body)

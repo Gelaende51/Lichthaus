@@ -58,6 +58,7 @@
                                      clap | snap | both (needs requirements-clap.txt)
     hauslicht clap-source [NAME]     the microphone (default: the default source)
     hauslicht clap-sensitivity [N]   0 (low) - 100 (high), default 50
+    hauslicht clap-count [2|3]       claps or snaps in a row that toggle: 2 (default) or 3
     hauslicht clap-sources           the microphones to choose from
     hauslicht clap-meter             level, last hit and its class, last double
     hauslicht clap-hits              the last 30 hits: gate numbers, family score, top 3, verdict
@@ -117,7 +118,7 @@ log = logging.getLogger("hauslicht")
 
 DAEMON_ONLY = ("pause", "resume", "connect", "disconnect", "mode", "track", "off-at-zero", "lid", "monitor-power", "toggle", "slider", "nudge",
                "flick", "select", "bulb-set", "profile", "discover", "add", "remove", "backends", "setup-root",
-               "autoconnect", "unignore", "clap", "clap-source", "clap-sensitivity", "clap-sources",
+               "autoconnect", "unignore", "clap", "clap-source", "clap-sensitivity", "clap-count", "clap-sources",
                "clap-meter", "clap-hits", "adapters", "identify", "test", "audio", "audio-source",
                "audio-color", "audio-rate", "audio-sources", "audio-status", "video", "video-region",
                "video-max", "video-smooth", "video-forget", "video-status", "follow-rate", "notify",
@@ -139,7 +140,7 @@ SHOW = {
     "exclusive-adapter": ("exclusive_adapter", "exclusive"),
     "autoconnect": ("autoconnect", "autoconnect_ignore"), "unignore": ("autoconnect", "autoconnect_ignore"),
     "clap": ("widget", "clap", "clap_status"), "clap-source": ("clap_source",),
-    "clap-sensitivity": ("clap_sensitivity",),
+    "clap-sensitivity": ("clap_sensitivity",), "clap-count": ("clap_count",),
     "audio": ("selected", "audio", "audio_level"), "audio-source": ("audio_source",),
     "audio-color": ("audio_color",), "audio-rate": ("follow_rate",), "follow-rate": ("follow_rate",),
     "video": ("selected", "video", "video_level", "video_region"), "video-max": ("video_max",),
@@ -749,6 +750,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("percent", metavar="NAME", nargs="?")
     p = add("clap-sensitivity", _("clap detection sensitivity, 0-100 (daemon running)"))
     p.add_argument("percent", metavar="N", nargs="?", type=float)
+    p = add("clap-count", _("claps or snaps in a row that toggle: 2 (a double, default) or 3 (a triple; "
+                            "fewer false alarms) (daemon running)"))
+    p.add_argument("percent", metavar="2|3", nargs="?", type=int, choices=(2, 3))
     add("clap-sources", _("list the microphones (daemon running)"))
     add("clap-meter", _("clap detection: level, last hit with class and score, last double (daemon running)"))
     add("clap-hits", _("clap detection: the last 30 hits with gate numbers, scores and verdict (daemon running)"))

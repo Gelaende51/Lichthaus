@@ -1,4 +1,4 @@
-.TH HAUSLICHT 1 "2026-10-27" "Haus.Licht 0.2" "User Commands"
+.TH HAUSLICHT 1 "2026-11-03" "Haus.Licht 0.2" "User Commands"
 .SH NAME
 hauslicht \- lights that follow the screen (Bluetooth mesh and more)
 .SH SYNOPSIS
@@ -195,6 +195,9 @@ the microphone for clap detection: a source name or default (daemon running)
 .TP
 \fBclap\-sensitivity\fR [N]
 clap detection sensitivity, 0-100 (daemon running)
+.TP
+\fBclap\-count\fR [2|3]
+claps or snaps in a row that toggle: 2 (a double, default) or 3 (a triple; fewer false alarms) (daemon running)
 .TP
 \fBclap\-sources\fR
 list the microphones (daemon running)

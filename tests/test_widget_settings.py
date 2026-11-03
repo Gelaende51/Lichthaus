@@ -110,7 +110,7 @@ def test_settings_survive_a_restart(tmp_path):
 
 
 def test_the_clap_mode_carries_clap_last(tmp_path, monkeypatch):
-    monkeypatch.setattr(clapmod.ClapService, "apply", lambda self, mode, source, sensitivity: None)
+    monkeypatch.setattr(clapmod.ClapService, "apply", lambda self, mode, source, sensitivity, count=2: None)
     monkeypatch.setattr(clapmod, "missing", lambda: [])
 
     async def body(d):
