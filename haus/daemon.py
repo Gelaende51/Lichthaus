@@ -28,6 +28,7 @@ from . import audiofollow as audiomod
 from . import backends as registry
 from . import clap as clapmod
 from . import followrate as ratemod
+from . import ipc
 from . import hci
 from . import notifywatch
 from . import rootsetup
@@ -2472,8 +2473,7 @@ class Daemon:
         with link_lock(self.state_path):
             with contextlib.suppress(FileNotFoundError):
                 self.sock_path.unlink()
-            server = await asyncio.start_unix_server(self.handle_client, path=str(self.sock_path))
-            os.chmod(self.sock_path, 0o600)
+            server = await ipc.serve(self.handle_client, self.sock_path)
             log.info("following %s, mode %s, bulbs %s",
                      getattr(self.desktop.backlight, "name", "-"), self.settings["mode"],
                      ", ".join(f"{b.id} {'on' if b.power else 'off'}" for b in self.bulbs.values()) or "none")
@@ -2493,6 +2493,6 @@ class Daemon:
             finally:
                 await self.stop()
                 with contextlib.suppress(FileNotFoundError):
-                    self.sock_path.unlink()
+                    ipc.cleanup(self.sock_path)
         return 0
 

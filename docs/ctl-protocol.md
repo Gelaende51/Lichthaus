@@ -540,3 +540,6 @@ Keep the socket path short (Unix sockets allow ~107 bytes). With
 instance (the installed widget keeps talking to the live one); the state file
 is created when missing. Lid events and the
 screen brightness are the real ones (read only).
+
+
+On Windows (and when HAUSLICHT_TRANSPORT=tcp), Haus.Licht uses TCP on 127.0.0.1 with a random token stored in a .port file next to the socket path; clients send "auth <token>" as their first line. Linux keeps the Unix socket.

@@ -72,3 +72,6 @@ GitHub Actions job `test`, strategy.matrix `os: [ubuntu-latest, macos-latest, wi
 - macOS keeps the Unix socket (asyncio.start_unix_server works there); only Windows needs TCP 127.0.0.1 + a token file in %LOCALAPPDATA%\hauslicht. Linux paths and the socket contract stay exactly as they are (no platformdirs on Linux).
 - Prefer stdlib over new dependencies where it is cheap (msvcrt.locking instead of filelock; os.environ LOCALAPPDATA / ~/Library/Application Support instead of platformdirs).
 - No CI run on macOS/Windows until the user decides about pushing; meanwhile tests simulate non-Linux in a subprocess.
+
+## Step 2 done
+TCP transport (haus/ipc.py) on Windows or HAUSLICHT_TRANSPORT=tcp; Unix socket unchanged on Linux.

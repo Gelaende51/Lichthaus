@@ -58,9 +58,8 @@ def main(argv: list[str]) -> int:
     if argv[0] == "watch" or (argv[0].startswith("@") and argv[1:2] == ["watch"]):
         return watch(cmd, argv[1:])
     try:
-        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
-            s.settimeout(30)
-            s.connect(str(SOCK))
+        from haus.ipc import connect
+        with connect(SOCK, 30) as s:
             s.sendall(json.dumps({"cmd": cmd, "arg": arg, "args": argv[1:], "which": None}).encode() + b"\n")
             data = b""
             while not data.endswith(b"\n"):
@@ -82,8 +81,8 @@ def main(argv: list[str]) -> int:
 def watch(cmd: str, args: list[str]) -> int:
     """Print the daemon's lines as they come, until it closes or Ctrl+C."""
     try:
-        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
-            s.connect(str(SOCK))
+        from haus.ipc import connect
+        with connect(SOCK, None) as s:  # watch waits as long as it takes
             s.sendall(json.dumps({"cmd": cmd, "args": args, "which": None}).encode() + b"\n")
             with s.makefile("rb") as lines:
                 for line in lines:
