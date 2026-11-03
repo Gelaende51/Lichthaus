@@ -30,8 +30,8 @@ FLICK_SECONDS = 1.5
 
 def sock_path() -> Path:
     """The daemon socket, resolved as hauslicht-ctl does."""
-    return Path(os.environ.get("HAUSLICHT_SOCK")
-                or Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "hauslicht.sock")
+    from haus.common import SOCK_PATH
+    return Path(os.environ.get("HAUSLICHT_SOCK") or SOCK_PATH)
 
 
 # ----------------------------------------------------------------- pure parts

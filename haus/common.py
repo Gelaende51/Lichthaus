@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 import contextlib
-import fcntl
 import json
 import os
 import sys
 from pathlib import Path
+
+from haus import _platform as _p
+
+try:
+    import fcntl
+except ImportError:  # Windows: msvcrt.locking instead
+    fcntl = None
 
 # Haus.Licht's version (the man pages carry it).
 VERSION = "0.2"
@@ -22,8 +28,14 @@ if str(ROOT) not in sys.path:
 
 # HAUSLICHT_STATE / HAUSLICHT_SOCK: a second instance (tests, widget work) beside the live one.
 STATE_PATH = Path(os.environ.get("HAUSLICHT_STATE") or ROOT / "hauslicht.json")
-SOCK_PATH = Path(os.environ.get("HAUSLICHT_SOCK")
-                 or Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "hauslicht.sock")
+if os.environ.get("HAUSLICHT_SOCK"):
+    SOCK_PATH = Path(os.environ["HAUSLICHT_SOCK"])
+elif _p.IS_LINUX:
+    SOCK_PATH = Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "hauslicht.sock"
+elif _p.IS_MAC:
+    SOCK_PATH = Path(os.environ.get("TMPDIR", "/tmp")) / "hauslicht.sock"
+else:  # Windows
+    SOCK_PATH = Path(os.environ.get("LOCALAPPDATA", ".")) / "hauslicht" / "hauslicht.sock"
 
 
 def lock_path(state_path: Path) -> Path:
@@ -437,7 +449,14 @@ def link_lock(state_path: Path):
     """One process at a time per state file: they share one mesh SEQ counter."""
     fd = os.open(lock_path(state_path), os.O_CREAT | os.O_RDWR, 0o600)
     try:
-        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if _p.IS_WIN:
+            import msvcrt
+            try:
+                msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+            except OSError:
+                raise BlockingIOError
+        else:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
         os.close(fd)
         sys.exit(_("another hauslicht process holds the mesh link "
@@ -445,5 +464,12 @@ def link_lock(state_path: Path):
     try:
         yield
     finally:
-        fcntl.flock(fd, fcntl.LOCK_UN)
+        if _p.IS_WIN:
+            import msvcrt
+            try:
+                msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+            except OSError:
+                pass
+        elif fcntl is not None:
+            fcntl.flock(fd, fcntl.LOCK_UN)
         os.close(fd)

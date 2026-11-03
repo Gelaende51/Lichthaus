@@ -213,7 +213,8 @@ def systemsettings_running() -> bool:
     """A System Settings of this user is open: a new start only hands its
     arguments over to it (one instance per session)."""
     try:
-        return subprocess.run(["pgrep", "-u", str(os.getuid()), "-x", "systemsettings"],
+        uid = getattr(os, "getuid", lambda: 0)()
+        return subprocess.run(["pgrep", "-u", str(uid), "-x", "systemsettings"],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
     except OSError:
         return False

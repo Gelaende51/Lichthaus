@@ -20,7 +20,10 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import fcntl
+try:
+    import fcntl
+except ImportError:  # not Linux: no raw HCI either
+    fcntl = None
 import json
 import logging
 import os
@@ -531,7 +534,7 @@ def _devinfo(index: int) -> tuple[str | None, int | None, bool | None]:
     with sock:
         buf = bytearray(struct.pack("<H", index) + bytes(100))
         try:
-            fcntl.ioctl(sock.fileno(), HCIGETDEVINFO, buf)
+            fcntl.ioctl(sock.fileno(), HCIGETDEVINFO, buf)  # AF_BLUETOOTH (Linux) implies fcntl
         except OSError:
             return None, None, None
     # struct hci_dev_info: dev_id u16, name[8], bdaddr[6], flags u32 (offset 16), type u8 (20)
