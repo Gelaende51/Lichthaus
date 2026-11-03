@@ -10,6 +10,7 @@ and its releases run in its own repository,
 |---|---|---|---|
 | `tests.yml` | every push and pull request to main | ubuntu-24.04 | pytest on Python 3.12, 3.13, 3.14; man pages |
 | `distros.yml` | Mondays, and by hand | Debian stable, Ubuntu 24.04, Fedora, Arch, openSUSE Tumbleweed containers | `install/install.sh --all-backends`, then pytest on the distribution's Python |
+| `port.yml` | push to `port-macwin`, and by hand | macos-latest, windows-latest | pytest on the `tests/test_platform_*.py` files and `tests/test_ipc.py` |
 
 ## tests.yml
 
@@ -21,6 +22,13 @@ and its releases run in its own repository,
   there.
 - **man pages**: `dev/gen-man.py --check` (generated pages current), then
   `groff -man -ww -k -z` on `man/*.1` and `man/de/*.1`; any output fails.
+
+## port.yml
+
+Portability smoke test for the macOS/Windows port branch: imports and IPC on
+macOS and Windows runners. Installs `requirements.txt`, `requirements-dev.txt`
+and `requirements-clap.txt` like `tests.yml`, then runs only
+the `tests/test_platform_*.py` files and `tests/test_ipc.py`.
 
 ## distros.yml
 
