@@ -1954,7 +1954,8 @@ class Daemon:
     def monitor_power_state(self) -> dict:
         watch = self.monitor_power
         if watch is None:
-            state = {"available": False, "why": _("a laptop: the lid switches the lights instead"), "monitors": []}
+            why = _("a laptop: the lid switches the lights instead") if getattr(self.desktop, "laptop", True) else ""
+            state = {"available": False, "why": why, "monitors": []}  # off Linux: no watch, no reason to give
         else:
             state = watch.status(getattr(self.desktop, "laptop", False))
         return {**state, "follow": self.settings["monitor_power"]}

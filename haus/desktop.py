@@ -581,6 +581,7 @@ class NullDesktop:
     backlight = None
     screen_on = True
     slider_ready = False
+    laptop = False  # not detected off Linux yet
 
     def __init__(self) -> None:
         self.env = Environment()  # never started: daylight, scheme and kelvin stay None
