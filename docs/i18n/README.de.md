@@ -245,6 +245,16 @@ systemctl --user enable --now hauslicht
   amqtt); wie die CI sie ausführt, auch lokal: [docs/ci.md](../ci.md)
   (englisch).
 
+## macOS und Windows (Vorschau)
+
+Auf echten Macs/PCs bisher ungetestet.
+
+- Funktioniert: der Dienst und `hauslicht-ctl`, Bluetooth-Mesh-Lampen über bleak, LAN-Backends, serielle Lampen, Klatschen schaltet und Audio folgen (mit dem optionalen Paket `sounddevice`).
+- Nur unter Linux: die Schalter-Modi *Schnell* und *Exklusiv* (setup-root), dem Bildschirm und dem Nachtlicht folgen, Blinken bei Benachrichtigungen, die KDE-Einbindung, beim Klatschen der Abgleich mit den Lautsprechern.
+- Audio folgen hört dort das Standardmikrofon, nicht die Lautsprecher; wer der Musik folgen will, wählt ein Loopback-Gerät (BlackHole, Stereomix) als Quelle.
+- Windows spricht mit dem Dienst über TCP auf 127.0.0.1 mit einer Token-Datei statt über den Unix-Socket.
+- Start bei der Anmeldung: [Autostart](autostart.de.md).
+
 ## Lampen hinzufügen
 
 - **Die meisten Arten:** Widget → *Einrichten* → *Lampen* → *Lampe

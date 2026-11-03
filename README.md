@@ -221,6 +221,16 @@ systemctl --user enable --now hauslicht
 - Tests: `pip install -r requirements-dev.txt` (see the note on amqtt there);
   how CI runs them, also locally: [docs/ci.md](docs/ci.md).
 
+## macOS and Windows (preview)
+
+Untested on real Macs/PCs so far.
+
+- What works: the daemon and `hauslicht-ctl`, Bluetooth-mesh bulbs via bleak, LAN backends, serial lights, clap detection and follow-audio (with the optional `sounddevice` package).
+- Linux-only: the Fast and Exclusive flick modes (setup-root), following the screen and Night Light, notification blinks, KDE integration, the clap detector's speaker check.
+- Follow-audio hears the default microphone there, not the speakers; pick a loopback device (BlackHole, Stereo Mix) as its source to follow music.
+- Windows talks to the daemon over TCP 127.0.0.1 with a token file instead of the Unix socket.
+- Start at login: see [docs/autostart.md](docs/autostart.md).
+
 ## Adding bulbs
 
 - **Most kinds:** widget → *Configure* → *Bulbs* → *Add a bulb*: choose the
