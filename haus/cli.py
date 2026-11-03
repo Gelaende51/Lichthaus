@@ -111,6 +111,7 @@ import os
 import sys
 import time
 
+from ._platform import IS_LINUX
 from .common import SOCK_PATH, STATE_PATH, TRANSLATION, _, link_lock, read_state
 from .profiles import FAST_FLICK, FLICK_MODES, LID_EVENTS, MODES, TRACKING, migrate
 
@@ -909,6 +910,9 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(run())
     logging.getLogger("btmesh").setLevel(logging.WARNING)
     log.setLevel(logging.WARNING)
+    if not IS_LINUX and args.cmd == "setup-root":
+        print(_("setup-root: only needed on Linux (exclusive mode and fast flick use it)"))
+        return 0
     if args.cmd in ("setup-root", "flick") and sys.stdin.isatty():
         from . import rootsetup
         if args.cmd == "setup-root":

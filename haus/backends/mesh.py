@@ -56,6 +56,7 @@ from types import SimpleNamespace
 
 from . import QUICK_GAP_S, Backend, Offline
 from .. import hci
+from .._platform import IS_LINUX
 from ..common import UserError, _, link_lock, save_state
 from ..profiles import FAST_FLICK, LEDVANCE_NAME, mesh_id, migrate
 
@@ -1084,6 +1085,8 @@ class MeshBackend(Backend):
             await self._stop_scanner()  # BlueZ may lose the adapter: our scan there ends now
             claim = radio = None
             try:
+                if not IS_LINUX:  # exclusive mode needs raw HCI (Linux only)
+                    raise hci.ClaimError("exclusive mode is Linux-only")
                 adapters = await hci.list_adapters(ignore=self.macs())
                 adapter = hci.choose_adapter(adapters, key)
                 if adapter is None:
