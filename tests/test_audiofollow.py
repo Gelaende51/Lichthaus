@@ -459,3 +459,39 @@ def test_missing_parts_refuse(tmp_path, monkeypatch):
             await cmd(d, "audio", "on")
         assert not d.bulbs["mock:1"].audio
     run_audio(tmp_path, mock_state(mock_1=lit()), body)
+
+
+def test_a_missing_source_falls_back_to_the_default_output(monkeypatch):
+    from haus import clap as clapmod
+    said = []
+    monkeypatch.setattr(clapmod.log, "warning", lambda msg, *args: said.append(msg % args))
+    monkeypatch.setattr(clapmod, "_missing_warned", set())
+
+    async def sources():
+        return [{"name": "alsa_output.x.monitor", "description": "x", "monitor": True, "default": True}]
+    monkeypatch.setattr(audiomod, "list_sources", sources)
+    monkeypatch.setattr(clapmod, "list_sources", lambda: pytest.fail("clap's list used"))
+    monkeypatch.setattr(audiomod, "missing", lambda: [])
+    seen = []
+
+    async def spawn(*cmd, **kw):
+        seen.append(cmd)
+        raise OSError("no recorder in tests")
+    monkeypatch.setattr(clapmod.asyncio, "create_subprocess_exec", spawn)
+    monkeypatch.setattr(audiomod.shutil, "which", lambda name: "/usr/bin/" + name if name == "parec" else None)
+
+    async def main():
+        svc = audiomod.AudioFollowService(lambda: None, lambda msg: None)
+        svc.apply(True, "gone.monitor")
+        await asyncio.sleep(0.05)
+        return svc.describe(), svc.source
+    st, configured = asyncio.run(main())
+    assert st["source_missing"] == "gone.monitor" and configured == "gone.monitor"
+    assert seen and "--device=@DEFAULT_MONITOR@" in seen[0]
+    assert said[0] == "follow audio: source gone.monitor not found; using the default"
+
+    async def present():
+        cap = audiomod.AudioCapture(lambda *_: None, "alsa_output.x.monitor")
+        await cap.check_source()
+        return cap.source, cap.missing
+    assert asyncio.run(present()) == ("alsa_output.x.monitor", None)

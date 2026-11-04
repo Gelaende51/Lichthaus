@@ -533,6 +533,9 @@ def pair_label(ka: str, kb: str) -> str:
 
 # --------------------------------------------------------------------- capture
 
+_missing_warned: set[tuple[str, str]] = set()  # (capture name, source) already warned about
+
+
 class Capture:
     """Mono 16 kHz signed 16-bit audio from one PipeWire/Pulse source, through
     a pipe (nothing on disk), handed to on_samples(float32 −1…1, monotonic
@@ -552,6 +555,33 @@ class Capture:
                  name: str = "clap detection") -> None:
         self.on_samples, self.source, self.monitor, self.name = on_samples, source, monitor, name
         self.proc: asyncio.subprocess.Process | None = None
+        self.missing: str | None = None  # the configured source when it was gone at the start
+
+    async def sources(self) -> list[dict]:
+        """The sources a configured name is checked against (follow-audio's
+        include the monitors)."""
+        return await list_sources()
+
+    async def check_source(self) -> None:
+        """A configured source that is gone (renamed, unplugged) falls back to
+        the default ("") with one warning per name; the setting stays, so the
+        next start takes the device again once it is back. A list that cannot
+        be read keeps the source as configured."""
+        self.missing = None
+        if self.monitor or not self.source:
+            return
+        try:
+            names = {s.get("name") for s in await self.sources()}
+        except CaptureError:
+            return
+        key = (self.name, self.source)
+        if self.source in names:
+            _missing_warned.discard(key)
+            return
+        if key not in _missing_warned:
+            _missing_warned.add(key)
+            log.warning("%s: source %s not found; using the default", self.name, self.source)
+        self.missing, self.source = self.source, ""
 
     def command(self) -> list[str]:
         props = f'{{ application.name = "Haus.Licht" media.name = "{self.name}"'
@@ -579,6 +609,7 @@ class Capture:
 
     async def run(self) -> None:
         """Until cancelled; CaptureError when the recorder ends by itself."""
+        await self.check_source()  # before device(): off Linux too, a device gone is the default input
         if not _platform.IS_LINUX:
             await audiocapture.run(self.device(), self.on_samples, RATE, 800)  # 50 ms, as the pipe's chunks
             return
@@ -748,6 +779,7 @@ class ClapService:
         self.started_at: float | None = None
         self.muted: bool | None = None  # the source's mute switch; None: unknown or not listening
         self.mute_task: asyncio.Task | None = None
+        self.capture: Capture | None = None  # the microphone's, for source_missing
 
     def apply(self, mode: str, source: str, sensitivity: int, count: int = 2) -> None:
         """Settings changed (or the daemon started): restart only what must.
@@ -775,12 +807,18 @@ class ClapService:
         self.task = self.mute_task = None
         self.detector = None
         self.muted = None
+        self.capture = None
+
+    def source_missing(self) -> str | None:
+        """The configured source when it was gone at the start (the default
+        input is used instead); None otherwise."""
+        return self.capture.missing if self.capture is not None else None
 
     async def _watch_mute(self) -> None:
         """The chosen source's mute switch, every MUTE_S: a muted microphone
         hears nothing, and the widget says so."""
         while True:
-            self.muted = await source_muted(self.source)
+            self.muted = await source_muted("" if self.source_missing() else self.source)
             await asyncio.sleep(MUTE_S)
 
     async def _run(self) -> None:
@@ -802,7 +840,7 @@ class ClapService:
             return
         while True:
             self.detector = HitSequenceDetector(clf, self.mode, self.sensitivity, clf.labels, self.count)
-            mic = Capture(self._mic, self.source)
+            mic = self.capture = Capture(self._mic, self.source)
             mon = Capture(self._mon, monitor=True, name="clap detection (speaker check)")
             self.state, self.error, self.started_at = "listening", "", time.monotonic()
             log.info("clap: listening (%s, source %s, sensitivity %d, %d hits)", self.mode,
@@ -871,7 +909,8 @@ class ClapService:
         lacking = missing()
         state = "unavailable" if lacking and self.mode != "off" else self.state
         return {"state": state, "available": not lacking, "missing": lacking,
-                "install": install_hint() if lacking else "", "error": self.error, "muted": self.muted}
+                "install": install_hint() if lacking else "", "error": self.error, "muted": self.muted,
+                "source_missing": self.source_missing()}
 
     def meter(self) -> dict:
         det = self.detector
