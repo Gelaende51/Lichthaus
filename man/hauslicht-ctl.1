@@ -165,8 +165,12 @@ The \fBget\fR object with the setup status read anew.
 \fBclap\-sources\fR
 Replies \fB{sources: [{name, description, default, muted}], selected}\fR: the microphones.
 .TP
-\fBclap\-meter\fR
+\fBclap\-meter\fR [\fB\-\-listen\fR]
 Replies the test meter: level, noise floor, the last judged sound and the last double (or triple: its \fBcount\fR).
+With \fB\-\-listen\fR while every widget's clap is off, it starts a test run (or renews it): the microphone and detector run
+(claps and snaps, the current source, sensitivity and count) and hits are shown, but no light is switched;
+3 s without another \fB\-\-listen\fR it stops and frees the microphone. \fBtest\fR is true during it.
+While a widget's clap is on, the flag changes nothing.
 .TP
 \fBclap\-hits\fR
 Replies the last 30 hits with the gate's numbers, scores and verdict (\fBsequence\fR: 2 or 3 when part of a double or triple, else 0), and \fBcount\fR, the \fBclap_count\fR setting.

@@ -105,6 +105,7 @@ DC_S = 0.5  # the DC offset is followed with this time constant
 MONITOR_TOL_S = 0.15  # a hit the speakers played within this is theirs
 MUTE_S = 3.0  # the source's mute switch is read this often while listening
 RETRY_S = 10.0  # a capture that ended is restarted after this
+LEASE_S = 3.0  # a test run (clap off, `clap-meter --listen`) stops this long after the last request
 
 
 def union_mode(modes) -> str:
@@ -763,7 +764,13 @@ class ClapService:
     """The daemon's side: runs the detector while any widget's mode is not off
     (mode: union_mode of them).
     on_double(event) is called in the event loop for each double (or
-    triple, with count 3: settings.clap_count)."""
+    triple, with count 3: settings.clap_count).
+
+    With every mode off, listen() (`clap-meter --listen`, the Sound page's
+    meter) starts a test run on a lease: mode both, the same source,
+    sensitivity and count, hits and doubles shown but on_double never
+    called; each listen() renews it, LEASE_S without one stops it and frees
+    the microphone. A mode turned on takes over as the normal run."""
 
     def __init__(self, on_double: Callable[[dict], None]) -> None:
         self.on_double = on_double
@@ -780,13 +787,23 @@ class ClapService:
         self.muted: bool | None = None  # the source's mute switch; None: unknown or not listening
         self.mute_task: asyncio.Task | None = None
         self.capture: Capture | None = None  # the microphone's, for source_missing
+        self.test = False  # a test run on a lease: nothing toggles
+        self.lease_until = 0.0
+        self.lease_task: asyncio.Task | None = None
 
     def apply(self, mode: str, source: str, sensitivity: int, count: int = 2) -> None:
         """Settings changed (or the daemon started): restart only what must.
         mode: what any widget listens for (union_mode), off when none does;
         count: hits in a row that toggle (2 or 3)."""
         restart = (mode != "off") != (self.mode != "off") or source != self.source
+        moved = source != self.source
         self.mode, self.source, self.sensitivity, self.count = mode, source, sensitivity, count
+        if mode == "off" and self.test:  # a test run takes the settings like the normal one
+            if self.detector is not None:
+                self.detector.set_options(self.run_mode(), sensitivity, count)
+            if moved:
+                self._start()
+            return
         if self.detector is not None:
             self.detector.set_options(mode, sensitivity, count)
         if mode == "off":
@@ -794,13 +811,42 @@ class ClapService:
             self.state, self.error = "off", ""
             return
         if restart or self.task is None or self.task.done():
-            self.stop()
-            self.state, self.error = "starting", ""
-            loop = asyncio.get_running_loop()
-            self.task = loop.create_task(self._run())
-            self.mute_task = loop.create_task(self._watch_mute())
+            self.stop()  # a test run included: the normal one takes over
+            self._start()
 
-    def stop(self) -> None:
+    def run_mode(self) -> str:
+        """What the detector listens for: both in a test run."""
+        return "both" if self.test else self.mode
+
+    def listen(self) -> None:
+        """`clap-meter --listen`: with every mode off, start a test run or
+        renew its lease; nothing while a mode is on or the extra is missing."""
+        if self.mode != "off" or missing():
+            return
+        self.lease_until = time.monotonic() + LEASE_S
+        if self.test:
+            return
+        self.test = True
+        log.info("clap: test run: sounds are shown, nothing is switched")
+        self._start()
+        self.lease_task = asyncio.get_running_loop().create_task(self._lease())
+
+    async def _lease(self) -> None:
+        while (left := self.lease_until - time.monotonic()) > 0:
+            await asyncio.sleep(left)
+        self.lease_task = None
+        self.stop()
+        self.state, self.error = "off", ""
+        log.info("clap: test run ended")
+
+    def _start(self) -> None:
+        self._halt()
+        self.state, self.error = "starting", ""
+        loop = asyncio.get_running_loop()
+        self.task = loop.create_task(self._run())
+        self.mute_task = loop.create_task(self._watch_mute())
+
+    def _halt(self) -> None:
         for task in (self.task, self.mute_task):
             if task is not None:
                 task.cancel()
@@ -808,6 +854,13 @@ class ClapService:
         self.detector = None
         self.muted = None
         self.capture = None
+
+    def stop(self) -> None:
+        """Capture, detector and a test run's lease off."""
+        self._halt()
+        if self.lease_task is not None:
+            self.lease_task.cancel()
+        self.lease_task, self.test = None, False
 
     def source_missing(self) -> str | None:
         """The configured source when it was gone at the start (the default
@@ -839,11 +892,12 @@ class ClapService:
             log.warning("clap: %s", self.error)
             return
         while True:
-            self.detector = HitSequenceDetector(clf, self.mode, self.sensitivity, clf.labels, self.count)
+            self.detector = HitSequenceDetector(clf, self.run_mode(), self.sensitivity, clf.labels, self.count)
             mic = self.capture = Capture(self._mic, self.source)
             mon = Capture(self._mon, monitor=True, name="clap detection (speaker check)")
             self.state, self.error, self.started_at = "listening", "", time.monotonic()
-            log.info("clap: listening (%s, source %s, sensitivity %d, %d hits)", self.mode,
+            log.info("clap: listening (%s%s, source %s, sensitivity %d, %d hits)", self.run_mode(),
+                     ", test" if self.test else "",
                      self.source or "default", self.sensitivity, self.count)
             monitor = asyncio.get_running_loop().create_task(self._monitor(mon))
             try:
@@ -869,9 +923,12 @@ class ClapService:
             return
         for ev in det.feed(samples, now):
             if ev["event"] == "toggle":
-                self.last_double = {**ev, "time": time.time()}
-                log.info("clap: %s %s (%.2f, %s ms apart)", SEQUENCE_NAMES.get(ev["count"], ev["count"]),
+                self.last_double = {**ev, "time": time.time(), "test": self.test}
+                log.info("clap: %s%s %s (%.2f, %s ms apart)", "test, " if self.test else "",
+                         SEQUENCE_NAMES.get(ev["count"], ev["count"]),
                          ev["label"], ev["score"], "+".join(f"{g * 1000:.0f}" for g in ev["gaps"]))
+                if self.test:  # a test run shows it, never switches
+                    continue
                 try:
                     self.on_double(ev)
                 except Exception as exc:  # never let the toggle stop the capture
@@ -910,7 +967,7 @@ class ClapService:
         state = "unavailable" if lacking and self.mode != "off" else self.state
         return {"state": state, "available": not lacking, "missing": lacking,
                 "install": install_hint() if lacking else "", "error": self.error, "muted": self.muted,
-                "source_missing": self.source_missing()}
+                "source_missing": self.source_missing(), "test": self.test}
 
     def meter(self) -> dict:
         det = self.detector
@@ -924,7 +981,8 @@ class ClapService:
         double = None
         if self.last_double is not None:
             double = {"label": self.last_double["label"], "score": self.last_double["score"],
-                      "count": self.last_double["count"], "age": round(max(0.0, time.time() - self.last_double["time"]), 1)}
+                      "count": self.last_double["count"], "test": self.last_double.get("test", False),
+                      "age": round(max(0.0, time.time() - self.last_double["time"]), 1)}
         floor_db = det.gate.floor_db if listening else None
         return {**self.describe(), "level_db": None if level_db is None else round(level_db, 1),
                 "level": None if level_db is None else round(max(0.0, min(1.0, (level_db + 60.0) / 60.0)), 3),

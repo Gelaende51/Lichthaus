@@ -168,8 +168,12 @@ Das \fBget\fR-Objekt, mit neu gelesenem Einrichtungsstand.
 \fBclap\-sources\fR
 Antwortet \fB{sources: [{name, description, default, muted}], selected}\fR: die Mikrofone.
 .TP
-\fBclap\-meter\fR
+\fBclap\-meter\fR [\fB\-\-listen\fR]
 Antwortet die Testanzeige: Pegel, Grundrauschen, das zuletzt beurteilte Ger\[u00E4]usch und das letzte Doppel (oder Dreifach: sein \fBcount\fR).
+Mit \fB\-\-listen\fR, w\[u00E4]hrend Klatschen in jedem Widget aus ist, startet es einen Testlauf (oder verl\[u00E4]ngert ihn): Mikrofon und Erkennung laufen
+(Klatschen und Schnippen, die aktuelle Quelle, Empfindlichkeit und Anzahl) und Treffer werden angezeigt, aber kein Licht wird geschaltet;
+3 s ohne weiteres \fB\-\-listen\fR endet er und gibt das Mikrofon frei. \fBtest\fR ist dabei true.
+W\[u00E4]hrend Klatschen in einem Widget an ist, \[u00E4]ndert die Option nichts.
 .TP
 \fBclap\-hits\fR
 Antwortet die letzten 30 Treffer mit den Zahlen der Schwelle, Werten und Urteil (\fBsequence\fR: 2 oder 3, wenn Teil eines Doppels oder Dreifachs, sonst 0), und \fBcount\fR, die Einstellung \fBclap_count\fR.
