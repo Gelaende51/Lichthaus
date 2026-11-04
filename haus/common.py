@@ -449,7 +449,7 @@ def link_lock(state_path: Path):
     """One process at a time per state file: they share one mesh SEQ counter."""
     fd = os.open(lock_path(state_path), os.O_CREAT | os.O_RDWR, 0o600)
     try:
-        if _p.IS_WIN:
+        if fcntl is None:  # Windows
             import msvcrt
             try:
                 msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
@@ -464,12 +464,12 @@ def link_lock(state_path: Path):
     try:
         yield
     finally:
-        if _p.IS_WIN:
+        if fcntl is None:
             import msvcrt
             try:
                 msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
             except OSError:
                 pass
-        elif fcntl is not None:
+        else:
             fcntl.flock(fd, fcntl.LOCK_UN)
         os.close(fd)

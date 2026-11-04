@@ -14,6 +14,7 @@ import os
 import signal
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -77,7 +78,8 @@ def ask(sock: Path, cmd: str, *args: str) -> dict:
 
 def run_daemon(tmp_path: Path, prelude: str, transport: str) -> dict:
     """Start the daemon, ask it, stop it; the answers by command."""
-    sock = tmp_path / "hauslicht.sock"
+    # macOS caps a Unix socket path at 104 bytes; its pytest tmp_path is longer
+    sock = (tmp_path if sys.platform == "win32" else Path(tempfile.mkdtemp(prefix="hl", dir="/tmp"))) / "hauslicht.sock"
     env = {**os.environ,
            "HAUSLICHT_BACKENDS": "mock", "HAUSLICHT_STATE": str(tmp_path / "state.json"),
            "HAUSLICHT_SOCK": str(sock), "HAUSLICHT_NO_PANEL": "1", "HAUSLICHT_TRANSPORT": transport,
@@ -90,8 +92,11 @@ def run_daemon(tmp_path: Path, prelude: str, transport: str) -> dict:
     env.pop("HAUSLICHT_DEBUG", None)
     log = tmp_path / "daemon.log"
     with open(log, "wb") as out:
+        # Windows: its own process group, so Ctrl+Break reaches the daemon alone
+        # (SIGTERM there is TerminateProcess: no clean stop to check)
+        extra = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if sys.platform == "win32" else {}
         proc = subprocess.Popen([sys.executable, "-c", prelude + TRIPWIRES + ENTRY], cwd=REPO, env=env,
-                                stdout=out, stderr=subprocess.STDOUT)
+                                stdout=out, stderr=subprocess.STDOUT, **extra)
     try:
         deadline = time.monotonic() + 30
         while True:
@@ -106,9 +111,10 @@ def run_daemon(tmp_path: Path, prelude: str, transport: str) -> dict:
                 time.sleep(0.2)
         answers.update({cmd: ask(sock, cmd) for cmd in ("get", "adapters")})
         answers["flick"] = ask(sock, "flick", "fast")
+        answers["sock"] = sock
     finally:
         if proc.poll() is None:
-            proc.send_signal(signal.SIGTERM)
+            proc.send_signal(signal.CTRL_BREAK_EVENT if sys.platform == "win32" else signal.SIGTERM)
         try:
             proc.wait(timeout=20)
         except subprocess.TimeoutExpired:
@@ -132,6 +138,7 @@ def check_answers(answers: dict) -> None:
     assert "hauslicht setup-root" in answers["flick"]["error"]  # fast needs the setup, which is Linux's
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="fakes darwin on a Unix host: no fcntl, no AF_UNIX server on Windows")
 def test_daemon_serves_on_macos(tmp_path, monkeypatch):
     monkeypatch.delenv("HAUSLICHT_TRANSPORT", raising=False)  # macOS keeps the Unix socket
     check_answers(run_daemon(tmp_path, FAKE_DARWIN, "unix"))
@@ -140,5 +147,5 @@ def test_daemon_serves_on_macos(tmp_path, monkeypatch):
 def test_daemon_serves_on_windows_gate(tmp_path, monkeypatch):
     monkeypatch.setenv("HAUSLICHT_TRANSPORT", "tcp")  # this side's ipc.connect: port file and token
     answers = run_daemon(tmp_path, GATE_OFF, "tcp")
-    assert not (tmp_path / "hauslicht.sock").exists()
+    assert not answers["sock"].exists()  # TCP: no socket file, only the port file beside it
     check_answers(answers)

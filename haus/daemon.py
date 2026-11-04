@@ -2484,8 +2484,14 @@ class Daemon:
                      ", ".join(f"{b.id} {'on' if b.power else 'off'}" for b in self.bulbs.values()) or "none")
             main = asyncio.current_task()
             loop = asyncio.get_running_loop()
-            for sig in (signal.SIGTERM, signal.SIGINT):
-                loop.add_signal_handler(sig, main.cancel)
+            # Windows (proactor loop) has no add_signal_handler: plain handlers,
+            # and Ctrl+Break (SIGBREAK) too, which is how a console process is
+            # asked to stop there.
+            for sig in (signal.SIGTERM, signal.SIGINT, *([signal.SIGBREAK] if hasattr(signal, "SIGBREAK") else [])):
+                try:
+                    loop.add_signal_handler(sig, main.cancel)
+                except (NotImplementedError, RuntimeError):
+                    signal.signal(sig, lambda *_: loop.call_soon_threadsafe(main.cancel))
             try:
                 await self.start()
                 async with server:
