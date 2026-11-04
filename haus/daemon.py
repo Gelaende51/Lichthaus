@@ -2355,11 +2355,13 @@ class Daemon:
         if cmd == "adapters":
             return {"results": [await self.adapters()]}
         if cmd == "clap-meter":
+            if "--listen" in args or req.get("listen") is True:  # the Sound page: a test run while clap is off
+                self.clap.listen()
             return {"results": [{"clap": self.clap.mode, **self.clap.meter()}]}
         if cmd == "clap-hits":
             sens = self.settings["clap_sensitivity"]
             return {"results": [{"clap": self.clap.mode, "sensitivity": sens, "count": self.settings["clap_count"],
-                                 "hits": self.clap.hits(),
+                                 "test": self.clap.test, "hits": self.clap.hits(),
                                  "bars": {k: round(v, 3) for k, v in clapmod.bars(sens).items()}}]}
         if cmd == "setup-root":
             self.start_setup()

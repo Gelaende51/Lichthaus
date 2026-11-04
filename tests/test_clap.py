@@ -843,3 +843,160 @@ def test_describe_reports_the_missing_source(monkeypatch):
     assert svc.describe()["source_missing"] == "usb-mic"
     svc.stop()
     assert svc.describe()["source_missing"] is None
+
+
+# --------------------------------------------------------------------- the test run (clap off, Sound page open)
+
+@pytest.fixture
+def fake_run(monkeypatch):
+    """_run without a model or a microphone: a detector on FakeYamnet, then
+    it waits (as a capture would) until cancelled. Records each start."""
+    runs = []
+
+    async def _run(self):
+        runs.append({"mode": self.run_mode(), "source": self.source, "sensitivity": self.sensitivity,
+                     "count": self.count, "test": self.test})
+        self.detector = HitSequenceDetector(FakeYamnet(), self.run_mode(), self.sensitivity, count=self.count)
+        self.state = "listening"
+        await asyncio.Event().wait()
+
+    async def muted(source):
+        return None
+    monkeypatch.setattr(clapmod.ClapService, "_run", _run)
+    monkeypatch.setattr(clapmod, "source_muted", muted)
+    monkeypatch.setattr(clapmod, "missing", lambda: [])
+    monkeypatch.setattr(clapmod, "LEASE_S", 0.2)
+    return runs
+
+
+def feed_svc(svc, sig, now0=100.0, chunk=800):
+    for i in range(0, len(sig), chunk):
+        part = sig[i:i + chunk]
+        svc._mic(part, now0 + (i + len(part)) / RATE)
+
+
+def test_listen_starts_a_test_run_that_never_toggles(fake_run):
+    toggled = []
+
+    async def main():
+        svc = clapmod.ClapService(toggled.append)
+        svc.apply("off", "mic1", 60, 2)
+        svc.listen()
+        await asyncio.sleep(0.02)
+        assert fake_run == [{"mode": "both", "source": "mic1", "sensitivity": 60, "count": 2, "test": True}]
+        meter = svc.meter()
+        assert meter["test"] is True and meter["state"] == "listening" and meter["level"] is not None
+        feed_svc(svc, add_clap(add_clap(room(3.0), 1.0), 1.3))
+        out = svc.last_double, svc.hits(), svc.meter()["double"]
+        svc.stop()
+        return out
+    last, hits, double = asyncio.run(main())
+    assert toggled == []  # shown, never switched
+    assert last["label"] == "Clap" and last["test"] is True and double["test"] is True
+    assert len(hits) == 2 and all(h["paired"] for h in hits)
+
+
+def test_the_test_run_stops_when_the_lease_runs_out(fake_run):
+    async def main():
+        svc = clapmod.ClapService(lambda ev: None)
+        svc.apply("off", "", 50)
+        svc.listen()
+        await asyncio.sleep(0.12)
+        svc.listen()  # renewed: still running past the first lease
+        await asyncio.sleep(0.12)
+        alive = svc.test, svc.state, len(fake_run)
+        task = svc.task
+        await asyncio.sleep(0.25)
+        await asyncio.sleep(0)
+        return alive, (svc.test, svc.state, svc.task, svc.detector, svc.lease_task), task.cancelled()
+    alive, after, cancelled = asyncio.run(main())
+    assert alive == (True, "listening", 1)  # one start, renewed
+    assert after == (False, "off", None, None, None) and cancelled  # the microphone is free again
+
+
+def test_listen_changes_nothing_while_clap_is_on(fake_run):
+    async def main():
+        svc = clapmod.ClapService(lambda ev: None)
+        svc.apply("clap", "", 50)
+        await asyncio.sleep(0.02)
+        task = svc.task
+        svc.listen()
+        await asyncio.sleep(0.02)
+        out = svc.test, svc.task is task, svc.lease_task, svc.describe()["test"]
+        svc.stop()
+        return out
+    assert asyncio.run(main()) == (False, True, None, False)
+    assert [r["mode"] for r in fake_run] == ["clap"]
+
+
+def test_listen_does_nothing_without_the_extra(fake_run, monkeypatch):
+    monkeypatch.setattr(clapmod, "missing", lambda: ["numpy"])
+
+    async def main():
+        svc = clapmod.ClapService(lambda ev: None)
+        svc.listen()
+        await asyncio.sleep(0.02)
+        return svc.test, svc.task
+    assert asyncio.run(main()) == (False, None) and fake_run == []
+
+
+def test_clap_turned_on_during_a_test_takes_over_and_toggles(fake_run):
+    toggled = []
+
+    async def main():
+        svc = clapmod.ClapService(toggled.append)
+        svc.listen()
+        await asyncio.sleep(0.02)
+        svc.apply("clap", "", 50)
+        await asyncio.sleep(0.02)
+        state = svc.test, svc.lease_task, svc.state
+        feed_svc(svc, add_clap(add_clap(room(3.0), 1.0), 1.3))
+        await asyncio.sleep(0.3)  # past the old lease: the normal run stays
+        out = state, svc.state, svc.task is not None
+        svc.stop()
+        return out
+    state, later, running = asyncio.run(main())
+    assert state == (False, None, "listening") and later == "listening" and running
+    assert [(r["mode"], r["test"]) for r in fake_run] == [("both", True), ("clap", False)]
+    assert len(toggled) == 1 and toggled[0]["label"] == "Clap"
+
+
+def test_settings_reach_the_test_run_like_the_normal_one(fake_run):
+    async def main():
+        svc = clapmod.ClapService(lambda ev: None)
+        svc.listen()
+        await asyncio.sleep(0.02)
+        svc.apply("off", "", 80, 3)  # sensitivity, count: the detector takes them
+        await asyncio.sleep(0.02)
+        det = svc.detector
+        kept = len(fake_run), det.count, det.mode, svc.test
+        svc.apply("off", "mic2", 80, 3)  # another microphone: a new run, still a test
+        await asyncio.sleep(0.02)
+        out = kept, svc.test, svc.lease_task is not None
+        svc.stop()
+        return out
+    kept, test, leased = asyncio.run(main())
+    assert kept == (1, 3, "both", True) and test and leased
+    assert fake_run[-1] == {"mode": "both", "source": "mic2", "sensitivity": 80, "count": 3, "test": True}
+
+
+def test_clap_meter_listen_through_the_daemon(tmp_path, fake_run):
+    async def body(d):
+        meter = await cmd(d, "clap-meter")
+        assert meter["test"] is False and meter["state"] == "off" and fake_run == []
+        meter = await cmd(d, "clap-meter", "--listen")
+        await asyncio.sleep(0.02)
+        meter = await cmd(d, "clap-meter", "--listen")
+        assert meter["clap"] == "off" and meter["test"] is True and meter["state"] == "listening"
+        assert len(fake_run) == 1 and fake_run[0]["mode"] == "both"
+        feed_service(d, add_clap(add_clap(room(3.0), 1.0), 1.3))
+        await settle(d)
+        assert d.bulbs["mock:1"].power is False  # a test hit switches nothing
+        hits = await cmd(d, "clap-hits")
+        assert hits["test"] is True and len(hits["hits"]) == 2
+        assert (await cmd(d, "clap-meter"))["double"]["test"] is True
+        await cmd(d, "clap", "both")  # on: the normal run, the flag changes nothing
+        await asyncio.sleep(0.02)
+        meter = await cmd(d, "clap-meter", "--listen")
+        assert meter["test"] is False and meter["clap"] == "both" and fake_run[-1]["test"] is False
+    run(tmp_path, mock_state(mock_1={}), body)
