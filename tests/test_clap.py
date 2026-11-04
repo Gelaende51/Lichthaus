@@ -749,3 +749,97 @@ def test_clap_hits_without_a_detector(tmp_path, no_capture):
         out = await cmd(d, "clap-hits")
         assert out["hits"] == [] and out["bars"]["first"] == 0.3 and out["sensitivity"] == 50 and out["count"] == 2
     run(tmp_path, mock_state(mock_1={}), body)
+
+
+# --------------------------------------------------------------------- a source that is gone
+
+@pytest.fixture
+def warnings(monkeypatch):
+    said = []
+    monkeypatch.setattr(clapmod.log, "warning", lambda msg, *args: said.append(msg % args))
+    monkeypatch.setattr(clapmod, "_missing_warned", set())
+    return said
+
+
+def _sources(monkeypatch, names=None, error=False):
+    asked = []
+
+    async def sources():
+        asked.append(1)
+        if error:
+            raise clapmod.CaptureError("pactl: no pactl")
+        return [{"name": n, "description": n, "default": False} for n in names]
+    monkeypatch.setattr(clapmod, "list_sources", sources)
+    return asked
+
+
+def test_a_missing_source_falls_back_to_the_default_with_one_warning(monkeypatch, warnings):
+    _sources(monkeypatch, ["mic1"])
+
+    async def main():
+        out = []
+        for _ in range(2):
+            cap = clapmod.Capture(lambda *_: None, "usb-mic")
+            await cap.check_source()
+            out.append((cap.source, cap.missing))
+        return out
+    assert asyncio.run(main()) == [("", "usb-mic"), ("", "usb-mic")]
+    assert warnings == ["clap detection: source usb-mic not found; using the default"]
+
+
+def test_a_source_that_is_there_is_kept_and_warned_again_once_gone(monkeypatch, warnings):
+    names = ["usb-mic"]
+    _sources(monkeypatch, names)
+
+    async def check():
+        cap = clapmod.Capture(lambda *_: None, "usb-mic")
+        await cap.check_source()
+        return cap.source, cap.missing
+    assert asyncio.run(check()) == ("usb-mic", None)
+    names.clear()
+    assert asyncio.run(check()) == ("", "usb-mic")
+    names.append("usb-mic")
+    assert asyncio.run(check()) == ("usb-mic", None)
+    names.clear()
+    assert asyncio.run(check()) == ("", "usb-mic")
+    assert len(warnings) == 2
+
+
+def test_an_unreadable_source_list_keeps_the_source(monkeypatch, warnings):
+    _sources(monkeypatch, error=True)
+    cap = clapmod.Capture(lambda *_: None, "usb-mic")
+    asyncio.run(cap.check_source())
+    assert (cap.source, cap.missing, warnings) == ("usb-mic", None, [])
+
+
+@pytest.mark.parametrize("source, monitor", [("", False), ("", True)])
+def test_the_default_and_the_monitor_are_not_checked(monkeypatch, warnings, source, monitor):
+    asked = _sources(monkeypatch, [])
+    cap = clapmod.Capture(lambda *_: None, source, monitor=monitor)
+    asyncio.run(cap.check_source())
+    assert (cap.source, cap.missing, asked) == (source, None, [])
+
+
+def test_the_check_runs_before_the_recorder_starts(monkeypatch, warnings):
+    _sources(monkeypatch, ["mic1"])
+    seen = []
+
+    async def spawn(*cmd, **kw):
+        seen.append(cmd)
+        raise OSError("no recorder in tests")
+    monkeypatch.setattr(clapmod.asyncio, "create_subprocess_exec", spawn)
+    monkeypatch.setattr(clapmod.shutil, "which", lambda name: "/usr/bin/" + name if name == "parec" else None)
+    cap = clapmod.Capture(lambda *_: None, "gone")
+    with pytest.raises(OSError):
+        asyncio.run(cap.run())
+    assert seen and not any(a.startswith("--device") for a in seen[0])
+
+
+def test_describe_reports_the_missing_source(monkeypatch):
+    svc = clapmod.ClapService(lambda ev: None)
+    assert svc.describe()["source_missing"] is None
+    svc.capture = clapmod.Capture(lambda *_: None, "")
+    svc.capture.missing = "usb-mic"
+    assert svc.describe()["source_missing"] == "usb-mic"
+    svc.stop()
+    assert svc.describe()["source_missing"] is None

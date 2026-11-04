@@ -207,6 +207,9 @@ class AudioCapture(clapmod.Capture):
     def __init__(self, on_samples: Callable, source: str = "") -> None:
         super().__init__(on_samples, source, monitor=not source, name="follow audio")
 
+    async def sources(self) -> list[dict]:
+        return await list_sources()
+
     def command(self) -> list[str]:
         props = f'{{ application.name = "Haus.Licht" media.name = "{self.name}"'
         pw = shutil.which("pw-record")
@@ -265,6 +268,7 @@ class AudioFollowService:
         self.analyser: Analyser | None = None
         self.last_data: float | None = None  # monotonic time of the last chunk
         self.started_at: float | None = None
+        self.capture: AudioCapture | None = None  # the last one, for source_missing
 
     def apply(self, on: bool, source: str) -> None:
         """Start, stop or (a new source) restart; nothing when nothing changed."""
@@ -278,6 +282,7 @@ class AudioFollowService:
         if restart or self.task is None or self.task.done():
             self.stop()
             self.state, self.error = "starting", ""
+            self.capture = None
             self.task = asyncio.get_running_loop().create_task(self._run())
 
     def stop(self) -> None:
@@ -304,7 +309,8 @@ class AudioFollowService:
         self.state, self.started_at = "listening", time.monotonic()
         log.info("follow audio: listening to %s", self.source or "the default output")
         try:
-            await AudioCapture(self._samples, self.source).run()
+            self.capture = AudioCapture(self._samples, self.source)
+            await self.capture.run()
         except CaptureError as exc:
             self._fail(str(exc))
         except OSError as exc:  # the recorder could not be started
@@ -343,6 +349,7 @@ class AudioFollowService:
         level = self.level()
         lacking = missing()
         return {"state": self.state, "error": self.error, "available": not lacking, "missing": lacking,
+                "source_missing": self.capture.missing if self.capture is not None else None,
                 "install": clapmod.install_hint() if lacking else "",
                 "silent": self.silent(), "level": None if level is None else round(level, 3),
                 "tone": None if self.tone() is None else round(self.tone(), 3),
