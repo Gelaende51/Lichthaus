@@ -180,3 +180,27 @@ def test_without_sounddevice_it_is_unavailable_not_an_exception(monkeypatch, off
     assert failures and "sounddevice" in failures[0] and follow["available"] is False
     with pytest.raises(clapmod.CaptureError, match="sounddevice"):
         asyncio.run(clapmod.list_sources())
+
+
+@pytest.mark.parametrize("capture_cls", [clapmod.Capture, audiomod.AudioCapture])
+def test_a_device_that_is_gone_falls_back_to_the_default_input(monkeypatch, off_linux, capture_cls):
+    blocks = blocks_of(2)
+    sd = install(monkeypatch, blocks)
+    said = []
+    monkeypatch.setattr(clapmod.log, "warning", lambda msg, *args: said.append(msg % args))
+    monkeypatch.setattr(clapmod, "_missing_warned", set())
+    got = []
+    cap = capture_cls(lambda samples, now: got.append(samples.copy()), "Unplugged_Mic")
+    with pytest.raises(clapmod.CaptureError, match="finished"):
+        asyncio.run(asyncio.wait_for(cap.run(), 5))
+    assert sd.opened[0]["device"] == 2  # the default input, not "no input device named …"
+    assert cap.missing == "Unplugged_Mic" and len(said) == 1 and "Unplugged_Mic" in said[0]
+    np.testing.assert_array_equal(np.concatenate(got), expected(blocks))
+
+
+def test_a_device_that_is_there_is_opened(monkeypatch, off_linux):
+    sd = install(monkeypatch, blocks_of(1))
+    cap = clapmod.Capture(lambda *_: None, "Built-in_Microphone")
+    with pytest.raises(clapmod.CaptureError, match="finished"):
+        asyncio.run(asyncio.wait_for(cap.run(), 5))
+    assert sd.opened[0]["device"] == 0 and cap.missing is None
