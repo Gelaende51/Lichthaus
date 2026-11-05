@@ -204,3 +204,11 @@ def test_a_device_that_is_there_is_opened(monkeypatch, off_linux):
     with pytest.raises(clapmod.CaptureError, match="finished"):
         asyncio.run(asyncio.wait_for(cap.run(), 5))
     assert sd.opened[0]["device"] == 0 and cap.missing is None
+
+
+def test_a_device_gone_between_the_check_and_the_open_is_the_default_input(monkeypatch, off_linux):
+    sd = install(monkeypatch, blocks_of(1))
+    run = audiocapture.run("Unplugged_Mic", lambda *_: None, 16000, 800)
+    with pytest.raises(audiocapture.CaptureError, match="finished"):
+        asyncio.run(asyncio.wait_for(run, 5))
+    assert sd.opened[0]["device"] == 2  # not "no input device named Unplugged_Mic"

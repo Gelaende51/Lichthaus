@@ -82,7 +82,7 @@ The daemon starts and serves on macOS and Windows (tests/test_platform_daemon.py
 - KDE integration (shortcuts, OSD, panel widgets) and the notification watcher: not created (None).
 - Root setup: always "missing"; `ctl setup-root` ends at once with exit 127 ("not allowed, or no password prompt available"), so flick fast and exclusive are refused as without the setup.
 - hci.list_adapters: no adapters, so `ctl adapters` lists none and exclusive mode has none to take.
-Left for later: `hauslicht setup-root` on a terminal (cli.py, sudo) is not gated yet (step 7); the status field `laptop` reads True off Linux (NullDesktop has none) and monitor_power's reason says "a laptop".
+Done since: `hauslicht setup-root` off Linux prints a note and exits 0 (step 4, c204a3b); NullDesktop.laptop is False, so monitor_power's reason no longer says "a laptop" (2873a06).
 
 ## Step 6 done
 Microphone and follow-audio capture off Linux through the optional python-sounddevice (PortAudio: CoreAudio, WASAPI with auto_convert to 16 kHz): haus/audiocapture.py, used by clap.Capture.run and audiofollow.AudioCapture. Same blocks as the Linux pipe (mono 16 kHz s16 as float32, 50 ms), so the detector and the analyser are untouched; on Linux the pw-record/parec commands are unchanged. sounddevice is in requirements-clap.txt with `sys_platform != "linux"`; without it `missing()` names it and both features report unavailable (tests/test_platform_audio.py, a stand-in module).

@@ -107,7 +107,12 @@ async def run(source: str, on_samples: Callable, rate: int, block: int) -> None:
     when the stream cannot open or ends by itself."""
     import numpy as np
     sd = _sd()
-    device = resolve(source)
+    try:
+        device = resolve(source)
+    except CaptureError:
+        if not source:
+            raise
+        device = resolve("")  # gone since check_source looked: the default input, as there
     loop = asyncio.get_running_loop()
     queue: asyncio.Queue = asyncio.Queue()
 
