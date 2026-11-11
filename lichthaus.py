@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""hauslicht: entry point; the code lives in the haus/ package (see haus/cli.py)."""
+"""lichthaus: entry point; the code lives in the haus/ package (see haus/cli.py)."""
 
 import sys
 from pathlib import Path

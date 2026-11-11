@@ -11,7 +11,7 @@ when `multi_intensity` itself is writable: logind sets `brightness` alone.
 
 Writing 0 makes the kernel drop the LED's trigger (phy0rx, kbd-capslock...):
 switched off once, it no longer follows its event until the trigger is set
-again. Our own uleds device ("hauslicht::kbd_backlight", which the sync
+again. Our own uleds device ("lichthaus::kbd_backlight", which the sync
 daemon creates for Plasma's applet) is never listed: driving it would loop.
 """
 
@@ -27,10 +27,10 @@ from . import Backend, Offline
 from ..common import UserError
 from ._bulbkit import Presence, tr
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 SYSFS = Path("/sys/class/leds")  # tests point it at a tmp tree
-OWN_PREFIX = "hauslicht::"       # the daemon's uleds LEDs (haus/desktop.py): never ours to drive
+OWN_PREFIX = "lichthaus::"       # the daemon's uleds LEDs (haus/desktop.py): never ours to drive
 LOGIND = "org.freedesktop.login1"
 SESSION_AUTO = "/org/freedesktop/login1/session/auto"
 USER_SELF = "/org/freedesktop/login1/user/self"

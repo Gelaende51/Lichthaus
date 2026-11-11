@@ -11,7 +11,7 @@ from tests.test_core import mock_state, FakeDesktop, settle
 
 @pytest.mark.parametrize("transport_mode", ["tcp", "unix"])
 def test_ipc(tmp_path, monkeypatch, transport_mode):
-    monkeypatch.setenv("HAUSLICHT_TRANSPORT", transport_mode)
+    monkeypatch.setenv("LICHTHAUS_TRANSPORT", transport_mode)
     # macOS caps a Unix socket path at 104 bytes; its pytest tmp_path is longer
     sock = (tmp_path if sys.platform == "win32" else Path(tempfile.mkdtemp(prefix="hl", dir="/tmp"))) / "s.sock"
     path = tmp_path / "state.json"

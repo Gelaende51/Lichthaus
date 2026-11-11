@@ -1,4 +1,4 @@
-"""`hauslicht disarm [--if-armed]`: OnPowerUp back to "on" once the daemon is gone.
+"""`lichthaus disarm [--if-armed]`: OnPowerUp back to "on" once the daemon is gone.
 
 The unit's ExecStopPost runs `disarm --if-armed` after every stop. The
 daemon keeps a marker beside the state file (common.armed_path) of the
@@ -9,7 +9,7 @@ $SERVICE_RESULT "success") it returns at once even with bulbs listed: the
 daemon tried them itself, and one without power at the wall would hold up
 every poweroff. After an unclean exit (crash, SIGKILL, OOM, a stop out of
 time) it takes the
-link lock (refusing while another hauslicht process holds it), opens the
+link lock (refusing while another lichthaus process holds it), opens the
 mesh as the one-shot CLI commands do (MeshLink: its SEQ reserved ahead in
 the state file before the first PDU), sets OnPowerUp "on" on the listed
 bulbs only and takes each off the marker once confirmed. Other kinds go
@@ -35,7 +35,7 @@ from pathlib import Path
 
 from .common import link_lock, read_armed, read_state, save_state, write_armed
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 DISARM_S = 20.0  # the whole run, from the lock to the link closed
 CLOSE_S = 2.0  # of that: closing the link or the backend

@@ -1,6 +1,6 @@
 # Back-to-back flicks: notes (WIP, 2026-10-16)
 
-## What the journal shows (journalctl --user -u hauslicht --since 11:10)
+## What the journal shows (journalctl --user -u lichthaus --since 11:10)
 - 11:11-11:36: no flick event at all. 11:36:30-11:39:04: eight reboots, each
   detected, judged "rebooted" (boot count 5 -> 1) and re-armed, states
   alternating off/on correctly. No second flick shows up as its own event.
@@ -27,7 +27,7 @@
 
 ## Options
 - A4 done (commit 4d02dc8): setup-root.sh tunes /etc/bluetooth/main.conf
-  idempotently with a backup (main.conf.hauslicht-bak): ScanInterval/Window
+  idempotently with a backup (main.conf.lichthaus-bak): ScanInterval/Window
   Connect 96/96, Min/MaxConnectionInterval 12/24, [GATT] Cache always,
   Channels 1 (default was 3 = EATT on). Needs: sudo install/setup-root.sh,
   sudo systemctl restart bluetooth. Not measured yet.
@@ -46,7 +46,7 @@
 
 # Long power-off came back dark (2026-10-16 evening, fixed 2026-10-17)
 
-## What happened (journalctl --user -u hauslicht --since "2026-10-16 19:40")
+## What happened (journalctl --user -u lichthaus --since "2026-10-16 19:40")
 - 19:48, 20:52, 22:19: the wall switch went off for 30 min / 4 h. Each time
   an off-beat advert first (the dying bulb adverts once: the supply keeps
   the chip alive 1-5 s), then the connect hung 20 s and found nothing, "boot
@@ -90,7 +90,7 @@
   (schema 3's true -> on, false -> off). on, fast and exclusive all toggle;
   exclusive is stored and shown only (acts as fast, logged) until its own task.
 - Root setup is versioned: install/setup-version (now 3) is the one place;
-  setup-root.sh writes it to /usr/local/lib/hauslicht/setup-version at the
+  setup-root.sh writes it to /usr/local/lib/lichthaus/setup-version at the
   end. Unstamped but conn-update or the uleds conf present: "outdated".
   Choosing fast/exclusive with the setup missing/outdated: the widget runs
   `pkexec install/setup-root.sh` itself (inside the login session, where the
@@ -109,7 +109,7 @@
 
 ## What fast does now
 - A4: the BlueZ tuning via the setup (global for bluetoothd; switching the
-  mode back does not undo it; the backup is main.conf.hauslicht-bak).
+  mode back does not undo it; the backup is main.conf.lichthaus-bak).
 - A9 (daemon side, fast only, unproven on the Volkslicht): after the first arm
   on each new link the proxy bulb's Generic Default Transition Time is read
   (0x820D -> 0x8210); not 0 -> set to 0 (0x820E, a flash write), once per bulb
@@ -193,9 +193,9 @@
   RTL8821CE says HCI 8 = 4.2); passive scan, interval = window = 30 ms, the
   duplicate filter off. Each network PDU: Set Advertising Data (one AD 0x2A),
   enable, 65 ms (20 ms) or 115 ms (100 ms), disable. No beacons sent or
-  needed (IV index from hauslicht.json).
+  needed (IV index from lichthaus.json).
 - Mesh backend: AdvLink, a "session" (a fresh MeshNode whose SEQ is reserved
-  ahead in hauslicht.json exactly like the GATT link's: the two never run at
+  ahead in lichthaus.json exactly like the GATT link's: the two never run at
   once, so SEQ only grows across switches), connected while the followed bulb
   was heard within 3 s; a network message cache on (src, seq) drops the
   repeats. Flick: the followed bulb silent >= max(0.6 s, 5 x its learnt
@@ -214,12 +214,12 @@
   GATT link and BlueZ scanner again.
 - Adapter: settings.exclusive_adapter: hciN or MAC; "" = a USB adapter on a
   removable or unknown port if any, else the built-in one (hci0 here is USB
-  inside the laptop, port "fixed": built in). `hauslicht-ctl adapters`;
+  inside the laptop, port "fixed": built in). `lichthaus-ctl adapters`;
   Configure shows the Adapter box under the flick drop-down for Exclusive,
   with the warning when it is built in or the only adapter.
 
 ## Hardware test plan (needs setup v4)
-1. `journalctl --user -u hauslicht -f` in a terminal. Taking hci0 (the only
+1. `journalctl --user -u lichthaus -f` in a terminal. Taking hci0 (the only
    adapter here) disconnects headphones, mice and the like.
 2. Configure → Wall-switch flick: Exclusive → password prompt (setup v4;
    Bluetooth restarts). The Adapter box shows hci0 and the warning.
@@ -230,7 +230,7 @@
    "Exclusive mode unavailable (...)" instead: the reason is in the line; the
    mode then works like fast.
 4. The slider moves the bulb (levels over adverts).
-5. A minute of nothing: with debug logging (HAUSLICHT_DEBUG=1), "silent ... rebooted?" lines,
+5. A minute of nothing: with debug logging (LICHTHAUS_DEBUG=1), "silent ... rebooted?" lines,
    each followed by "boot count went on" / "link drop, no flick", are lost
    adverts (harmless, one Get each; on hci0 a few a minute, see the afternoon
    section below). The "adverts every X s" figure in those lines is the learnt
@@ -243,11 +243,11 @@
    advert -> connected -> verdict -> armed" line: the goal is well under 1 s
    from the advert. Then a second flick 2-3 s later must toggle again.
 7. Off for more than 20 s: back lit, no toggle.
-8. Back to Fast in Configure (or `hauslicht-ctl set flick=fast`): "exclusive:
+8. Back to Fast in Configure (or `lichthaus-ctl set flick=fast`): "exclusive:
    hci0 handed back to BlueZ (flick mode not exclusive); helper: hci0: powered
    on in BlueZ again"; `bluetoothctl show` says Powered: yes.
-9. If something breaks: `hauslicht-ctl set flick=fast` hands the adapter back.
-   Still no Bluetooth: `systemctl --user stop hauslicht` (the kernel takes the
+9. If something breaks: `lichthaus-ctl set flick=fast` hands the adapter back.
+   Still no Bluetooth: `systemctl --user stop lichthaus` (the kernel takes the
    channel back when the daemon exits), then `sudo systemctl restart
    bluetooth`; last resort `sudo btmgmt --index 0 power on`. The mode is
    stored: set fast before restarting the service if exclusive keeps failing.
@@ -263,11 +263,11 @@
 
 # Exclusive on hardware, 2026-10-20 afternoon (fixed the same day)
 
-## What the journal shows (journalctl --user -u hauslicht --since 11:50)
+## What the journal shows (journalctl --user -u lichthaus --since 11:50)
 - Exclusive ran from 11:59 (hci0, 20 ms adverts). The bulb's unconnected
   rhythm: 0.06-0.21 s (median of the short gaps; shorter while replies flow).
 - 1786 "silent ... rebooted?" checks 12:00-16:05 (7 a minute), each a new
-  session (fresh MeshNode: 64 SEQ reserved, hauslicht.json written), a boot
+  session (fresh MeshNode: 64 SEQ reserved, lichthaus.json written), a boot
   count Get and an OnPowerUp Get. 1719 read the same boot, 45 went
   unanswered, 3 were real reboots, 2 "unknown". Same-boot silences: p50
   1.05 s, p90 1.43 s, p99 1.98 s, longest 2.68 s; the real reboots 1.01 s

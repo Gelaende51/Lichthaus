@@ -1,7 +1,7 @@
 # The test suite on every push and pull request to main: pytest on each
 # supported Python (3.12+, README "Install") and the man pages (generated ones
 # current, groff without warnings). The Plasma widget's qmllint runs in
-# Haus.Licht-plasma. What runs where, and the same commands locally: docs/ci.md.
+# Lichthaus-plasma. What runs where, and the same commands locally: docs/ci.md.
 name: Tests
 on:
   push:

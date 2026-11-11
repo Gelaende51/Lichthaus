@@ -26,7 +26,7 @@ from . import Backend, Offline
 from ..common import UserError, _language
 from ._bulbkit import color_caps, kelvin_range, learn_color, mired_kelvin
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 MIN_INTERVAL_S = 0.15  # per entity: HA forwards to the device, which keeps its own limits
 REQUEST_TIMEOUT_S = 10.0

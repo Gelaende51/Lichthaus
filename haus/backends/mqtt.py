@@ -33,7 +33,7 @@ from . import Backend, Offline
 from ..common import UserError, _language
 from ._bulbkit import color_caps, kelvin_range, learn_color, mired_kelvin
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 MIN_INTERVAL_S = 0.25  # per light: a Zigbee network takes only a few commands/s per device
 TRANSITION_S = 0.2

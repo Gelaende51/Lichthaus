@@ -897,7 +897,7 @@ def test_a_request_cancelled_under_the_stop_does_not_crash_it(tmp_path, caplog):
     Exception) and stop() died: exit 1, save and backends' stop skipped."""
     path, sock = tmp_path / "state.json", tmp_path / "x.sock"
     save_state(path, mock_state(mock_1={"power": True}, mock_2={"power": True}))
-    caplog.set_level("INFO", logger="hauslicht")
+    caplog.set_level("INFO", logger="lichthaus")
 
     async def main():
         d = Daemon(path, sock, desktop=FakeDesktop())
@@ -935,7 +935,7 @@ def test_the_shutdown_timeout_still_ends_a_hanging_set(tmp_path, monkeypatch, ca
     monkeypatch.setattr(daemon_mod, "SHUTDOWN_ARM_S", 0.2)
     path, sock = tmp_path / "state.json", tmp_path / "x.sock"
     save_state(path, mock_state(mock_1={"power": True}))
-    caplog.set_level("INFO", logger="hauslicht")
+    caplog.set_level("INFO", logger="lichthaus")
 
     async def main():
         d = Daemon(path, sock, desktop=FakeDesktop())
@@ -958,7 +958,7 @@ def test_the_shutdown_timeout_still_ends_a_hanging_set(tmp_path, monkeypatch, ca
 
 
 def test_get_carries_the_protocol(tmp_path):
-    """The widget (Haus.Licht-plasma) compares it with its minProtocol."""
+    """The widget (Lichthaus-plasma) compares it with its minProtocol."""
     from haus.common import PROTOCOL
 
     async def body(d):

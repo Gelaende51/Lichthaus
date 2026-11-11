@@ -1,7 +1,7 @@
 """Bluetooth SIG mesh bulbs (Ledvance Volkslicht and standard mesh lights).
 
 One GATT proxy connection (MeshLink) reaches every node. The network keys and
-the SEQ counter stay at the top of hauslicht.json, where btmesh's provisioning
+the SEQ counter stay at the top of lichthaus.json, where btmesh's provisioning
 script (provision_and_toggle.py) keeps them; a bulb's config holds its unicast
 address and lightness scale (100 on Ledvance, 65535 per the spec).
 
@@ -57,7 +57,7 @@ from types import SimpleNamespace
 from . import QUICK_GAP_S, Backend, Offline
 from .. import hci
 from .._platform import IS_LINUX
-from ..common import UserError, _, link_lock, save_state
+from ..common import UserError, _, helper_path, link_lock, save_state
 from ..profiles import FAST_FLICK, LEDVANCE_NAME, mesh_id, migrate
 
 try:  # optional: without btmesh the registry lists mesh as unavailable
@@ -91,7 +91,7 @@ try:  # optional: without btmesh the registry lists mesh as unavailable
 except ImportError:  # pragma: no cover - reported through `requires`
     p0 = None
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 MODEL_GENERIC_LEVEL_SERVER = 0x1002
 MODEL_LIGHTNESS_SETUP_SERVER = 0x1301  # range and default
@@ -222,7 +222,7 @@ CONNECT_ADVERT_S = 3.0
 WATCH_S = 0.3
 SCAN_HEAL_S = 5.0  # how often the watch makes sure the scanner runs (a failed restart left it off for good)
 SCAN_START_TRIES = 3  # a scanner restart right after a failed connect can fail (BlueZ busy): retried
-CONN_UPDATE_HELPER = "/usr/local/lib/hauslicht/conn-update"
+CONN_UPDATE_HELPER = "/usr/local/lib/lichthaus/conn-update"
 LINK_TIMEOUT_MS = 1000
 
 # Telink vendor model (company 0x052e): VD_GROUP_G_GET is answered with one
@@ -849,11 +849,12 @@ class AdvLink(MeshLink):
 async def shorten_link_timeout(address: str, delay: float = 1.0) -> None:
     """Ask for a 1 s link timeout (the bulb asks ~5 s), so a power cut frees
     the connection at once. Root helper via sudo, installed by setup-root.sh."""
-    if not os.path.exists(CONN_UPDATE_HELPER):
+    helper = helper_path(CONN_UPDATE_HELPER)
+    if not os.path.exists(helper):
         return
     await asyncio.sleep(delay)  # after the bulb's own parameter request
     proc = await asyncio.create_subprocess_exec(
-        "sudo", "-n", CONN_UPDATE_HELPER, address, str(LINK_TIMEOUT_MS),
+        "sudo", "-n", helper, address, str(LINK_TIMEOUT_MS),
         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
     out, _err = await proc.communicate()
     log.info("link timeout: %s", out.decode().strip() or proc.returncode)
@@ -866,8 +867,8 @@ class MeshBackend(Backend):
     experimental = False
     requires = ("btmesh[ble]", "bleak", "bleak-retry-connector")
     modules = ("btmesh", "bleak", "bleak_retry_connector")
-    autoconnect = False  # adopting provisions the bulb into our mesh: only by hand ("Add bulb…", `hauslicht adopt`)
-    fields = ()  # adoption is `hauslicht adopt`; `add mesh unicast=0x0002` re-adds a removed node
+    autoconnect = False  # adopting provisions the bulb into our mesh: only by hand ("Add bulb…", `lichthaus adopt`)
+    fields = ()  # adoption is `lichthaus adopt`; `add mesh unicast=0x0002` re-adds a removed node
 
     def __init__(self, ctx) -> None:
         super().__init__(ctx)
@@ -1013,7 +1014,7 @@ class MeshBackend(Backend):
 
     async def start(self) -> None:
         if not all(k in self.ctx.state for k in ("netkey", "appkey", "seq", "devices")):
-            log.warning("mesh: no network keys in %s: run `hauslicht adopt`", self.ctx.state_path.name)
+            log.warning("mesh: no network keys in %s: run `lichthaus adopt`", self.ctx.state_path.name)
             self.online = False
             return
         self.link = self._make_link()
@@ -1623,7 +1624,7 @@ class MeshBackend(Backend):
             log.exception("after_connect %s", address)
 
     async def _after_connect(self, address: str) -> None:
-        helper = os.path.exists(CONN_UPDATE_HELPER) and self.radio is None  # no connection to update
+        helper = os.path.exists(helper_path(CONN_UPDATE_HELPER)) and self.radio is None  # no connection to update
         fast = self.fast_flick()
         if not (helper or fast) or self.link is None:
             return
@@ -1961,11 +1962,11 @@ class MeshBackend(Backend):
         except ValueError:
             key = None
         if key is None or key not in devices:
-            raise UserError(_("mesh bulbs are adopted with `hauslicht adopt` while the service is stopped"))
+            raise UserError(_("mesh bulbs are adopted with `lichthaus adopt` while the service is stopped"))
         return {"unicast": key, "scale": int(config.get("scale", 100)), "id": key[2:]}
 
     async def discover(self, timeout: float) -> list[dict]:
-        """Unprovisioned beacons (service 0x1827): bulbs `hauslicht adopt` can take.
+        """Unprovisioned beacons (service 0x1827): bulbs `lichthaus adopt` can take.
         With flick mode exclusive the claimed radio hears them (BlueZ has lost
         that adapter): its adverts reach on_advert like the scanner's."""
         found: dict[str, dict] = {}
@@ -2396,7 +2397,7 @@ async def direct_control(state_path: Path, cmd: str, arg: str | None, which: str
 async def setup(state: dict, addrs: list[int], state_path: Path) -> None:
     """AppKey Add + OnOff bind (phase0's configure), then every model the node
     lists of Lightness, Level, Health and Power OnOff; detects the lightness
-    scale and makes sure each node is a bulb in hauslicht.json."""
+    scale and makes sure each node is a bulb in lichthaus.json."""
     save = lambda: save_state(state_path, state)  # noqa: E731
     migrate(state)
     link = MeshLink(state, save)
@@ -2473,7 +2474,7 @@ async def adopt(args, state_path: Path) -> int:
         except p0.Phase0Failure as failure:
             p0.print_diagnostic(failure.phase, failure, failure.causes)
             return 1
-    print("\n" + _("bulb {addr} adopted. Try: hauslicht dim 30 {addr}").format(addr=f"0x{addr:04x}"))
+    print("\n" + _("bulb {addr} adopted. Try: lichthaus dim 30 {addr}").format(addr=f"0x{addr:04x}"))
     return 0
 
 

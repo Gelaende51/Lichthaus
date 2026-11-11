@@ -4,12 +4,12 @@
 > verifiziert. Sie ist aus dem Linux-Setup (systemd-User-Unit) abgeleitet und
 > kann Anpassungen erfordern.
 
-Unter Linux läuft der Daemon als systemd-User-Unit `hauslicht.service` mit
-`ExecStart = <venv python> <repo>/hauslicht.py sync`.
+Unter Linux läuft der Daemon als systemd-User-Unit `lichthaus.service` mit
+`ExecStart = <venv python> <repo>/lichthaus.py sync`.
 
 ## macOS (LaunchAgent)
 
-Erstelle `~/Library/LaunchAgents/io.github.gelaende51.hauslicht.plist`:
+Erstelle `~/Library/LaunchAgents/io.github.gelaende51.lichthaus.plist`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -17,11 +17,11 @@ Erstelle `~/Library/LaunchAgents/io.github.gelaende51.hauslicht.plist`:
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>io.github.gelaende51.hauslicht</string>
+    <string>io.github.gelaende51.lichthaus</string>
     <key>ProgramArguments</key>
     <array>
         <string>/path/to/python</string>
-        <string>/path/to/hauslicht.py</string>
+        <string>/path/to/lichthaus.py</string>
         <string>sync</string>
     </array>
     <key>RunAtLoad</key>
@@ -29,7 +29,7 @@ Erstelle `~/Library/LaunchAgents/io.github.gelaende51.hauslicht.plist`:
     <key>KeepAlive</key>
     <true/>
     <key>StandardErrorPath</key>
-    <string>/Users/you/Library/Logs/hauslicht.log</string>
+    <string>/Users/you/Library/Logs/lichthaus.log</string>
 </dict>
 </plist>
 ```
@@ -37,7 +37,7 @@ Erstelle `~/Library/LaunchAgents/io.github.gelaende51.hauslicht.plist`:
 Laden mit:
 
 ```sh
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/io.github.gelaende51.hauslicht.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/io.github.gelaende51.lichthaus.plist
 ```
 
 ## Windows (Aufgabenplanung)
@@ -45,7 +45,7 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/io.github.gelaende51.hau
 Aufgabe erstellen, die bei der Anmeldung ausgeführt wird:
 
 ```cmd
-schtasks /Create /SC ONLOGON /TN Haus.Licht /TR "\"<pythonw.exe>\" \"<path>\hauslicht.py\" sync"
+schtasks /Create /SC ONLOGON /TN Lichthaus /TR "\"<pythonw.exe>\" \"<path>\lichthaus.py\" sync"
 ```
 
 Alternative: eine Verknüpfung zum gleichen Befehl in `shell:startup` ablegen.

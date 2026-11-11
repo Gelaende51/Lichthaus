@@ -33,7 +33,7 @@ from ..common import UserError
 from ._bulbkit import color_caps, hs_rgb, kelvin_range, learn_color
 from ._lan import Presence, Throttle, poll_loop
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 POLL_S = 10.0
 TIMEOUT_S = 4

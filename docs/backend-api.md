@@ -5,7 +5,7 @@ One module per kind of bulb in `haus/backends/`. The registry
 picks up each subclass of `Backend` that sets `kind`: adding a kind needs no
 edit anywhere else. A module that fails to import is listed as unavailable,
 so import optional libraries inside methods (or guard the top-level import,
-as `mesh.py` does). `HAUSLICHT_BACKENDS=mock,mesh` limits which kinds load.
+as `mesh.py` does). `LICHTHAUS_BACKENDS=mock,mesh` limits which kinds load.
 
 ## Class attributes
 
@@ -72,7 +72,7 @@ raise `Offline` until `idle(False)`), and starts the scanner again on
 | `ctx.flick(bulb_id)` | the device saw a power cycle it is sure was a wall-switch flick. Flick mode on: the core toggles that bulb; off: switches it on |
 | `ctx.power_returned(bulb_id, gap_s)` | the device came back after an outage `gap_s` seconds long (drop -> back as measured). Up to `QUICK_GAP_S` (20 s, `haus/backends/__init__.py`, derivation there): a flick (as above, a toggle of the power before the outage); longer: a power-off, back on whatever it was. `None`: first contact since the daemon started, power stays as saved |
 | `ctx.changed()` | connected/online changed: the core re-reads `status` (a new connection re-arms OnPowerUp; a return re-sends the level) |
-| `ctx.state`, `ctx.state_path`, `ctx.save()`, `ctx.bulbs()` | the whole hauslicht.json dict (a backend may keep backend-wide data under a top-level key of its own; mesh keeps btmesh's keys there), and this kind's bulbs |
+| `ctx.state`, `ctx.state_path`, `ctx.save()`, `ctx.bulbs()` | the whole lichthaus.json dict (a backend may keep backend-wide data under a top-level key of its own; mesh keeps btmesh's keys there), and this kind's bulbs |
 
 ## What the core does with it
 
@@ -94,8 +94,8 @@ by `min_lit`. With global `flick` on, the core keeps OnPowerUp of every bulb
 with `powerup` armed to its flick target ("on" while a toggle would light it,
 "off" while it would leave it dark); with `flick` off, every such bulb gets
 "on" once. Before sleep and at shutdown: "on". A bulb armed to anything
-else stays listed in `hauslicht.armed.json` until an "on" is confirmed; after
-an unclean exit the unit's `ExecStopPost` (`hauslicht disarm --if-armed`,
+else stays listed in `lichthaus.armed.json` until an "on" is confirmed; after
+an unclean exit the unit's `ExecStopPost` (`lichthaus disarm --if-armed`,
 `haus/disarm.py`) starts the backend on its own and calls `set_powerup(bulb,
 "on")` for those bulbs (mesh: the one-shot link). See `haus/daemon.py`; the
 mock backend (`haus/backends/mock.py`) is the smallest complete example.
@@ -106,7 +106,7 @@ mock backend (`haus/backends/mock.py`) is the smallest complete example.
   `brightness` when the user may, else logind's `Session.SetBrightness("leds", …)`
   on the user's graphical session; `max_brightness` 1 is `onoff` only (step 100);
   multicolor gets `hs` only with a writable `multi_intensity`. Never the daemon's
-  own `hauslicht::` uleds LED.
+  own `lichthaus::` uleds LED.
 - `usblight`: HID status lights through busylight-core; brightness scales the
   colour (white by default); id from the serial, else vid:pid:path; unplugged is
   `Offline`, a probe re-opens it. Kuando's keepalive is the library's.

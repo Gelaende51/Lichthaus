@@ -57,9 +57,9 @@ def test_nothing_reconnects_a_held_bulb(tmp_path):
         n = len(m.calls)
         for refused in (("bulb", "30"), ("dim", "20"), ("on",), ("toggle",), ("nudge", "5"), ("pause",),
                         ("audio", "on"), ("video", "on")):
-            with pytest.raises(UserError, match="hauslicht connect"):
+            with pytest.raises(UserError, match="lichthaus connect"):
                 await cmd(d, *refused)
-        with pytest.raises(UserError, match="hauslicht connect"):
+        with pytest.raises(UserError, match="lichthaus connect"):
             await cmd(d, "identify", "mock:1")
         await cmd(d, "set", "level=80")  # profile changes
         await cmd(d, "set", "mode=off")
@@ -210,7 +210,7 @@ def test_connect_and_disconnect_are_cli_subcommands(tmp_path, monkeypatch, capsy
         code, out, _err = await hl("bulbs")
         assert code == 0 and _("disconnected (held)") in out
         code, _out, err = await hl("on", "mock:1")
-        assert code == 1 and "hauslicht connect" in err
+        assert code == 1 and "lichthaus connect" in err
         code, out, _err = await hl("connect", "mock:1")
         assert code == 0 and "connected" in out
         assert not d.bulbs["mock:1"].held

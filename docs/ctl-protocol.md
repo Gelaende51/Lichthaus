@@ -1,7 +1,7 @@
 # ctl protocol
 
-The daemon (`hauslicht sync`) listens on a Unix socket:
-`$HAUSLICHT_SOCK`, else `$XDG_RUNTIME_DIR/hauslicht.sock`. One request per
+The daemon (`lichthaus sync`) listens on a Unix socket:
+`$LICHTHAUS_SOCK`, else `$XDG_RUNTIME_DIR/lichthaus.sock`. One request per
 connection: a JSON line in, a JSON line out (`watch` keeps the connection
 open, see below).
 
@@ -18,11 +18,11 @@ dim status raw connect disconnect`.
 **Widgets.** There are `widgets` widgets (1–8, `set widgets=N`). Each has
 its own bulb list (`widget-bulbs`) and its own selection. A command may
 start with `@N` (`{"cmd": "@2", "args": ["select", "mock:1"]}`,
-`hauslicht-ctl @2 select mock:1`); without it, widget 1. "The selection"
+`lichthaus-ctl @2 select mock:1`); without it, widget 1. "The selection"
 below means widget N's: `all` = the used bulbs in widget N (profile
 `default`), or one bulb of it. The keyboard slider (LED, `slider`, the
 `mode` binding) belongs to widget 1. Widget lists only choose what the
-controls act on: a used bulb in no widget is still driven by its profile. `hauslicht-ctl CMD ARGS…` sends exactly this and prints
+controls act on: a used bulb in no widget is still driven by its profile. `lichthaus-ctl CMD ARGS…` sends exactly this and prints
 `results[0]` as one JSON line (exit 1 and `{"error": …}` on refusal or when
 no daemon answers). Error messages are meant for the user (German when the
 daemon runs in a German locale).
@@ -32,9 +32,9 @@ carries `"protocol"`, an integer (`PROTOCOL` in haus/common.py, now 1). It
 is raised only for a change that breaks an older widget: a field removed,
 renamed or given another meaning, a command removed or answering
 differently. Added fields and commands do not raise it. The widget
-([Haus.Licht-plasma](https://github.com/Gelaende51/Haus.Licht-plasma)) has
+([Lichthaus-plasma](https://github.com/Gelaende51/Lichthaus-plasma)) has
 a `minProtocol`; when a reachable daemon reports none or a lower one, its
-popup asks to update Haus.Licht and stays usable.
+popup asks to update Lichthaus and stays usable.
 
 ## Commands
 
@@ -50,7 +50,7 @@ Most reply with the `get` object; the exceptions are noted.
 | `dim` | `N` | manual level, sent as it is (0 = off, no lowest-lit floor); replies `[{bulb, percent}]` once sent |
 | `slider` | `N` 0–100 | the keyboard slider (moves Plasma's slider when the LED exists) |
 | `nudge` | `±N` | the slider by N; in mode `off` the brightness of the selection. `@N nudge` (N ≠ 1) moves the same mode-bound profile value of widget N's selection by N slider steps, without the LED |
-| `set` | `KEY=VALUE` | globals `mode` (`independent minimum maximum coupling off`), `lid` (`close open both never`; laptops), `monitor_power` (`on off`, default on; desktops only, see *Follow monitor power* below), `flick` (`off on fast exclusive`; `fast`/`exclusive` are refused while the root setup is missing or outdated: the widget runs `pkexec install/setup-root.sh` itself first, the CLI `hauslicht setup-root`), `exclusive_adapter` (the adapter flick mode `exclusive` takes from BlueZ: `hciN`, its address, or `auto`/empty: a USB adapter if there is one, else the built-in one; taken again within a second), `widgets` (1–8; lowering drops the higher widgets' lists and selections); profile keys of the selection's profile: `track` (`always night day dark light never`), `off_at_zero` (`on off`), `range_lo` / `range_hi` (−100…200, never crossing), `curve` (−100…100), `level` (0–100), colour: `hue` (0–360, default 30), `sat` (0–100, default 0 = white), `follow_ct` (`on off`: the bulbs follow Night Light's screen white), `shift` (0–200, default 100: 100 the same red shift as the screen, 0 none, 200 double); `autoconnect` (`on off`, default off, see below); `clap` (the widget's mode, `@N` or widget 1: `off clap snap both`, default off; refused while the extra is missing), `clap_source` (a source name from `clap-sources`; `default` or empty: the default source; a source that no longer exists falls back to the default with a warning, the setting is kept and the status's `source_missing` names it), `clap_sensitivity` (0–100, default 50), `clap_count` (`2 3`, default 2: claps or snaps in a row that toggle), see *Clap to toggle* below |
+| `set` | `KEY=VALUE` | globals `mode` (`independent minimum maximum coupling off`), `lid` (`close open both never`; laptops), `monitor_power` (`on off`, default on; desktops only, see *Follow monitor power* below), `flick` (`off on fast exclusive`; `fast`/`exclusive` are refused while the root setup is missing or outdated: the widget runs `pkexec install/setup-root.sh` itself first, the CLI `lichthaus setup-root`), `exclusive_adapter` (the adapter flick mode `exclusive` takes from BlueZ: `hciN`, its address, or `auto`/empty: a USB adapter if there is one, else the built-in one; taken again within a second), `widgets` (1–8; lowering drops the higher widgets' lists and selections); profile keys of the selection's profile: `track` (`always night day dark light never`), `off_at_zero` (`on off`), `range_lo` / `range_hi` (−100…200, never crossing), `curve` (−100…100), `level` (0–100), colour: `hue` (0–360, default 30), `sat` (0–100, default 0 = white), `follow_ct` (`on off`: the bulbs follow Night Light's screen white), `shift` (0–200, default 100: 100 the same red shift as the screen, 0 none, 200 double); `autoconnect` (`on off`, default off, see below); `clap` (the widget's mode, `@N` or widget 1: `off clap snap both`, default off; refused while the extra is missing), `clap_source` (a source name from `clap-sources`; `default` or empty: the default source; a source that no longer exists falls back to the default with a warning, the setting is kept and the status's `source_missing` names it), `clap_sensitivity` (0–100, default 50), `clap_count` (`2 3`, default 2: claps or snaps in a row that toggle), see *Clap to toggle* below |
 | `mode` / `track` / `off-at-zero` / `lid` / `monitor-power` / `flick` / `autoconnect` / `clap` / `clap-source` / `clap-sensitivity` / `clap-count` | `[VALUE]` | the same as `set`, value optional |
 | `audio` | `on\|off\|toggle` (`which`) | the selection (or `which`) follows audio instead of the screen, see *Follow audio*; refused while numpy or a recorder is missing |
 | `audio-source` / `audio-color` / `audio-rate` | `[VALUE]` | the globals `audio_source` (a name from `audio-sources`; `default` or empty: the default output's monitor; one that no longer exists falls back to the default with a warning, the setting is kept and the status's `source_missing` names it), `audio_color` (`on off`, default on: pitch colours the bulbs; off: the profile's colour), `audio_rate` (the old name of `follow_rate`, kept as an alias); also as `set audio_source=…` etc. |
@@ -169,7 +169,7 @@ per widget). Its label follows the same rule (a mixed triple is
 dropped (a passive stream: it never wakes a suspended sink). numpy and
 ai-edge-litert are an optional extra (`requirements-clap.txt`); without them
 `get`'s `clap_status` says `available: false` with the `install` command.
-The model (4.1 MB) is downloaded on first use to `~/.cache/hauslicht/`
+The model (4.1 MB) is downloaded on first use to `~/.cache/lichthaus/`
 (pinned URL, sha256 checked).
 
 **Follow audio.** `audio on` switches the selection's bulbs (kept per bulb
@@ -228,7 +228,7 @@ The first start shows the portal's permission dialog; its restore token is
 kept in the settings (`video_token`, never in `get`; `video_status.permission`
 says whether there is one), so later starts and restarts need no dialog when
 "allow restoring" was ticked. The portal keys the grant by the caller's app
-id: the daemon registers as `io.github.gelaende51.HausLicht`
+id: the daemon registers as `io.github.gelaende51.Lichthaus`
 (`org.freedesktop.host.portal.Registry`), which needs that `.desktop` file
 (`install/install.sh` installs it, hidden); without it the daemon is an app
 without an id, which persists all the same. At start, bulbs that followed
@@ -378,7 +378,7 @@ values are those of `default`.
   "setup": {"status": "current", "installed": 3, "required": 3, "running": false, "note": "",
             "script": "/…/install/setup-root.sh"},
                                 // root setup: missing | outdated | current (stamp
-                                // /usr/local/lib/hauslicht/setup-version vs install/setup-version);
+                                // /usr/local/lib/lichthaus/setup-version vs install/setup-version);
                                 // note: why the last run failed (shown by the widget)
   "profile": "default",         // the profile the selection uses
   "widget": 1,                  // the widget described (@N)
@@ -401,7 +401,7 @@ values are those of `default`.
                                   // what the backend knows without asking the device, only known keys:
                                   // model (product name), address (mesh unicast, BLE address or host/IP),
                                   // mac, firmware, rssi (dBm, last advert); mesh cid/pid/firmware (VID)
-                                  // are stored at adoption (`hauslicht adopt`)
+                                  // are stored at adoption (`lichthaus adopt`)
                                   // ct_range ("2700–6500 K", a `ct` bulb's white range;
                                   // mesh only once the bulb reported it), colour (true for `hs`)
      "step": 1.0,                 // native brightness step in percent (backend `step`, docs/backend-api.md):
@@ -444,7 +444,7 @@ values are those of `default`.
 
 ## `watch`
 
-`{"cmd": "watch"}` (or `@N watch`; `hauslicht-ctl watch` prints the lines)
+`{"cmd": "watch"}` (or `@N watch`; `lichthaus-ctl watch` prints the lines)
 keeps the connection open. The first line is the `get` object of widget N
 plus each bulb's intended state:
 
@@ -488,7 +488,7 @@ is disconnected, so a stuck client never holds the daemon up.
 `haus/kde.py`, started with the daemon; outside Plasma, or when a call
 fails, it logs and does nothing.
 
-**Global shortcuts.** kglobalaccel component `hauslicht` ("Haus.Licht"),
+**Global shortcuts.** kglobalaccel component `lichthaus` ("Lichthaus"),
 all actions without default keys (assign them in System Settings →
 Shortcuts; keys set there survive restarts: the actions are registered with
 `IsDefault` empty and then `SetPresent` with autoloading). They act on
@@ -497,7 +497,7 @@ widget 1: `select-all`, `select-1` … `select-9` (the k-th bulb of widget
 `remote-up` / `remote-down` (as the wheel: `nudge ±5`), `direct-up` /
 `direct-down` (the selection's brightness ±5: the level while it rules,
 else a manual level, as `nudge` in mode `off`). Try one with
-`busctl --user call org.kde.kglobalaccel /component/hauslicht
+`busctl --user call org.kde.kglobalaccel /component/lichthaus
 org.kde.kglobalaccel.Component invokeShortcut s toggle` (every running
 daemon with this code reacts, test instances included).
 
@@ -506,40 +506,40 @@ with the selection ("All bulbs", a bulb name, "… · on/off"); levels as a bar
 through `mediaPlayerVolumeChanged` (0 % as text). Silent on failure.
 
 **Panel widgets.** At start and whenever `widgets` changes, every panel
-holding a system tray gets `haus.licht.tray` applets with `widgetIndex`
+holding a system tray gets `lichthaus.tray` applets with `widgetIndex`
 (General) 2…N exactly once, inserted just left of the tray, and loses those
 above N (and duplicates), through `org.kde.PlasmaShell.evaluateScript`.
 Widget 1 is the tray's own instance and is never touched; applets with
 `widgetIndex` 1 neither. A panel whose screen is not connected is only
-tidied. `HAUSLICHT_NO_PANEL=1` switches this off, `=0` on; unset, it is on
+tidied. `LICHTHAUS_NO_PANEL=1` switches this off, `=0` on; unset, it is on
 for the live daemon and off for a test instance (`--no-desktop-writes`).
 
 ## A test instance beside the live one
 
 Mock bulbs only, its own state file and socket, nothing written to the
 desktop (no keyboard-slider LED, no PowerDevil restart, no suspend
-inhibitor) and no Bluetooth (`HAUSLICHT_BACKENDS=mock`). The mock backend is
+inhibitor) and no Bluetooth (`LICHTHAUS_BACKENDS=mock`). The mock backend is
 hidden (not in `backends`, not in the Configure dialog) unless
-`HAUSLICHT_BACKENDS` names `mock` or `HAUSLICHT_MOCK=1` is set, e.g.
-`HAUSLICHT_BACKENDS=mock,wiz` to try a real kind beside mock bulbs:
+`LICHTHAUS_BACKENDS` names `mock` or `LICHTHAUS_MOCK=1` is set, e.g.
+`LICHTHAUS_BACKENDS=mock,wiz` to try a real kind beside mock bulbs:
 
 ```sh
-export HAUSLICHT_STATE=/tmp/hl-test.json HAUSLICHT_SOCK=$XDG_RUNTIME_DIR/hl-test.sock
-HAUSLICHT_BACKENDS=mock ~/building_stuff/Haus.Licht/hauslicht sync --no-desktop-writes &
-hauslicht-ctl add mock name=Desk min_lit=0.5
-hauslicht-ctl add mock name=Shelf address=AA:BB    # id mock:aabb
-hauslicht-ctl select mock:1 ; hauslicht-ctl on ; hauslicht-ctl get
-hauslicht-ctl mock-flick mock:aabb ; hauslicht-ctl mock-return mock:1 40
-hauslicht-ctl set widgets=2 ; hauslicht-ctl @2 widget-bulbs mock:aabb ; hauslicht-ctl @2 get
-hauslicht-ctl watch          # Ctrl+C to stop
+export LICHTHAUS_STATE=/tmp/hl-test.json LICHTHAUS_SOCK=$XDG_RUNTIME_DIR/hl-test.sock
+LICHTHAUS_BACKENDS=mock ~/building_stuff/Lichthaus/lichthaus sync --no-desktop-writes &
+lichthaus-ctl add mock name=Desk min_lit=0.5
+lichthaus-ctl add mock name=Shelf address=AA:BB    # id mock:aabb
+lichthaus-ctl select mock:1 ; lichthaus-ctl on ; lichthaus-ctl get
+lichthaus-ctl mock-flick mock:aabb ; lichthaus-ctl mock-return mock:1 40
+lichthaus-ctl set widgets=2 ; lichthaus-ctl @2 widget-bulbs mock:aabb ; lichthaus-ctl @2 get
+lichthaus-ctl watch          # Ctrl+C to stop
 kill %1
 ```
 
 Keep the socket path short (Unix sockets allow ~107 bytes). With
-`HAUSLICHT_SOCK` exported, `hauslicht-ctl` in that shell talks to the test
+`LICHTHAUS_SOCK` exported, `lichthaus-ctl` in that shell talks to the test
 instance (the installed widget keeps talking to the live one); the state file
 is created when missing. Lid events and the
 screen brightness are the real ones (read only).
 
 
-On Windows (and when HAUSLICHT_TRANSPORT=tcp), Haus.Licht uses TCP on 127.0.0.1 with a random token stored in a .port file next to the socket path; clients send "auth <token>" as their first line. Linux keeps the Unix socket.
+On Windows (and when LICHTHAUS_TRANSPORT=tcp), Lichthaus uses TCP on 127.0.0.1 with a random token stored in a .port file next to the socket path; clients send "auth <token>" as their first line. Linux keeps the Unix socket.

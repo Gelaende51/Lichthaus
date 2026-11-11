@@ -1,6 +1,6 @@
 """The screen-to-bulb pipeline, the profile/settings model and its migration.
 
-hauslicht.json (schema 4), next to the mesh network keys btmesh keeps at the top:
+lichthaus.json (schema 4), next to the mesh network keys btmesh keeps at the top:
     bulbs:    {id: {kind, name, profile, power, use, icon_on, icon_off, config}}
               id like "mesh:0002"; the dict's order is the user's list order;
               use false: idle (never driven, OnPowerUp left "on");

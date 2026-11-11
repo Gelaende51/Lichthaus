@@ -56,7 +56,7 @@ def test_cli_setup_root_off_linux(monkeypatch):
     printed = []
     monkeypatch.setattr("builtins.print", lambda *a, **k: printed.append(a))
     import sys
-    monkeypatch.setattr(sys, "argv", ["hauslicht", "setup-root"])
+    monkeypatch.setattr(sys, "argv", ["lichthaus", "setup-root"])
     rc = cli.main()
     assert rc == 0
 

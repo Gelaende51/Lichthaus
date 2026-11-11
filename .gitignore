@@ -1,14 +1,23 @@
 # keys and runtime state: never commit
+lichthaus.json
+lichthaus.json.tmp
+lichthaus.lock
+lichthaus.armed.json
+lichthaus.armed.json.tmp
+provision_run.log
+# rename-lichthaus: keep-begin
+# the names from before the rename to Lichthaus: the daemon moves these files
+# to the new names at its next start; until then they stay ignored
 hauslicht.json
-hauslicht.json.tmp
+hauslicht.json.*
 hauslicht.lock
 hauslicht.armed.json
 hauslicht.armed.json.tmp
-provision_run.log
+# rename-lichthaus: keep-end
 # third-party downloads and the decompiled app: analysis only, not redistributable
 re/
 dl/
 .venv/
 __pycache__/
-hauslicht.json.bak*
+lichthaus.json.bak*
 .pytest_cache/

@@ -1,103 +1,103 @@
-"""hauslicht: lights that follow the laptop screen (Bluetooth mesh and more).
+"""lichthaus: lights that follow the laptop screen (Bluetooth mesh and more).
 
-    hauslicht on | off               switch the selection (or one bulb: on mesh:0002)
-    hauslicht dim 40                 brightness in percent (0 switches off)
-    hauslicht status                 present state of every bulb
-    hauslicht list                   bulbs in hauslicht.json
-    hauslicht adopt                  provision a factory-fresh mesh bulb, then set it up
-    hauslicht setup                  (re)bind AppKey and models on every mesh bulb
-    hauslicht sync                   daemon: follow the screen backlight; adds a
+    lichthaus on | off               switch the selection (or one bulb: on mesh:0002)
+    lichthaus dim 40                 brightness in percent (0 switches off)
+    lichthaus status                 present state of every bulb
+    lichthaus list                   bulbs in lichthaus.json
+    lichthaus adopt                  provision a factory-fresh mesh bulb, then set it up
+    lichthaus setup                  (re)bind AppKey and models on every mesh bulb
+    lichthaus sync                   daemon: follow the screen backlight; adds a
                                      "keyboard brightness" slider to Plasma's applet
-    hauslicht mode [MODE]            what the slider does: independent | minimum |
+    lichthaus mode [MODE]            what the slider does: independent | minimum |
                                      maximum (default) | coupling | off
-    hauslicht track [WHEN]           follow the screen: always (default) | night |
+    lichthaus track [WHEN]           follow the screen: always (default) | night |
                                      day (Night Light) | dark | light (colour scheme) | never
-    hauslicht off-at-zero [on|off]   a computed 0 % switches the bulbs dark; off
+    lichthaus off-at-zero [on|off]   a computed 0 % switches the bulbs dark; off
                                      (default): never below the lowest lit step while on
-    hauslicht lid [WHEN]             lid events switch the bulbs: close (off) |
+    lichthaus lid [WHEN]             lid events switch the bulbs: close (off) |
                                      open (on) | both (default) | never (laptops)
-    hauslicht monitor-power [on|off] desktops: lights off when you switch the monitor
+    lichthaus monitor-power [on|off] desktops: lights off when you switch the monitor
                                      off (not on standby), on again when it returns
                                      (default on where the switch can be seen)
-    hauslicht flick [MODE]           wall-switch flicks: on (default: toggle) | off
+    lichthaus flick [MODE]           wall-switch flicks: on (default: toggle) | off
                                      (just switch on) | fast (on + system tuning) |
                                      exclusive (fast, plus one Bluetooth adapter taken
                                      from BlueZ: mesh without a connection, see adapters)
-    hauslicht adapters               the Bluetooth adapters exclusive can take; choose
-                                     one: hauslicht-ctl set exclusive_adapter=hciN|MAC|auto
-    hauslicht setup-root             the one-time system setup (sudo on a terminal,
+    lichthaus adapters               the Bluetooth adapters exclusive can take; choose
+                                     one: lichthaus-ctl set exclusive_adapter=hciN|MAC|auto
+    lichthaus setup-root             the one-time system setup (sudo on a terminal,
                                      else the daemon asks via pkexec)
-    hauslicht toggle                 switch the selection on/off (the widget's middle click)
-    hauslicht disconnect [BULB]      hold the selection off its link: OnPowerUp "on", the
+    lichthaus toggle                 switch the selection on/off (the widget's middle click)
+    lichthaus disconnect [BULB]      hold the selection off its link: OnPowerUp "on", the
                                      wall switch works as usual; power and level stay
-    hauslicht connect [BULB]         end the hold, or retry a failed link now
-    hauslicht slider 60              move the slider from the command line
-    hauslicht nudge 5 | nudge -5     move the slider (or, in mode off, the brightness)
-    hauslicht pause | resume         stop / restart following (daemon running)
-    hauslicht select ID|all          which bulb the slider, nudge and on/off act on
-    hauslicht identify BULB [off]    blink the bulb slowly to find it (stops after 2 minutes)
-    hauslicht test BULB [stop]       brightest, a fade, colours, then on/off fast to slow (~25 s;
+    lichthaus connect [BULB]         end the hold, or retry a failed link now
+    lichthaus slider 60              move the slider from the command line
+    lichthaus nudge 5 | nudge -5     move the slider (or, in mode off, the brightness)
+    lichthaus pause | resume         stop / restart following (daemon running)
+    lichthaus select ID|all          which bulb the slider, nudge and on/off act on
+    lichthaus identify BULB [off]    blink the bulb slowly to find it (stops after 2 minutes)
+    lichthaus test BULB [stop]       brightest, a fade, colours, then on/off fast to slow (~25 s;
                                      flashes quickly); prints the fastest on/off rate
-    hauslicht -w N COMMAND           in widget N's context (its bulbs, selection, clap mode)
-    hauslicht --json COMMAND         the daemon's reply as JSON (otherwise text)
-    hauslicht info | bulbs | watch   the widget's state, every bulb, the event stream
-    hauslicht level 40               the widget's brightness slider
-    hauslicht range LO HI | curve N | hue N | sat N | shift N | follow-ct on|off
+    lichthaus -w N COMMAND           in widget N's context (its bulbs, selection, clap mode)
+    lichthaus --json COMMAND         the daemon's reply as JSON (otherwise text)
+    lichthaus info | bulbs | watch   the widget's state, every bulb, the event stream
+    lichthaus level 40               the widget's brightness slider
+    lichthaus range LO HI | curve N | hue N | sat N | shift N | follow-ct on|off
                                      the selection's profile; set KEY=VALUE: any key
-    hauslicht widgets N | widget-bulbs ID... | order ID...   widgets and lists
-    hauslicht widget-settings [KEY=VALUE...]   the widget's own settings (invert_scroll,
+    lichthaus widgets N | widget-bulbs ID... | order ID...   widgets and lists
+    lichthaus widget-settings [KEY=VALUE...]   the widget's own settings (invert_scroll,
                                      icon_set, clap_last, auto_scan_bluetooth)
-    hauslicht exclusive-adapter hciN | setup-status
-    hauslicht bulb-set ID name=X profile=Y use=on|off icon_on=...
-    hauslicht profile list|save|apply|rename|delete NAME...
-    hauslicht discover [KIND|bluetooth] | add KIND key=value... | remove ID | backends
-    hauslicht autoconnect [on|off]   add newly found devices by itself (never mesh
+    lichthaus exclusive-adapter hciN | setup-status
+    lichthaus bulb-set ID name=X profile=Y use=on|off icon_on=...
+    lichthaus profile list|save|apply|rename|delete NAME...
+    lichthaus discover [KIND|bluetooth] | add KIND key=value... | remove ID | backends
+    lichthaus autoconnect [on|off]   add newly found devices by itself (never mesh
                                      bulbs; may take over a neighbour's lights)
-    hauslicht unignore ID|ADDRESS    let autoconnect add a removed device again
-    hauslicht clap [MODE]            a double clap/snap toggles widget 1's lights: off (default) |
+    lichthaus unignore ID|ADDRESS    let autoconnect add a removed device again
+    lichthaus clap [MODE]            a double clap/snap toggles widget 1's lights: off (default) |
                                      clap | snap | both (needs requirements-clap.txt)
-    hauslicht clap-source [NAME]     the microphone (default: the default source)
-    hauslicht clap-sensitivity [N]   0 (low) - 100 (high), default 50
-    hauslicht clap-count [2|3]       claps or snaps in a row that toggle: 2 (default) or 3
-    hauslicht clap-sources           the microphones to choose from
-    hauslicht clap-meter             level, last hit and its class, last double
-    hauslicht clap-hits              the last 30 hits: gate numbers, family score, top 3, verdict
-    hauslicht audio on|off|toggle [BULB]   the selection (or one bulb) follows what the
+    lichthaus clap-source [NAME]     the microphone (default: the default source)
+    lichthaus clap-sensitivity [N]   0 (low) - 100 (high), default 50
+    lichthaus clap-count [2|3]       claps or snaps in a row that toggle: 2 (default) or 3
+    lichthaus clap-sources           the microphones to choose from
+    lichthaus clap-meter             level, last hit and its class, last double
+    lichthaus clap-hits              the last 30 hits: gate numbers, family score, top 3, verdict
+    lichthaus audio on|off|toggle [BULB]   the selection (or one bulb) follows what the
                                      computer plays: loudness -> brightness, pitch -> colour
-    hauslicht audio-source [NAME]    what it listens to (default: the default output's monitor)
-    hauslicht audio-color [on|off]   pitch colours the bulbs (default on)
-    hauslicht audio-rate [N]         the same as follow-rate (its old name)
-    hauslicht audio-sources          the sources to choose from, monitors included
-    hauslicht audio-status           capture state, level, pitch, messages sent this run
-    hauslicht video on|off|toggle [BULB]   the selection (or one bulb) follows its region of
+    lichthaus audio-source [NAME]    what it listens to (default: the default output's monitor)
+    lichthaus audio-color [on|off]   pitch colours the bulbs (default on)
+    lichthaus audio-rate [N]         the same as follow-rate (its old name)
+    lichthaus audio-sources          the sources to choose from, monitors included
+    lichthaus audio-status           capture state, level, pitch, messages sent this run
+    lichthaus video on|off|toggle [BULB]   the selection (or one bulb) follows its region of
                                      the screen: luminance -> brightness, colour -> hue
-    hauslicht video-region ID REGION whole, left, right, top, bottom, top-left, top-right,
+    lichthaus video-region ID REGION whole, left, right, top, bottom, top-left, top-right,
                                      bottom-left or bottom-right (per bulb, default whole)
-    hauslicht video-max [N]          brightness of the brightest screen, 0-100 (default 100)
-    hauslicht video-smooth [S]       time averaging in seconds: 0 0.2 0.5 1 2 5 (default 0.5)
-    hauslicht video-forget           forget the screen permission (the next start asks)
-    hauslicht video-status           capture state, frames, messages sent this run
-    hauslicht follow-rate [N]        updates per second per bulb following audio or video,
+    lichthaus video-max [N]          brightness of the brightest screen, 0-100 (default 100)
+    lichthaus video-smooth [S]       time averaging in seconds: 0 0.2 0.5 1 2 5 (default 0.5)
+    lichthaus video-forget           forget the screen permission (the next start asks)
+    lichthaus video-status           capture state, frames, messages sent this run
+    lichthaus follow-rate [N]        updates per second per bulb following audio or video,
                                      1-3 (default 2)
-    hauslicht notify [on|off]        desktop notifications blink the bulbs by rules (default off)
-    hauslicht notify-rules           the rules of the selection's profile (JSON)
-    hauslicht notify-rules-set JSON  replace them: [{name, app, title, body, pattern, count,
+    lichthaus notify [on|off]        desktop notifications blink the bulbs by rules (default off)
+    lichthaus notify-rules           the rules of the selection's profile (JSON)
+    lichthaus notify-rules-set JSON  replace them: [{name, app, title, body, pattern, count,
                                      intensity, color, bulbs, dark}], see docs/ctl-protocol.md
-    hauslicht notify-test RULE       run a rule's pattern now
-    hauslicht notify-status          watching or not, Do Not Disturb, the last match
-    hauslicht backends --requires KIND[,KIND...]|all   pip names to install (no daemon)
-    hauslicht config [--window]      the widget's Configure pages (bulbs, profiles, sound, video,
+    lichthaus notify-test RULE       run a rule's pattern now
+    lichthaus notify-status          watching or not, Do Not Disturb, the last match
+    lichthaus backends --requires KIND[,KIND...]|all   pip names to install (no daemon)
+    lichthaus config [--window]      the widget's Configure pages (bulbs, profiles, sound, video,
                                      notifications): System Settings on Plasma when its KCMs are
                                      installed, otherwise (and with --window) a window, no Plasma needed
-    hauslicht debug                  window with each bulb's intended state, live
+    lichthaus debug                  window with each bulb's intended state, live
                                      (PyQt6; detached, see haus/debugview.py)
-    hauslicht disarm [--if-armed]    no daemon: OnPowerUp back to "on" (the unit's
+    lichthaus disarm [--if-armed]    no daemon: OnPowerUp back to "on" (the unit's
                                      ExecStopPost; --if-armed: only the bulbs the
                                      daemon left armed, nothing when none)
 
 While the daemon runs it owns the Bluetooth link and the mesh sequence number;
 the other commands then go to it over a Unix socket instead of connecting.
-HAUSLICHT_STATE and HAUSLICHT_SOCK point at another state file and socket (a
+LICHTHAUS_STATE and LICHTHAUS_SOCK point at another state file and socket (a
 test instance; see docs/ctl-protocol.md).
 """
 
@@ -112,10 +112,10 @@ import sys
 import time
 
 from ._platform import IS_LINUX
-from .common import SOCK_PATH, STATE_PATH, TRANSLATION, _, link_lock, read_state
+from .common import SOCK_PATH, STATE_PATH, TRANSLATION, _, link_lock, migrate_state_files, read_state
 from .profiles import FAST_FLICK, FLICK_MODES, LID_EVENTS, MODES, TRACKING, migrate
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 DAEMON_ONLY = ("pause", "resume", "connect", "disconnect", "mode", "track", "off-at-zero", "lid", "monitor-power", "toggle", "slider", "nudge",
                "flick", "select", "bulb-set", "profile", "discover", "add", "remove", "backends", "setup-root",
@@ -290,7 +290,7 @@ def print_discovered(r: dict) -> None:
         if note:
             note = f"({_('warning: ') if d.get('warning') else ''}{note})  "
         print(f"{d.get('kind')}  {d.get('address')}  {d.get('name', '')!r}  {note}"
-              + (_("(added already)") if d.get("known") else f"add: hauslicht add {d.get('kind')} {config}".rstrip()))
+              + (_("(added already)") if d.get("known") else f"add: lichthaus add {d.get('kind')} {config}".rstrip()))
     for kind, why in (r.get("errors") or {}).items():
         print(f"{kind}: {why}", file=sys.stderr)
 
@@ -436,7 +436,7 @@ async def cmd_control(args) -> int:
         words = requests_for(args)[0][1]
         return print_results(await mesh.direct_control(STATE_PATH, args.cmd, " ".join(words) or None, args.bulb))
     except ConnectionError as exc:
-        print(f"hauslicht: {exc}", file=sys.stderr)
+        print(f"lichthaus: {exc}", file=sys.stderr)
         return 2
 
 
@@ -553,7 +553,7 @@ async def cmd_test(args) -> int:
 def cmd_list() -> int:
     state = read_state(STATE_PATH)
     if state is None:
-        sys.exit(_("no {name} yet: run `hauslicht adopt` first").format(name=STATE_PATH.name))
+        sys.exit(_("no {name} yet: run `lichthaus adopt` first").format(name=STATE_PATH.name))
     migrate(state)  # in memory only: the daemon may own the file
     devices = state.get("devices", {})
     for bid, e in state["bulbs"].items():
@@ -599,17 +599,17 @@ def cmd_debug() -> int:
 def build_parser() -> argparse.ArgumentParser:
     """The command line. Subcommands come in groups (`parser.groups`: [(title,
     [(name, help, subparser)])]); --help lists them by group, and
-    dev/gen-man.py writes man/hauslicht.1 from the same structure."""
+    dev/gen-man.py writes man/lichthaus.1 from the same structure."""
     import shutil
     import textwrap
-    parser = argparse.ArgumentParser(prog="hauslicht", description=_(__doc__.split("\n\n")[0].strip()),
+    parser = argparse.ArgumentParser(prog="lichthaus", description=_(__doc__.split("\n\n")[0].strip()),
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("-w", "--widget", type=int, metavar="N", help=_(
         "act in widget N's context: its bulbs, selection, profile and clap mode (default 1; daemon running)"))
     parser.add_argument("--json", action="store_true", help=_(
         "print the daemon's reply as JSON instead of text"))
     sub = parser.add_subparsers(dest="cmd", required=True, metavar="COMMAND", help=_(
-        "one of the commands below; hauslicht COMMAND --help shows its arguments"))
+        "one of the commands below; lichthaus COMMAND --help shows its arguments"))
     groups: list[tuple[str, list]] = []
 
     def group(title: str) -> None:
@@ -677,7 +677,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = add("profile", _("profiles: list | save NAME | apply NAME | rename OLD NEW | delete NAME (daemon running)"))
     p.add_argument("percent", metavar="action", choices=("list", "save", "apply", "rename", "delete"))
     p.add_argument("words", metavar="NAME", nargs="*")
-    p = add("set", _("set any key as hauslicht-ctl set does: KEY=VALUE ..., see docs/ctl-protocol.md (daemon running)"))
+    p = add("set", _("set any key as lichthaus-ctl set does: KEY=VALUE ..., see docs/ctl-protocol.md (daemon running)"))
     p.add_argument("words", metavar="KEY=VALUE", nargs="+")
 
     group(_("Bulbs and widgets"))
@@ -818,12 +818,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--if-armed", action="store_true", help=_(
         "only the bulbs the daemon left armed (its marker); nothing at all when there are none"))
     p = add("config", _("open the settings: the Plasma widget's Configure pages (bulbs, profiles, sound, video, "
-                        "notifications); on Plasma in System Settings (Connected Devices → Haus.Licht) when they are "
+                        "notifications); on Plasma in System Settings (Connected Devices → Lichthaus) when they are "
                         "installed there, otherwise in a window of their own, also on other desktops"))
     where = p.add_mutually_exclusive_group()
     where.add_argument("--window", action="store_true", help=_("the settings window, also on Plasma"))
     where.add_argument("--system-settings", action="store_true", help=_(
-        "only System Settings: where Haus.Licht's pages are not there, open nothing and exit with 3"))
+        "only System Settings: where Lichthaus's pages are not there, open nothing and exit with 3"))
     p.add_argument("--add-bulb", action="store_true", help=_("System Settings: the Bulbs page with its Add dialog"))
     add("debug", _("open a window showing each bulb's intended state and the daemon's events, live (PyQt6)"))
     p = add("adverts", _("debug: print the bulbs' adverts with timestamps"))
@@ -842,7 +842,7 @@ def build_parser() -> argparse.ArgumentParser:
             lines += [f"{'':<22}{t}" for t in text[1:]]
         lines.append("")
     lines += textwrap.wrap(_("While the daemon runs it owns the Bluetooth link; the other commands then go to it over "
-                             "its socket. man hauslicht: files, environment, exit status, examples."), width)
+                             "its socket. man lichthaus: files, environment, exit status, examples."), width)
     parser.epilog = "\n".join(lines)
     parser.groups = groups
     return parser
@@ -857,6 +857,10 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(_("range needs both LO and HI, or neither"))
     if args.cmd == "profile" and args.percent != "list" and not args.words:
         parser.error(_("profile {action} needs a NAME").format(action=args.percent))
+    if not os.environ.get("LICHTHAUS_STATE"):
+        # renamed from Haus.Licht: an older install's state file gets the new name (names only, never content)  # rename-lichthaus: keep
+        for old_name, new_name in migrate_state_files():
+            print(f"lichthaus: {old_name} renamed to {new_name}", file=sys.stderr)
 
     if args.cmd == "list":
         return cmd_list()
@@ -866,7 +870,7 @@ def main(argv: list[str] | None = None) -> int:
         try:
             print("\n".join(requires([k.strip() for k in args.requires.split(",") if k.strip()])))
         except UserError as exc:
-            print(f"hauslicht: {exc}", file=sys.stderr)
+            print(f"lichthaus: {exc}", file=sys.stderr)
             return 1
         return 0
     if args.cmd == "debug":
@@ -886,7 +890,7 @@ def main(argv: list[str] | None = None) -> int:
         from .backends import mesh
         state = read_state(STATE_PATH)
         if state is None:
-            sys.exit(_("no {name} yet: run `hauslicht adopt` first").format(name=STATE_PATH.name))
+            sys.exit(_("no {name} yet: run `lichthaus adopt` first").format(name=STATE_PATH.name))
         with link_lock(STATE_PATH):
             asyncio.run(mesh.setup(state, mesh.device_addrs(state, args.bulb), STATE_PATH))
         return 0
@@ -899,7 +903,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "sync":
         from . import logrepeat
         logrepeat.install()
-        if os.environ.get("HAUSLICHT_DEBUG"):
+        if os.environ.get("LICHTHAUS_DEBUG"):
             logging.getLogger("bleak_retry_connector").setLevel(logging.DEBUG)
             log.setLevel(logging.DEBUG)
         from .daemon import Daemon

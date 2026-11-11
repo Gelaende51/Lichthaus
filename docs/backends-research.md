@@ -105,7 +105,7 @@ Constraints that shape every backend:
 - **Discovery:** mDNS `_hue._tcp.local.` (local). The fallback `discovery.meethue.com`
   is a cloud lookup and should not be the default.
 - **User supplies:** a bridge IP, then a press of the bridge **link button**, then
-  `POST /api` `{"devicetype": "hauslicht#host", "generatekey": true}` returns the app
+  `POST /api` `{"devicetype": "lichthaus#host", "generatekey": true}` returns the app
   key (`hue-application-key` header). HTTPS with a self-signed bridge certificate.
 - **Set:** `PUT /clip/v2/resource/light/<id>` `{"on": {"on": true}, "dimming": {"brightness": 0.0–100.0}, "dynamics": {"duration": ms}}`.
   The light reports `dimming.min_dim_level` (lowest lit %). Grouped lights:

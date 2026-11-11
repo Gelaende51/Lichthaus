@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write man/hauslicht.1 and man/de/hauslicht.1 from the argparse parser.
+"""Write man/lichthaus.1 and man/de/lichthaus.1 from the argparse parser.
 
     .venv/bin/python dev/gen-man.py          (re)generate both pages
     .venv/bin/python dev/gen-man.py --check  exit 1 when a page is out of date
@@ -9,7 +9,7 @@ The commands, their arguments and help texts come from haus.cli.build_parser()
 translates them); the fixed sections (description, files, environment, exit
 status, examples) are below. argparse-manpage was tried first: it lists
 subcommands flat (no groups) and knows no second language, so this small
-generator writes the roff itself. man/hauslicht-ctl.1 and its German page are
+generator writes the roff itself. man/lichthaus-ctl.1 and its German page are
 written by hand (the ctl client has no parser).
 """
 
@@ -24,19 +24,19 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-PAGES = {"en": ROOT / "man" / "hauslicht.1", "de": ROOT / "man" / "de" / "hauslicht.1"}
+PAGES = {"en": ROOT / "man" / "lichthaus.1", "de": ROOT / "man" / "de" / "lichthaus.1"}
 
 TEXT = {
     "en": {
         "section": "User Commands",
-        "name": "hauslicht \\- lights that follow the screen (Bluetooth mesh and more)",
+        "name": "lichthaus \\- lights that follow the screen (Bluetooth mesh and more)",
         "description": [
-            "\\fBhauslicht\\fR makes lights follow the screen: the bulbs dim and brighten with the screen "
+            "\\fBlichthaus\\fR makes lights follow the screen: the bulbs dim and brighten with the screen "
             "backlight, switch with the lid or the monitor, follow what the computer plays or shows, blink on "
             "notifications and react to a double clap or a wall-switch flick.",
-            "The daemon, \\fBhauslicht sync\\fR (normally run by the systemd user unit), owns the Bluetooth link "
+            "The daemon, \\fBlichthaus sync\\fR (normally run by the systemd user unit), owns the Bluetooth link "
             "and the mesh sequence number. While it runs, the other commands go to it over its Unix socket "
-            "(the protocol is in \\fBhauslicht-ctl\\fR(1)). Without the daemon, \\fBon\\fR, \\fBoff\\fR, "
+            "(the protocol is in \\fBlichthaus-ctl\\fR(1)). Without the daemon, \\fBon\\fR, \\fBoff\\fR, "
             "\\fBdim\\fR, \\fBstatus\\fR and \\fBraw\\fR talk to Bluetooth mesh bulbs directly; the commands "
             "marked \\(lqdaemon running\\(rq need it.",
             "The Plasma widget offers the same features. Its own preferences (the icon set, inverted "
@@ -49,43 +49,43 @@ TEXT = {
         "desc": "DESCRIPTION", "name_h": "NAME",
         "help": "show the help and exit", "command": "COMMAND", "args": "ARGS",
         "files_list": [
-            ("hauslicht.json", "The state file, in the checkout (or \\fB$HAUSLICHT_STATE\\fR): bulbs, mesh keys "
+            ("lichthaus.json", "The state file, in the checkout (or \\fB$LICHTHAUS_STATE\\fR): bulbs, mesh keys "
              "and sequence number, profiles, widgets, settings. Readable by its owner only; it holds the mesh "
              "keys, so never share it."),
-            ("hauslicht.armed.json", "The armed marker beside the state file: the bulbs whose OnPowerUp the "
+            ("lichthaus.armed.json", "The armed marker beside the state file: the bulbs whose OnPowerUp the "
              "daemon may have left armed to something other than \\(lqon\\(rq. \\fBdisarm \\-\\-if\\-armed\\fR "
              "reads it."),
-            ("hauslicht.lock", "Beside the state file: the lock that guards the mesh link and sequence number."),
-            ("$XDG_RUNTIME_DIR/hauslicht.sock", "The daemon's socket (or \\fB$HAUSLICHT_SOCK\\fR)."),
-            ("~/.config/systemd/user/hauslicht.service", "The unit: \\fBhauslicht sync\\fR, and "
-             "\\fBhauslicht disarm \\-\\-if\\-armed\\fR after every stop. Written by \\fBinstall/install.sh\\fR."),
-            ("~/.config/plasma-workspace/env/hauslicht-kcm.sh", "Adds ~/.local/lib/qt6/plugins to "
-             "\\fBQT_PLUGIN_PATH\\fR at each Plasma login, so System Settings finds Haus.Licht's pages "
+            ("lichthaus.lock", "Beside the state file: the lock that guards the mesh link and sequence number."),
+            ("$XDG_RUNTIME_DIR/lichthaus.sock", "The daemon's socket (or \\fB$LICHTHAUS_SOCK\\fR)."),
+            ("~/.config/systemd/user/lichthaus.service", "The unit: \\fBlichthaus sync\\fR, and "
+             "\\fBlichthaus disarm \\-\\-if\\-armed\\fR after every stop. Written by \\fBinstall/install.sh\\fR."),
+            ("~/.config/plasma-workspace/env/lichthaus-kcm.sh", "Adds ~/.local/lib/qt6/plugins to "
+             "\\fBQT_PLUGIN_PATH\\fR at each Plasma login, so System Settings finds Lichthaus's pages "
              "installed per user. Written by \\fBinstall/install.sh\\fR."),
-            ("~/.local/lib/qt6/plugins/plasma/kcms/systemsettings_qwidgets/", "Haus.Licht's pages as System "
-             "Settings modules (kcm_hauslicht_*), built per user by \\fBinstall/install.sh\\fR; \\fBconfig\\fR "
+            ("~/.local/lib/qt6/plugins/plasma/kcms/systemsettings_qwidgets/", "Lichthaus's pages as System "
+             "Settings modules (kcm_lichthaus_*), built per user by \\fBinstall/install.sh\\fR; \\fBconfig\\fR "
              "opens System Settings there on Plasma."),
-            ("~/.cache/hauslicht/", "The clap model, downloaded on first use; \\fBHausLicht\\fR, the link to Qt's "
+            ("~/.cache/lichthaus/", "The clap model, downloaded on first use; \\fBLichthaus\\fR, the link to Qt's "
              "\\fBqml\\fR runtime that \\fBconfig\\fR starts the settings window through."),
-            ("~/.local/share/hauslicht/plasmoid/", "The Plasma widget's package where Plasma is missing "
+            ("~/.local/share/lichthaus/plasmoid/", "The Plasma widget's package where Plasma is missing "
              "(\\fBinstall/install.sh\\fR unpacks it there): its Configure pages for \\fBconfig\\fR."),
-            ("~/.local/state/hauslicht/config-window.log", "The settings window's messages from its last start."),
-            ("/usr/local/lib/hauslicht/setup-version", "The stamp of the one-time system setup "
+            ("~/.local/state/lichthaus/config-window.log", "The settings window's messages from its last start."),
+            ("/usr/local/lib/lichthaus/setup-version", "The stamp of the one-time system setup "
              "(\\fBsetup\\-root\\fR)."),
         ],
         "env_list": [
-            ("HAUSLICHT_STATE", "Another state file (a test instance)."),
-            ("HAUSLICHT_SOCK", "Another daemon socket (a test instance). Keep the path short."),
-            ("HAUSLICHT_BACKENDS", "A comma list of the kinds of bulbs to load, e.g. \\fBmock\\fR for a test "
+            ("LICHTHAUS_STATE", "Another state file (a test instance)."),
+            ("LICHTHAUS_SOCK", "Another daemon socket (a test instance). Keep the path short."),
+            ("LICHTHAUS_BACKENDS", "A comma list of the kinds of bulbs to load, e.g. \\fBmock\\fR for a test "
              "instance that never touches Bluetooth."),
-            ("HAUSLICHT_MOCK", "\\fB1\\fR shows the mock backend even when \\fBHAUSLICHT_BACKENDS\\fR does not "
+            ("LICHTHAUS_MOCK", "\\fB1\\fR shows the mock backend even when \\fBLICHTHAUS_BACKENDS\\fR does not "
              "name it."),
-            ("HAUSLICHT_DEBUG", "Set: \\fBsync\\fR logs at debug level."),
-            ("HAUSLICHT_NO_PANEL", "\\fB1\\fR: the daemon adds no panel widgets, \\fB0\\fR: it does; unset: "
+            ("LICHTHAUS_DEBUG", "Set: \\fBsync\\fR logs at debug level."),
+            ("LICHTHAUS_NO_PANEL", "\\fB1\\fR: the daemon adds no panel widgets, \\fB0\\fR: it does; unset: "
              "it does, except for a test instance."),
-            ("HAUSLICHT_PLASMOID", "A package directory of the Plasma widget for \\fBconfig\\fR, tried before "
-             "~/.local/share/plasma/plasmoids/haus.licht.tray, /usr/share/plasma/plasmoids/haus.licht.tray and "
-             "~/.local/share/hauslicht/plasmoid."),
+            ("LICHTHAUS_PLASMOID", "A package directory of the Plasma widget for \\fBconfig\\fR, tried before "
+             "~/.local/share/plasma/plasmoids/lichthaus.tray, /usr/share/plasma/plasmoids/lichthaus.tray and "
+             "~/.local/share/lichthaus/plasmoid."),
             ("LANGUAGE, LC_ALL, LC_MESSAGES, LANG", "German messages when the language is \\fBde\\fR, "
              "English otherwise."),
         ],
@@ -94,40 +94,40 @@ TEXT = {
             ("1", "The daemon is not running, it refused the command (the message goes to standard error), "
              "a bulb did not answer, or a test ended early."),
             ("2", "A usage error, or the Bluetooth link failed without the daemon."),
-            ("3", "\\fBconfig \\-\\-system\\-settings\\fR: Haus.Licht's pages are not in System Settings here; "
+            ("3", "\\fBconfig \\-\\-system\\-settings\\fR: Lichthaus's pages are not in System Settings here; "
              "nothing was opened."),
         ],
         "examples": [
-            ("Switch the lights on and dim them to 40 percent:", "hauslicht on\nhauslicht dim 40"),
-            ("What the widget shows, and every bulb:", "hauslicht info\nhauslicht bulbs"),
-            ("Up to 150 percent of the screen's brightness, warm colour:", "hauslicht range 0 150\n"
-             "hauslicht hue 30\nhauslicht sat 60"),
-            ("Two widgets, the second for the shelf lamp:", "hauslicht widgets 2\n"
-             "hauslicht \\-w 2 widget\\-bulbs mesh:0003"),
-            ("Find, then add a bulb:", "hauslicht discover bluetooth\nhauslicht backends\n"
-             "hauslicht add wiz address=192.168.1.40"),
+            ("Switch the lights on and dim them to 40 percent:", "lichthaus on\nlichthaus dim 40"),
+            ("What the widget shows, and every bulb:", "lichthaus info\nlichthaus bulbs"),
+            ("Up to 150 percent of the screen's brightness, warm colour:", "lichthaus range 0 150\n"
+             "lichthaus hue 30\nlichthaus sat 60"),
+            ("Two widgets, the second for the shelf lamp:", "lichthaus widgets 2\n"
+             "lichthaus \\-w 2 widget\\-bulbs mesh:0003"),
+            ("Find, then add a bulb:", "lichthaus discover bluetooth\nlichthaus backends\n"
+             "lichthaus add wiz address=192.168.1.40"),
             ("A USB lamp on a hub port that switches its power (check the hub with uhubctl; "
              "the system setup lets the daemon switch it):",
-             "hauslicht discover usbport\nhauslicht add usbport port=1\\-1.4\\-port2 name=Shelf\n"
-             "hauslicht identify usbport:1\\-1.4\\-port2"),
-            ("A test instance beside the live one:", "export HAUSLICHT_STATE=/tmp/hl.json "
-             "HAUSLICHT_SOCK=$XDG_RUNTIME_DIR/hl.sock\nHAUSLICHT_BACKENDS=mock hauslicht sync "
-             "\\-\\-no\\-desktop\\-writes &\nhauslicht add mock name=Desk"),
+             "lichthaus discover usbport\nlichthaus add usbport port=1\\-1.4\\-port2 name=Shelf\n"
+             "lichthaus identify usbport:1\\-1.4\\-port2"),
+            ("A test instance beside the live one:", "export LICHTHAUS_STATE=/tmp/hl.json "
+             "LICHTHAUS_SOCK=$XDG_RUNTIME_DIR/hl.sock\nLICHTHAUS_BACKENDS=mock lichthaus sync "
+             "\\-\\-no\\-desktop\\-writes &\nlichthaus add mock name=Desk"),
         ],
-        "see_also": "\\fBhauslicht\\-ctl\\fR(1), \\fBsystemctl\\fR(1); docs/ctl\\-protocol.md and README.md in "
+        "see_also": "\\fBlichthaus\\-ctl\\fR(1), \\fBsystemctl\\fR(1); docs/ctl\\-protocol.md and README.md in "
                     "the checkout.",
     },
     "de": {
         "section": "Benutzerbefehle",
-        "name": "hauslicht \\- Lampen, die dem Bildschirm folgen (Bluetooth Mesh und mehr)",
+        "name": "lichthaus \\- Lampen, die dem Bildschirm folgen (Bluetooth Mesh und mehr)",
         "description": [
-            "\\fBhauslicht\\fR lässt Lampen dem Bildschirm folgen: sie werden mit der Bildschirmhelligkeit "
+            "\\fBlichthaus\\fR lässt Lampen dem Bildschirm folgen: sie werden mit der Bildschirmhelligkeit "
             "heller und dunkler, schalten mit dem Deckel oder dem Monitor, folgen dem, was der Computer "
             "abspielt oder zeigt, blinken bei Benachrichtigungen und reagieren auf doppeltes Klatschen oder "
             "kurzes Aus- und Einschalten am Wandschalter.",
-            "Der Dienst, \\fBhauslicht sync\\fR (normalerweise von der systemd-Benutzer-Unit gestartet), hält "
+            "Der Dienst, \\fBlichthaus sync\\fR (normalerweise von der systemd-Benutzer-Unit gestartet), hält "
             "die Bluetooth-Verbindung und die Mesh-Sequenznummer. Während er läuft, gehen die anderen Befehle "
-            "über seinen Unix-Socket an ihn (das Protokoll steht in \\fBhauslicht-ctl\\fR(1)). Ohne Dienst "
+            "über seinen Unix-Socket an ihn (das Protokoll steht in \\fBlichthaus-ctl\\fR(1)). Ohne Dienst "
             "sprechen \\fBon\\fR, \\fBoff\\fR, \\fBdim\\fR, \\fBstatus\\fR und \\fBraw\\fR Bluetooth-Mesh-Lampen "
             "direkt an; die mit \\(BqDienst läuft\\(lq markierten Befehle brauchen ihn.",
             "Das Plasma-Widget bietet dieselben Funktionen. Seine eigenen Einstellungen (der Symbolsatz, "
@@ -141,45 +141,45 @@ TEXT = {
         "desc": "BESCHREIBUNG", "name_h": "BEZEICHNUNG",
         "help": "die Hilfe zeigen und beenden", "command": "BEFEHL", "args": "ARGUMENTE",
         "files_list": [
-            ("hauslicht.json", "Die Zustandsdatei, im Checkout (oder \\fB$HAUSLICHT_STATE\\fR): Lampen, "
+            ("lichthaus.json", "Die Zustandsdatei, im Checkout (oder \\fB$LICHTHAUS_STATE\\fR): Lampen, "
              "Mesh-Schlüssel und Sequenznummer, Profile, Widgets, Einstellungen. Nur für den Besitzer lesbar; "
              "sie enthält die Mesh-Schlüssel, also nie weitergeben."),
-            ("hauslicht.armed.json", "Die Scharf-Markierung neben der Zustandsdatei: die Lampen, deren "
+            ("lichthaus.armed.json", "Die Scharf-Markierung neben der Zustandsdatei: die Lampen, deren "
              "OnPowerUp der Dienst auf etwas anderes als \\(Bqon\\(lq gestellt haben kann. "
              "\\fBdisarm \\-\\-if\\-armed\\fR liest sie."),
-            ("hauslicht.lock", "Neben der Zustandsdatei: die Sperre für die Mesh-Verbindung und die "
+            ("lichthaus.lock", "Neben der Zustandsdatei: die Sperre für die Mesh-Verbindung und die "
              "Sequenznummer."),
-            ("$XDG_RUNTIME_DIR/hauslicht.sock", "Der Socket des Dienstes (oder \\fB$HAUSLICHT_SOCK\\fR)."),
-            ("~/.config/systemd/user/hauslicht.service", "Die Unit: \\fBhauslicht sync\\fR, und nach jedem "
-             "Stopp \\fBhauslicht disarm \\-\\-if\\-armed\\fR. Von \\fBinstall/install.sh\\fR geschrieben."),
-            ("~/.config/plasma-workspace/env/hauslicht-kcm.sh", "Fügt bei jeder Plasma-Anmeldung "
+            ("$XDG_RUNTIME_DIR/lichthaus.sock", "Der Socket des Dienstes (oder \\fB$LICHTHAUS_SOCK\\fR)."),
+            ("~/.config/systemd/user/lichthaus.service", "Die Unit: \\fBlichthaus sync\\fR, und nach jedem "
+             "Stopp \\fBlichthaus disarm \\-\\-if\\-armed\\fR. Von \\fBinstall/install.sh\\fR geschrieben."),
+            ("~/.config/plasma-workspace/env/lichthaus-kcm.sh", "Fügt bei jeder Plasma-Anmeldung "
              "~/.local/lib/qt6/plugins zu \\fBQT_PLUGIN_PATH\\fR hinzu, damit die Systemeinstellungen die pro "
-             "Benutzer installierten Seiten von Haus.Licht finden. Von \\fBinstall/install.sh\\fR geschrieben."),
-            ("~/.local/lib/qt6/plugins/plasma/kcms/systemsettings_qwidgets/", "Die Seiten von Haus.Licht als "
-             "Module der Systemeinstellungen (kcm_hauslicht_*), von \\fBinstall/install.sh\\fR pro Benutzer "
+             "Benutzer installierten Seiten von Lichthaus finden. Von \\fBinstall/install.sh\\fR geschrieben."),
+            ("~/.local/lib/qt6/plugins/plasma/kcms/systemsettings_qwidgets/", "Die Seiten von Lichthaus als "
+             "Module der Systemeinstellungen (kcm_lichthaus_*), von \\fBinstall/install.sh\\fR pro Benutzer "
              "gebaut; \\fBconfig\\fR öffnet unter Plasma die Systemeinstellungen dort."),
-            ("~/.cache/hauslicht/", "Das Klatsch-Modell, beim ersten Gebrauch heruntergeladen; \\fBHausLicht\\fR, "
+            ("~/.cache/lichthaus/", "Das Klatsch-Modell, beim ersten Gebrauch heruntergeladen; \\fBLichthaus\\fR, "
              "der Link auf Qts \\fBqml\\fR-Laufzeit, über den \\fBconfig\\fR das Einstellungsfenster startet."),
-            ("~/.local/share/hauslicht/plasmoid/", "Das Paket des Plasma-Widgets, wo Plasma fehlt "
+            ("~/.local/share/lichthaus/plasmoid/", "Das Paket des Plasma-Widgets, wo Plasma fehlt "
              "(\\fBinstall/install.sh\\fR entpackt es dorthin): seine Einrichtungsseiten für \\fBconfig\\fR."),
-            ("~/.local/state/hauslicht/config-window.log", "Die Meldungen des Einstellungsfensters seit seinem "
+            ("~/.local/state/lichthaus/config-window.log", "Die Meldungen des Einstellungsfensters seit seinem "
              "letzten Start."),
-            ("/usr/local/lib/hauslicht/setup-version", "Der Stempel der einmaligen Systemeinrichtung "
+            ("/usr/local/lib/lichthaus/setup-version", "Der Stempel der einmaligen Systemeinrichtung "
              "(\\fBsetup\\-root\\fR)."),
         ],
         "env_list": [
-            ("HAUSLICHT_STATE", "Eine andere Zustandsdatei (eine Testinstanz)."),
-            ("HAUSLICHT_SOCK", "Ein anderer Socket des Dienstes (eine Testinstanz). Den Pfad kurz halten."),
-            ("HAUSLICHT_BACKENDS", "Eine Komma-Liste der Lampenarten, die geladen werden, z.\\~B. \\fBmock\\fR "
+            ("LICHTHAUS_STATE", "Eine andere Zustandsdatei (eine Testinstanz)."),
+            ("LICHTHAUS_SOCK", "Ein anderer Socket des Dienstes (eine Testinstanz). Den Pfad kurz halten."),
+            ("LICHTHAUS_BACKENDS", "Eine Komma-Liste der Lampenarten, die geladen werden, z.\\~B. \\fBmock\\fR "
              "für eine Testinstanz, die Bluetooth nie anfasst."),
-            ("HAUSLICHT_MOCK", "\\fB1\\fR zeigt das Mock-Backend, auch wenn \\fBHAUSLICHT_BACKENDS\\fR es nicht "
+            ("LICHTHAUS_MOCK", "\\fB1\\fR zeigt das Mock-Backend, auch wenn \\fBLICHTHAUS_BACKENDS\\fR es nicht "
              "nennt."),
-            ("HAUSLICHT_DEBUG", "Gesetzt: \\fBsync\\fR protokolliert auf Debug-Stufe."),
-            ("HAUSLICHT_NO_PANEL", "\\fB1\\fR: der Dienst legt keine Panel-Widgets an, \\fB0\\fR: er tut es; "
+            ("LICHTHAUS_DEBUG", "Gesetzt: \\fBsync\\fR protokolliert auf Debug-Stufe."),
+            ("LICHTHAUS_NO_PANEL", "\\fB1\\fR: der Dienst legt keine Panel-Widgets an, \\fB0\\fR: er tut es; "
              "nicht gesetzt: er tut es, außer in einer Testinstanz."),
-            ("HAUSLICHT_PLASMOID", "Ein Paketverzeichnis des Plasma-Widgets für \\fBconfig\\fR, versucht vor "
-             "~/.local/share/plasma/plasmoids/haus.licht.tray, /usr/share/plasma/plasmoids/haus.licht.tray und "
-             "~/.local/share/hauslicht/plasmoid."),
+            ("LICHTHAUS_PLASMOID", "Ein Paketverzeichnis des Plasma-Widgets für \\fBconfig\\fR, versucht vor "
+             "~/.local/share/plasma/plasmoids/lichthaus.tray, /usr/share/plasma/plasmoids/lichthaus.tray und "
+             "~/.local/share/lichthaus/plasmoid."),
             ("LANGUAGE, LC_ALL, LC_MESSAGES, LANG", "Deutsche Meldungen bei der Sprache \\fBde\\fR, sonst "
              "englische."),
         ],
@@ -188,27 +188,27 @@ TEXT = {
             ("1", "Der Dienst läuft nicht, er hat den Befehl abgelehnt (die Meldung geht auf die "
              "Standardfehlerausgabe), eine Lampe hat nicht geantwortet, oder ein Test endete vorzeitig."),
             ("2", "Ein Bedienfehler, oder die Bluetooth-Verbindung ohne Dienst schlug fehl."),
-            ("3", "\\fBconfig \\-\\-system\\-settings\\fR: Die Seiten von Haus.Licht sind hier nicht in den "
+            ("3", "\\fBconfig \\-\\-system\\-settings\\fR: Die Seiten von Lichthaus sind hier nicht in den "
              "Systemeinstellungen; nichts wurde geöffnet."),
         ],
         "examples": [
-            ("Licht einschalten und auf 40 Prozent dimmen:", "hauslicht on\nhauslicht dim 40"),
-            ("Was das Widget zeigt, und jede Lampe:", "hauslicht info\nhauslicht bulbs"),
-            ("Bis 150 Prozent der Bildschirmhelligkeit, warme Farbe:", "hauslicht range 0 150\n"
-             "hauslicht hue 30\nhauslicht sat 60"),
-            ("Zwei Widgets, das zweite für die Regallampe:", "hauslicht widgets 2\n"
-             "hauslicht \\-w 2 widget\\-bulbs mesh:0003"),
-            ("Eine Lampe suchen, dann hinzufügen:", "hauslicht discover bluetooth\nhauslicht backends\n"
-             "hauslicht add wiz address=192.168.1.40"),
+            ("Licht einschalten und auf 40 Prozent dimmen:", "lichthaus on\nlichthaus dim 40"),
+            ("Was das Widget zeigt, und jede Lampe:", "lichthaus info\nlichthaus bulbs"),
+            ("Bis 150 Prozent der Bildschirmhelligkeit, warme Farbe:", "lichthaus range 0 150\n"
+             "lichthaus hue 30\nlichthaus sat 60"),
+            ("Zwei Widgets, das zweite für die Regallampe:", "lichthaus widgets 2\n"
+             "lichthaus \\-w 2 widget\\-bulbs mesh:0003"),
+            ("Eine Lampe suchen, dann hinzufügen:", "lichthaus discover bluetooth\nlichthaus backends\n"
+             "lichthaus add wiz address=192.168.1.40"),
             ("Eine USB-Lampe an einem Hub-Port, der seinen Strom schaltet (den Hub mit uhubctl prüfen; "
              "die Systemeinrichtung lässt den Dienst schalten):",
-             "hauslicht discover usbport\nhauslicht add usbport port=1\\-1.4\\-port2 name=Regal\n"
-             "hauslicht identify usbport:1\\-1.4\\-port2"),
-            ("Eine Testinstanz neben der laufenden:", "export HAUSLICHT_STATE=/tmp/hl.json "
-             "HAUSLICHT_SOCK=$XDG_RUNTIME_DIR/hl.sock\nHAUSLICHT_BACKENDS=mock hauslicht sync "
-             "\\-\\-no\\-desktop\\-writes &\nhauslicht add mock name=Desk"),
+             "lichthaus discover usbport\nlichthaus add usbport port=1\\-1.4\\-port2 name=Regal\n"
+             "lichthaus identify usbport:1\\-1.4\\-port2"),
+            ("Eine Testinstanz neben der laufenden:", "export LICHTHAUS_STATE=/tmp/hl.json "
+             "LICHTHAUS_SOCK=$XDG_RUNTIME_DIR/hl.sock\nLICHTHAUS_BACKENDS=mock lichthaus sync "
+             "\\-\\-no\\-desktop\\-writes &\nlichthaus add mock name=Desk"),
         ],
-        "see_also": "\\fBhauslicht\\-ctl\\fR(1), \\fBsystemctl\\fR(1); docs/ctl\\-protocol.md und README.md im "
+        "see_also": "\\fBlichthaus\\-ctl\\fR(1), \\fBsystemctl\\fR(1); docs/ctl\\-protocol.md und README.md im "
                     "Checkout.",
     },
 }
@@ -243,8 +243,8 @@ def page(lang: str, version: str, date: str) -> str:
     from haus import cli
     t = TEXT[lang]
     parser = cli.build_parser()
-    out = [f'.TH HAUSLICHT 1 "{date}" "Haus.Licht {version}" "{t["section"]}"',
-           f'.SH {t["name_h"]}', t["name"], f'.SH {t["synopsis"]}', ".B hauslicht",
+    out = [f'.TH LICHTHAUS 1 "{date}" "Lichthaus {version}" "{t["section"]}"',
+           f'.SH {t["name_h"]}', t["name"], f'.SH {t["synopsis"]}', ".B lichthaus",
            f"[\\fB\\-w\\fR \\fIN\\fR] [\\fB\\-\\-json\\fR] \\fI{t['command']}\\fR [\\fI{t['args']}\\fR ...]",
            f'.SH {t["desc"]}']
     for i, para in enumerate(t["description"]):
@@ -288,7 +288,7 @@ def version() -> str:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="write man/hauslicht.1 and man/de/hauslicht.1 from the parser")
+    ap = argparse.ArgumentParser(description="write man/lichthaus.1 and man/de/lichthaus.1 from the parser")
     ap.add_argument("--check", action="store_true", help="exit 1 when a page is out of date (dates ignored)")
     ap.add_argument("--lang", help=argparse.SUPPRESS)  # the child process: print one page
     args = ap.parse_args()

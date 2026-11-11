@@ -20,7 +20,7 @@ per widget, its selection); with settings.clap_count 3 it takes a triple.
 
 Nothing is written to disk and nothing leaves the computer: audio lives in a
 2 s ring buffer only; logs carry times and class scores. The model file is
-fetched once (pinned URL, sha256 checked) into ~/.cache/hauslicht/.
+fetched once (pinned URL, sha256 checked) into ~/.cache/lichthaus/.
 
 numpy and ai-edge-litert are an optional extra (requirements-clap.txt); this
 module imports them lazily, so the daemon runs without them and reports the
@@ -53,7 +53,7 @@ from . import audiocapture
 from .audiocapture import CaptureError  # noqa: F401  shared with haus/audiofollow.py
 from .common import ROOT, _
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 MODES = ("off", "clap", "snap", "both")
 COUNTS = (2, 3)  # hits in a row that toggle (settings.clap_count): a double, a triple
@@ -186,12 +186,12 @@ def check_source(value) -> str:
     if value.lower() in ("default", "@default_source@"):
         return ""
     if any(c.isspace() for c in value) or len(value) > 200:
-        raise ValueError("clap_source must be a source name (hauslicht-ctl clap-sources) or default")
+        raise ValueError("clap_source must be a source name (lichthaus-ctl clap-sources) or default")
     return value
 
 
 def cache_dir() -> Path:
-    return Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "hauslicht"
+    return Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "lichthaus"
 
 
 def db(power: float) -> float:
@@ -585,7 +585,7 @@ class Capture:
         self.missing, self.source = self.source, ""
 
     def command(self) -> list[str]:
-        props = f'{{ application.name = "Haus.Licht" media.name = "{self.name}"'
+        props = f'{{ application.name = "Lichthaus" media.name = "{self.name}"'
         pw = shutil.which("pw-record")
         if self.monitor:
             if pw is None:
@@ -599,7 +599,7 @@ class Capture:
         if parec is None:
             raise CaptureError("neither pw-record nor parec found")
         return [parec, "--raw", f"--rate={RATE}", "--channels=1", "--format=s16le", "--latency-msec=50",
-                "--client-name=Haus.Licht", f"--stream-name={self.name}",
+                "--client-name=Lichthaus", f"--stream-name={self.name}",
                 *([f"--device={self.source}"] if self.source else [])]
 
     def device(self) -> str:

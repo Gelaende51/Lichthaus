@@ -17,14 +17,15 @@ import os
 
 from .common import _
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
-COMPONENT, COMPONENT_NAME = "hauslicht", "Haus.Licht"
+COMPONENT, COMPONENT_NAME = "lichthaus", "Lichthaus"
+OLD_COMPONENT = "hauslicht"  # rename-lichthaus: keep (the component before the rename: register() moves its keys)
 KGA_DEST, KGA_PATH, KGA_IFACE = "org.kde.kglobalaccel", "/kglobalaccel", "org.kde.KGlobalAccel"
 KGA_COMPONENT_IFACE = "org.kde.kglobalaccel.Component"
 OSD_DEST, OSD_PATH, OSD_IFACE = "org.kde.plasmashell", "/org/kde/osdService", "org.kde.osdService"
 SHELL_DEST, SHELL_PATH, SHELL_IFACE = "org.kde.plasmashell", "/PlasmaShell", "org.kde.PlasmaShell"
-PLUGIN = "haus.licht.tray"
+PLUGIN = "lichthaus.tray"
 TRAY = "org.kde.plasma.systemtray"
 ICON = "brightness-high"
 STEP = 5.0
@@ -49,16 +50,16 @@ def friendly(name: str) -> str:
 
 
 def panel_disabled(test_instance: bool) -> bool:
-    """HAUSLICHT_NO_PANEL=1 switches the panel widgets off, =0 on; unset: off
+    """LICHTHAUS_NO_PANEL=1 switches the panel widgets off, =0 on; unset: off
     for a test instance (--no-desktop-writes), on otherwise."""
-    value = os.environ.get("HAUSLICHT_NO_PANEL")
+    value = os.environ.get("LICHTHAUS_NO_PANEL")
     if value is None:
         return test_instance
     return value.strip() not in ("0", "", "no", "off", "false")
 
 
 def panel_script(n: int) -> str:
-    """Desktop script: every panel holding a system tray gets haus.licht.tray
+    """Desktop script: every panel holding a system tray gets lichthaus.tray
     applets with widgetIndex 2..n exactly once, inserted left of the tray;
     instances above n (and duplicates) go. Applets with widgetIndex 1 (and
     the tray's own instance, which lives in the tray's containment) are
@@ -189,17 +190,58 @@ class Kde:
         """Register every action without keys. The default is set to none
         (IsDefault), then the action is marked present with autoloading:
         kglobalaccel keeps keys the user assigned and only a new action gets
-        the (empty) keys passed here."""
+        the (empty) keys passed here. Keys assigned under the component's
+        old name (OLD_COMPONENT) move over once (take_old_keys)."""
+        old_keys = await self.take_old_keys()
         for action, name in ACTIONS:
             ident = [COMPONENT, action, COMPONENT_NAME, friendly(name)]
             await self.bus.call(KGA_DEST, KGA_PATH, KGA_IFACE, "doRegister", "as", [ident])
             await self.bus.call(KGA_DEST, KGA_PATH, KGA_IFACE, "setShortcut", "asaiu", [ident, [], IS_DEFAULT])
             await self.bus.call(KGA_DEST, KGA_PATH, KGA_IFACE, "setShortcut", "asaiu", [ident, [], SET_PRESENT])
+            if old_keys.get(action):
+                # NoAutoloading: these keys replace the empty ones just loaded; only this once,
+                # since the old component is gone afterwards
+                try:
+                    await self.bus.call(KGA_DEST, KGA_PATH, KGA_IFACE, "setShortcut", "asaiu",
+                                        [ident, old_keys[action], SET_PRESENT | NO_AUTOLOADING])
+                except Exception as exc:
+                    log.info("shortcut %s: the keys of the old name not taken over (%s)", action, exc)
         (self.component_path,) = await self.bus.call(KGA_DEST, KGA_PATH, KGA_IFACE, "getComponent", "s",
                                                      [COMPONENT])
         await self.bus.add_match(f"type='signal',interface='{KGA_COMPONENT_IFACE}',"
                                  f"member='globalShortcutPressed',path='{self.component_path}'")
         log.info("global shortcuts registered (%d actions, keys in System Settings → Shortcuts)", len(ACTIONS))
+
+    async def take_old_keys(self) -> dict[str, list[int]]:
+        """After the rename (dev/rename-lichthaus.md): the actions of OLD_COMPONENT, if
+        kglobalaccel still knows it, are unregistered (so their keys are free
+        for the new ones) after their active keys were read; the component
+        itself is cleaned up. Returns action -> keys (those with a new
+        counterpart and keys). Best effort: a failure logs once and the
+        registration goes on without them."""
+        keys: dict[str, list[int]] = {}
+        try:
+            body = await self.bus.call(KGA_DEST, KGA_PATH, KGA_IFACE, "allMainComponents")
+            if not any(c and c[0] == OLD_COMPONENT for c in (body[0] if body else [])):
+                return keys
+            body = await self.bus.call(KGA_DEST, KGA_PATH, KGA_IFACE, "allActionsForComponent", "as",
+                                       [[OLD_COMPONENT]])
+            ours = {action for action, _name in ACTIONS}
+            for ident in body[0] if body else []:
+                action = ident[1]
+                if action in ours:
+                    got = await self.bus.call(KGA_DEST, KGA_PATH, KGA_IFACE, "shortcut", "as", [list(ident)])
+                    active = [int(k) for k in (got[0] if got else []) if k]
+                    if active:
+                        keys[action] = active
+                await self.bus.call(KGA_DEST, KGA_PATH, KGA_IFACE, "unregister", "ss", [OLD_COMPONENT, action])
+            with contextlib.suppress(Exception):  # an empty component may already be gone
+                (path,) = await self.bus.call(KGA_DEST, KGA_PATH, KGA_IFACE, "getComponent", "s", [OLD_COMPONENT])
+                await self.bus.call(KGA_DEST, path, KGA_COMPONENT_IFACE, "cleanUp")
+            log.info("global shortcuts: the old name's actions removed, keys taken over for %d", len(keys))
+        except Exception as exc:
+            log.info("global shortcuts: the old name's keys not taken over (%s)", exc)
+        return keys
 
     def _signal(self, msg) -> None:
         if (msg.member == "globalShortcutPressed" and msg.path == self.component_path

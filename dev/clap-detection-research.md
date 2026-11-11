@@ -82,7 +82,7 @@ toggle all bulbs (same code path as the flick toggle / ctl "toggle")
   and more robust than echo cancellation; PipeWire's `module-echo-cancel`
   (WebRTC AEC) is the heavier alternative if music with claps still leaks.
 - Service: runs in the user session (needs the user's PipeWire socket);
-  default **off**, enabled in `hauslicht.json`; pause while the mic is
+  default **off**, enabled in `lichthaus.json`; pause while the mic is
   muted (`pactl get-source-mute @DEFAULT_SOURCE@`).
 
 ## Privacy
@@ -169,7 +169,7 @@ tail never reached the model (pinned by a test that fails on the old gate).
 Within 800 ms after a hit, a block that jumps 4 dB over the last 30 ms now
 starts a hit too, and it ends once it falls back near where it started.
 
-**Tuning with the user**: `hauslicht-ctl clap-hits` lists the last 30 hits
+**Tuning with the user**: `lichthaus-ctl clap-hits` lists the last 30 hits
 with the gate's numbers, the family score, the top 3 classes and why a hit
 was not accepted; debug log lines carry the same. At sensitivity 100 the
 bars are now far lower than before (the sum, the shape factor, a free

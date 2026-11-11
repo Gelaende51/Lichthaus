@@ -43,7 +43,7 @@ from .clap import CaptureError
 from .followrate import (  # noqa: F401  the rate cap and deadband, shared with follow-video
     CT_STEP, DEFAULT_RATE, HOLD_S, HUE_STEP, LEVEL_STEP, MAX_RATE, RATES, SAT_STEP, color_jump, interval, should_send)
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 RATE = clapmod.RATE  # 16 kHz: the centroid's band ends at 8 kHz, plenty
 BLOCK = 800  # 50 ms
@@ -79,7 +79,7 @@ def check_source(value) -> str:
     if value.lower() in ("default", "@default_monitor@"):
         return ""
     if any(c.isspace() for c in value) or len(value) > 200:
-        raise ValueError("audio_source must be a source name (hauslicht-ctl audio-sources) or default")
+        raise ValueError("audio_source must be a source name (lichthaus-ctl audio-sources) or default")
     return value
 
 
@@ -219,7 +219,7 @@ class AudioCapture(clapmod.Capture):
         return await list_sources()
 
     def command(self) -> list[str]:
-        props = f'{{ application.name = "Haus.Licht" media.name = "{self.name}"'
+        props = f'{{ application.name = "Lichthaus" media.name = "{self.name}"'
         pw = shutil.which("pw-record")
         src = self.source
         if pw is not None:
@@ -234,7 +234,7 @@ class AudioCapture(clapmod.Capture):
         if parec is None:
             raise CaptureError("neither pw-record nor parec found")
         return [parec, "--raw", f"--rate={RATE}", "--channels=1", "--format=s16le", "--latency-msec=50",
-                "--client-name=Haus.Licht", f"--stream-name={self.name}", f"--device={src or '@DEFAULT_MONITOR@'}"]
+                "--client-name=Lichthaus", f"--stream-name={self.name}", f"--device={src or '@DEFAULT_MONITOR@'}"]
 
 
 async def list_sources() -> list[dict]:

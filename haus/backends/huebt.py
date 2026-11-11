@@ -32,7 +32,7 @@ from ..common import UserError
 from ._bulbkit import (MAC_RE, Throttle, ble_device, ble_scan, clamp, color_caps, kelvin_range, learn_color,
                        mac_suffix, mired_kelvin, tr)
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 HUE_SERVICE = "0000fe0f-0000-1000-8000-00805f9b34fb"
 IDLE_S = 120.0

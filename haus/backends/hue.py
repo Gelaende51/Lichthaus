@@ -2,7 +2,7 @@
 
 Pairing: the user presses the bridge's link button, then `add hue host=…`
 asks the bridge for an application key (`POST /api`, generatekey). Keys are
-kept per bridge under the top-level `hue` key of hauslicht.json, so a failed
+kept per bridge under the top-level `hue` key of lichthaus.json, so a failed
 add (no light picked yet) does not need another button press. A bulb is one
 `light` resource (its id, or its name at add time). The bridge has a
 self-signed certificate (not checked, as aiohue does). Power-on behaviour is
@@ -32,7 +32,7 @@ from . import Backend, Offline
 from ..common import UserError, _language
 from ._bulbkit import color_caps, hs_rgb, kelvin_range, learn_color, mired_kelvin
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 MIN_INTERVAL_S = 0.2  # per bridge: Signify allows ~10 light commands/s in total
 REQUEST_TIMEOUT_S = 5.0
@@ -176,7 +176,7 @@ class HueBackend(Backend):
         return (await self.request(host, "GET", "/clip/v2/resource/light", key)).get("data", [])
 
     async def pair(self, host: str) -> str:
-        body = {"devicetype": f"hauslicht#{socket.gethostname()[:19]}", "generatekey": True}
+        body = {"devicetype": f"lichthaus#{socket.gethostname()[:19]}", "generatekey": True}
         data = await self.request(host, "POST", "/api", body=body)
         for item in data if isinstance(data, list) else [data]:
             if "success" in item:

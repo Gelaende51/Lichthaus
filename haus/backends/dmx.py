@@ -15,7 +15,7 @@ overwrite each other's channels. Senders:
   broadcast when none is given. Written here (18-byte header).
 - sacn: E1.31 data packets from the `sacn` library's DataPacket (its own
   sender thread and socket are not used), multicast 239.255.hi.lo or
-  unicast to the host, port 5568, a CID kept in hauslicht.json.
+  unicast to the host, port 5568, a CID kept in lichthaus.json.
 - ola: OLA daemon's HTTP API, POST /set_dmx u=<universe>&d=<v,v,...>.
 - enttec-pro: 0x7E, label 6, length (513, LSB first), start code 0, 512
   channels, 0xE7. The widget repeats the frame on its own.
@@ -50,7 +50,7 @@ from ..common import UserError
 from ._bulbkit import Presence, clamp, no_access, tr
 from .serial import by_id_of, is_url
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 OUTPUTS = ("artnet", "sacn", "ola", "enttec-pro", "opendmx")
 SERIAL_OUTPUTS = ("enttec-pro", "opendmx")
@@ -62,7 +62,7 @@ POLL_BIND_PORT = 6454   # ArtPollReply goes to the poller's port 6454 (tests: 0)
 SACN_PORT = 5568
 BROADCAST = "255.255.255.255"
 OLA_HOST = "localhost:9090"
-SOURCE_NAME = "Haus.Licht"
+SOURCE_NAME = "Lichthaus"
 FTDI_VID = 0x0403
 
 KEEPALIVE_S = 1.0
@@ -299,7 +299,7 @@ class OpenDmxSender:
             self.frame = bytes(frame)
         if self.thread is None or not self.thread.is_alive():
             self.halt.clear()
-            self.thread = threading.Thread(target=self._run, name="hauslicht-opendmx", daemon=True)
+            self.thread = threading.Thread(target=self._run, name="lichthaus-opendmx", daemon=True)
             self.thread.start()
 
     def _run(self) -> None:
@@ -412,7 +412,7 @@ class DmxBackend(Backend):
         return u
 
     def cid(self) -> bytes:
-        """sACN component id: one per installation, kept in hauslicht.json."""
+        """sACN component id: one per installation, kept in lichthaus.json."""
         if self._cid is None:
             state = getattr(self.ctx, "state", None)
             store = state.setdefault("dmx", {}) if isinstance(state, dict) else {}

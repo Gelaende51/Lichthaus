@@ -43,7 +43,7 @@ class FakeBridge:
 
     async def pair(self, request):
         body = await request.json()
-        assert body["generatekey"] is True and body["devicetype"].startswith("hauslicht#")
+        assert body["generatekey"] is True and body["devicetype"].startswith("lichthaus#")
         if not self.button:
             return web.json_response([{"error": {"type": 101, "address": "", "description": "link button not pressed"}}])
         return web.json_response([{"success": {"username": KEY, "clientkey": "00"}}])

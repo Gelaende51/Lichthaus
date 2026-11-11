@@ -1,18 +1,18 @@
-# The settings window (`hauslicht config`)
+# The settings window (`lichthaus config`)
 
-`hauslicht config` opens the Plasma widget's Configure pages (Bulbs, Profiles,
-Sound, Video, Notifications) in a window of their own, titled "Haus.Licht
-settings" ("Haus.Licht-Einstellungen" in German). It is for desktops without
+`lichthaus config` opens the Plasma widget's Configure pages (Bulbs, Profiles,
+Sound, Video, Notifications) in a window of their own, titled "Lichthaus
+settings" ("Lichthaus-Einstellungen" in German). It is for desktops without
 the widget (GNOME, XFCE, Cinnamon, tiling window managers) and for other
-front ends that want a "Settings…" entry; on Plasma, `hauslicht config`
-opens System Settings instead when Haus.Licht's pages are installed there
+front ends that want a "Settings…" entry; on Plasma, `lichthaus config`
+opens System Settings instead when Lichthaus's pages are installed there
 (`--window` still opens the window). The pages are the widget's own files,
 not a second copy: a change to a page shows everywhere.
 
 ## How it works
 
 - **The pages** live in the widget's package (repository
-  [Haus.Licht-plasma](https://github.com/Gelaende51/Haus.Licht-plasma),
+  [Lichthaus-plasma](https://github.com/Gelaende51/Lichthaus-plasma),
   `package/contents/`). `contents/standalone/main.qml` is a small host
   window: the category list on the left and the page on the right, laid out
   like Plasma's own Configure dialog. It reads the list of pages from the
@@ -21,7 +21,7 @@ not a second copy: a change to a page shows everywhere.
   `contents/standalone/imports` first on the QML import path. That directory
   holds stand-ins for the two modules that only work inside Plasma:
   - `org.kde.plasma.plasmoid`: `Plasmoid.configuration` with the keys and
-    defaults of the widget's `config/main.xml` (a test in Haus.Licht-plasma
+    defaults of the widget's `config/main.xml` (a test in Lichthaus-plasma
     checks they match). The window acts as widget 1: invert scroll, icon
     set, clap mode and Auto scan are widget 1's in the daemon
     (`widget-settings-set`, `widget_settings` in `get`), the same values
@@ -32,7 +32,7 @@ not a second copy: a change to a page shows everywhere.
     `config.qml` loads unchanged.
 - **Everything else is the real thing:** Kirigami, KCMUtils (the pages are
   `KCM.SimpleKCM`), KIconThemes (the icon chooser) and Plasma5Support (its
-  executable engine runs `hauslicht-ctl`) are ordinary QML modules that work
+  executable engine runs `lichthaus-ctl`) are ordinary QML modules that work
   without a Plasma session. The pages talk to the daemon as in the widget.
 - **No Apply button:** the pages change the daemon directly; the few widget
   settings they hold (icon set, scroll direction, clap mode, Auto scan) go
@@ -45,17 +45,17 @@ not a second copy: a change to a page shows everywhere.
 In this order; the first package that has `contents/standalone/main.qml`
 wins (an older widget without it is passed over):
 
-1. `$HAUSLICHT_PLASMOID` (a package directory, e.g. a Haus.Licht-plasma
+1. `$LICHTHAUS_PLASMOID` (a package directory, e.g. a Lichthaus-plasma
    checkout's `package/`);
-2. `~/.local/share/plasma/plasmoids/haus.licht.tray` (the widget installed
+2. `~/.local/share/plasma/plasmoids/lichthaus.tray` (the widget installed
    per user);
-3. `/usr/share/plasma/plasmoids/haus.licht.tray` (installed system-wide);
-4. `~/.local/share/hauslicht/plasmoid`: where `install/install.sh` unpacks the
+3. `/usr/share/plasma/plasmoids/lichthaus.tray` (installed system-wide);
+4. `~/.local/share/lichthaus/plasmoid`: where `install/install.sh` unpacks the
    widget's release when there is no `kpackagetool6` (no Plasma).
 
 ## What it needs
 
-`hauslicht config` checks for these before it opens the window and, when one
+`lichthaus config` checks for these before it opens the window and, when one
 is missing, prints the packages to install:
 
 | Part | Arch | Debian / Ubuntu | Fedora | openSUSE |
@@ -78,9 +78,9 @@ otherwise Qt's default style is used.
 On Wayland the compositor finds a window's icon and name through its app id,
 which Qt makes from the organisation domain (reversed) and the name the
 program was started under. The host sets the domain `gelaende51.github.io`,
-and `hauslicht config` starts the runtime through a link named `HausLicht`
-(`~/.cache/hauslicht/HausLicht`), so the app id is
-`io.github.gelaende51.HausLicht`: Haus.Licht's desktop file, with its
+and `lichthaus config` starts the runtime through a link named `Lichthaus`
+(`~/.cache/lichthaus/Lichthaus`), so the app id is
+`io.github.gelaende51.Lichthaus`: Lichthaus's desktop file, with its
 `brightness-high` icon. It also sets
 `QT_WAYLAND_DISABLED_INTERFACES=xdg_toplevel_icon_manager_v1`, or Qt would
 send the qml runtime's own icon, which compositors prefer. On X11 the window
@@ -88,13 +88,13 @@ keeps the qml runtime's icon.
 
 ## Messages
 
-The window's Qt messages go to `~/.local/state/hauslicht/config-window.log`
-(replaced at each start). `hauslicht config` returns at once and leaves the
+The window's Qt messages go to `~/.local/state/lichthaus/config-window.log`
+(replaced at each start). `lichthaus config` returns at once and leaves the
 window running; when the window quits within its first second and a half (a
 QML error), it prints the log instead.
 
 ## System Settings (Plasma 6)
 
 On Plasma the same pages are KCMs in System Settings → Connected Devices →
-Haus.Licht, with an external-app entry as the fallback: see
+Lichthaus, with an external-app entry as the fallback: see
 [system-settings.md](system-settings.md).

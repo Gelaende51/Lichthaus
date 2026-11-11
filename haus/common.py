@@ -15,10 +15,10 @@ try:
 except ImportError:  # Windows: msvcrt.locking instead
     fcntl = None
 
-# Haus.Licht's version (the man pages carry it).
+# Lichthaus's version (the man pages carry it).
 VERSION = "0.2"
 # The ctl protocol (docs/ctl-protocol.md, "protocol" in `get`): raised only for
-# changes that break an older widget (Haus.Licht-plasma's minProtocol);
+# changes that break an older widget (Lichthaus-plasma's minProtocol);
 # added fields do not raise it.
 PROTOCOL = 1
 
@@ -26,16 +26,87 @@ ROOT = Path(__file__).resolve().parent.parent  # the checkout
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))  # provision_and_toggle.py lives there
 
-# HAUSLICHT_STATE / HAUSLICHT_SOCK: a second instance (tests, widget work) beside the live one.
-STATE_PATH = Path(os.environ.get("HAUSLICHT_STATE") or ROOT / "hauslicht.json")
-if os.environ.get("HAUSLICHT_SOCK"):
-    SOCK_PATH = Path(os.environ["HAUSLICHT_SOCK"])
+# LICHTHAUS_STATE / LICHTHAUS_SOCK: a second instance (tests, widget work) beside the live one.
+STATE_NAME = "lichthaus.json"
+STATE_PATH = Path(os.environ.get("LICHTHAUS_STATE") or ROOT / STATE_NAME)
+if os.environ.get("LICHTHAUS_SOCK"):
+    SOCK_PATH = Path(os.environ["LICHTHAUS_SOCK"])
 elif _p.IS_LINUX:
-    SOCK_PATH = Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "hauslicht.sock"
+    SOCK_PATH = Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "lichthaus.sock"
 elif _p.IS_MAC:
-    SOCK_PATH = Path(os.environ.get("TMPDIR", "/tmp")) / "hauslicht.sock"
+    SOCK_PATH = Path(os.environ.get("TMPDIR", "/tmp")) / "lichthaus.sock"
 else:  # Windows
-    SOCK_PATH = Path(os.environ.get("LOCALAPPDATA", ".")) / "hauslicht" / "hauslicht.sock"
+    SOCK_PATH = Path(os.environ.get("LOCALAPPDATA", ".")) / "lichthaus" / "lichthaus.sock"
+
+
+# The root helpers (install/setup-root.sh installs them, and its version stamp).
+HELPER_DIR = Path("/usr/local/lib/lichthaus")
+
+# rename-lichthaus: keep-begin
+# Renamed from Haus.Licht (2026-11, dev/rename-lichthaus.md): the names an
+# existing install still has, until the daemon and setup-root.sh have moved it.
+OLD_STATE_NAME = "hauslicht.json"
+OLD_HELPER_DIR = Path("/usr/local/lib/hauslicht")
+# rename-lichthaus: keep-end
+
+
+def helper_dir() -> Path:
+    """Where the root helpers are: the new directory once setup-root.sh has
+    stamped it (setup-version); before that the old one, while it is there.
+    The new name alone is no proof: the older Licht.Haus left a
+    conn-update of its own there, without the stamp. Asked at each use, so
+    a setup run while the daemon runs takes effect at once."""
+    if (HELPER_DIR / "setup-version").exists():
+        return HELPER_DIR
+    return OLD_HELPER_DIR if OLD_HELPER_DIR.is_dir() else HELPER_DIR
+
+
+def helper_path(path: str) -> str:
+    """A helper's path under HELPER_DIR, moved to wherever helper_dir() says;
+    any other path (a test's stand-in) as it is."""
+    p = Path(path)
+    return str(helper_dir() / p.name) if p.parent == HELPER_DIR else path
+
+
+def migrate_state_files(root: Path = ROOT) -> list[tuple[str, str]]:
+    """Give the state files of an install from before the rename their new
+    names: OLD_STATE_NAME, its backups (OLD_STATE_NAME.*) and its armed file
+    become STATE_NAME, STATE_NAME.* and the new armed file. Only when the
+    new state file is missing, each file only to a free name, and by
+    os.replace: never a copy, since the mesh SEQ counter in it must not exist
+    twice. Nothing moves while a process of the old name holds the old lock
+    (it would write the old file again). The files are never read. Returns
+    the (old, new) names that moved."""
+    old_state, new_state = root / OLD_STATE_NAME, root / STATE_NAME
+    if not old_state.exists() or new_state.exists() or new_state.is_symlink():
+        return []
+    old_lock = lock_path(old_state)
+    try:
+        fd = os.open(old_lock, os.O_RDWR)
+    except FileNotFoundError:
+        fd = None
+    try:
+        if fd is not None and fcntl is not None:  # Windows: no old install to guard (Linux only before)
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                return []
+        old_armed, new_armed = armed_path(old_state), armed_path(new_state)
+        pairs = [(old_state, new_state), (old_armed, new_armed)]
+        pairs += [(p, root / (STATE_NAME + p.name[len(OLD_STATE_NAME):]))
+                  for p in sorted(root.glob(OLD_STATE_NAME + ".*")) if p != old_armed]
+        moved = []
+        for old, new in pairs:
+            if (old.exists() or old.is_symlink()) and not (new.exists() or new.is_symlink()):
+                os.replace(old, new)
+                moved.append((old.name, new.name))
+        if fd is not None:
+            with contextlib.suppress(OSError):
+                old_lock.unlink()  # nothing of the old name uses it any more
+        return moved
+    finally:
+        if fd is not None:
+            os.close(fd)
 
 
 def lock_path(state_path: Path) -> Path:
@@ -50,19 +121,19 @@ class UserError(Exception):
 # ------------------------------------------------------------- i18n
 
 GERMAN = {
-    "hauslicht: control Ledvance Volkslicht bulbs (Bluetooth SIG Mesh) from Linux.":
-        "hauslicht: Ledvance-Volkslicht-Lampen (Bluetooth SIG Mesh) unter Linux steuern.",
-    "hauslicht: lights that follow the laptop screen (Bluetooth mesh and more).":
-        "hauslicht: Lampen, die dem Laptop-Bildschirm folgen (Bluetooth Mesh und mehr).",
-    "no {name} yet: run `hauslicht adopt` first": "noch keine {name}: zuerst `hauslicht adopt` ausführen",
+    "lichthaus: control Ledvance Volkslicht bulbs (Bluetooth SIG Mesh) from Linux.":
+        "lichthaus: Ledvance-Volkslicht-Lampen (Bluetooth SIG Mesh) unter Linux steuern.",
+    "lichthaus: lights that follow the laptop screen (Bluetooth mesh and more).":
+        "lichthaus: Lampen, die dem Laptop-Bildschirm folgen (Bluetooth Mesh und mehr).",
+    "no {name} yet: run `lichthaus adopt` first": "noch keine {name}: zuerst `lichthaus adopt` ausführen",
     "unknown bulb {which}; known: {known}": "unbekannte Lampe {which}; bekannt: {known}",
-    "another hauslicht process holds the mesh link (for adopt/setup: systemctl --user stop hauslicht first)":
-        "ein anderer hauslicht-Prozess hält die Mesh-Verbindung "
-        "(für adopt/setup zuerst: systemctl --user stop hauslicht)",
+    "another lichthaus process holds the mesh link (for adopt/setup: systemctl --user stop lichthaus first)":
+        "ein anderer lichthaus-Prozess hält die Mesh-Verbindung "
+        "(für adopt/setup zuerst: systemctl --user stop lichthaus)",
     "the sync daemon is not running": "der Sync-Dienst läuft nicht",
     "{target} is not on the ignore list": "{target} steht nicht auf der Ignorierliste",
     "(no answer: switched off at the wall?)": "(keine Antwort: am Wandschalter aus?)",
-    "bulb {addr} adopted. Try: hauslicht dim 30 {addr}": "Lampe {addr} übernommen. Probieren: hauslicht dim 30 {addr}",
+    "bulb {addr} adopted. Try: lichthaus dim 30 {addr}": "Lampe {addr} übernommen. Probieren: lichthaus dim 30 {addr}",
     "no backlight device in /sys/class/backlight": "keine Hintergrundbeleuchtung in /sys/class/backlight",
     "unicast address like 0x0002 (default: all)": "Unicast-Adresse wie 0x0002 (Standard: alle)",
     "bulb id like mesh:0002 or unicast address like 0x0002 (default: the selection)":
@@ -173,15 +244,15 @@ GERMAN = {
     "cancelled": "abgebrochen",
     "not allowed, or no password prompt available": "nicht erlaubt, oder keine Passwortabfrage verfügbar",
     "failed ({last})": "fehlgeschlagen ({last})",
-    "flick mode {mode} needs the system setup first: hauslicht setup-root":
-        "Flick-Modus {mode} braucht erst die Systemeinrichtung: hauslicht setup-root",
+    "flick mode {mode} needs the system setup first: lichthaus setup-root":
+        "Flick-Modus {mode} braucht erst die Systemeinrichtung: lichthaus setup-root",
     "System setup {why}.": "Systemeinrichtung {why}.",
     "Exclusive mode unavailable ({why}): working like Fast.":
         "Exklusiv-Modus nicht verfügbar ({why}): wirkt wie Schnell.",
     "list the Bluetooth adapters for flick mode exclusive (daemon running)":
         "die Bluetooth-Adapter für den Flick-Modus exclusive auflisten (Dienst läuft)",
-    "mesh bulbs are adopted with `hauslicht adopt` while the service is stopped":
-        "Mesh-Lampen werden mit `hauslicht adopt` aufgenommen, während der Dienst gestoppt ist",
+    "mesh bulbs are adopted with `lichthaus adopt` while the service is stopped":
+        "Mesh-Lampen werden mit `lichthaus adopt` aufgenommen, während der Dienst gestoppt ist",
     "unknown kind of bulb {kind}; known: {known}": "unbekannte Lampenart {kind}; bekannt: {known}",
     "{kind} needs {missing}: pip install it into the venv": "{kind} braucht {missing}: per pip in die venv installieren",
     "{label} is required": "{label} fehlt",
@@ -191,8 +262,8 @@ GERMAN = {
     "{bid} is added already": "{bid} ist schon hinzugefügt",
     "no widget {w} (widgets: 1-{n})": "kein Widget {w} (Widgets: 1-{n})",
     "{bid} is not in use": "{bid} wird nicht verwendet",
-    "{bid} is disconnected (held); connect it first: hauslicht connect":
-        "{bid} ist getrennt (gehalten); erst verbinden: hauslicht connect",
+    "{bid} is disconnected (held); connect it first: lichthaus connect":
+        "{bid} ist getrennt (gehalten); erst verbinden: lichthaus connect",
     "hold the bulbs disconnected: OnPowerUp back to on and the link dropped, so the wall switch works as usual; "
     "power and level stay as they are (daemon running)":
         "die Lampen getrennt halten: OnPowerUp zurück auf on und die Verbindung getrennt, sodass der Wandschalter "
@@ -262,8 +333,8 @@ GERMAN = {
     "act in widget N's context: its bulbs, selection, profile and clap mode (default 1; daemon running)":
         "im Kontext von Widget N handeln: seine Lampen, Auswahl, sein Profil und Klatschmodus (Standard 1; Dienst läuft)",
     "print the daemon's reply as JSON instead of text": "die Antwort des Dienstes als JSON statt als Text ausgeben",
-    "one of the commands below; hauslicht COMMAND --help shows its arguments":
-        "einer der Befehle unten; hauslicht BEFEHL --help zeigt seine Argumente",
+    "one of the commands below; lichthaus COMMAND --help shows its arguments":
+        "einer der Befehle unten; lichthaus BEFEHL --help zeigt seine Argumente",
     "Switch and dim": "Schalten und dimmen",
     "Follow the screen: mode, profile, colour": "Dem Bildschirm folgen: Modus, Profil, Farbe",
     "Bulbs and widgets": "Lampen und Widgets",
@@ -295,8 +366,8 @@ GERMAN = {
         "weiße Lampen folgen dem Bildschirmweiß des Nachtlichts: on oder off (Dienst läuft)",
     "profiles: list | save NAME | apply NAME | rename OLD NEW | delete NAME (daemon running)":
         "Profile: list | save NAME | apply NAME | rename ALT NEU | delete NAME (Dienst läuft)",
-    "set any key as hauslicht-ctl set does: KEY=VALUE ..., see docs/ctl-protocol.md (daemon running)":
-        "einen beliebigen Schlüssel setzen wie hauslicht-ctl set: SCHLÜSSEL=WERT ..., siehe docs/ctl-protocol.md "
+    "set any key as lichthaus-ctl set does: KEY=VALUE ..., see docs/ctl-protocol.md (daemon running)":
+        "einen beliebigen Schlüssel setzen wie lichthaus-ctl set: SCHLÜSSEL=WERT ..., siehe docs/ctl-protocol.md "
         "(Dienst läuft)",
     "every bulb with its use, widget, state, icons, audio/video and screen region (daemon running)":
         "jede Lampe mit Verwendung, Widget, Zustand, Symbolen, Audio/Video und Bildschirmbereich (Dienst läuft)",
@@ -323,42 +394,42 @@ GERMAN = {
     "the system setup: missing, outdated or current, read anew (daemon running)":
         "die Systemeinrichtung: missing (fehlt), outdated (veraltet) oder current (aktuell), neu gelesen (Dienst läuft)",
     "open the settings: the Plasma widget's Configure pages (bulbs, profiles, sound, video, notifications); "
-    "on Plasma in System Settings (Connected Devices → Haus.Licht) when they are installed there, otherwise in a window "
+    "on Plasma in System Settings (Connected Devices → Lichthaus) when they are installed there, otherwise in a window "
     "of their own, also on other desktops":
         "die Einstellungen öffnen: die Einrichtungsseiten des Plasma-Widgets (Lampen, Profile, Ton, Video, "
-        "Benachrichtigungen); unter Plasma in den Systemeinstellungen (Angeschlossene Geräte → Haus.Licht), wenn sie "
+        "Benachrichtigungen); unter Plasma in den Systemeinstellungen (Angeschlossene Geräte → Lichthaus), wenn sie "
         "dort installiert sind, sonst in einem eigenen Fenster, auch auf anderen Desktops",
     "the settings window, also on Plasma": "das Einstellungsfenster, auch unter Plasma",
-    "only System Settings: where Haus.Licht's pages are not there, open nothing and exit with 3":
-        "nur die Systemeinstellungen: wo die Seiten von Haus.Licht dort fehlen, nichts öffnen und mit 3 enden",
+    "only System Settings: where Lichthaus's pages are not there, open nothing and exit with 3":
+        "nur die Systemeinstellungen: wo die Seiten von Lichthaus dort fehlen, nichts öffnen und mit 3 enden",
     "System Settings: the Bulbs page with its Add dialog":
         "Systemeinstellungen: die Seite Lampen mit ihrem Dialog zum Hinzufügen",
-    "hauslicht config: {why}": "hauslicht config: {why}",
+    "lichthaus config: {why}": "lichthaus config: {why}",
     "not a Plasma session": "keine Plasma-Sitzung",
     "System Settings (systemsettings) is not installed": "die Systemeinstellungen (systemsettings) sind nicht installiert",
-    "Haus.Licht's pages are not installed in System Settings (Haus.Licht-plasma's kcm/)":
-        "die Seiten von Haus.Licht sind nicht in den Systemeinstellungen installiert (kcm/ aus Haus.Licht-plasma)",
-    "System Settings is open without Haus.Licht's pages; they show there after the next login":
-        "die Systemeinstellungen sind ohne die Seiten von Haus.Licht geöffnet; sie erscheinen dort nach der "
+    "Lichthaus's pages are not installed in System Settings (Lichthaus-plasma's kcm/)":
+        "die Seiten von Lichthaus sind nicht in den Systemeinstellungen installiert (kcm/ aus Lichthaus-plasma)",
+    "System Settings is open without Lichthaus's pages; they show there after the next login":
+        "die Systemeinstellungen sind ohne die Seiten von Lichthaus geöffnet; sie erscheinen dort nach der "
         "nächsten Anmeldung",
-    "hauslicht config needs: {parts}": "hauslicht config braucht: {parts}",
+    "lichthaus config needs: {parts}": "lichthaus config braucht: {parts}",
     "Install them with:": "Installieren mit:",
     "Older Debian and Ubuntu releases have the executable engine in plasma-workspace.":
         "Ältere Debian- und Ubuntu-Versionen haben die executable-Engine in plasma-workspace.",
-    "hauslicht config: the widget's pages were not found (a Haus.Licht-plasma package with "
+    "lichthaus config: the widget's pages were not found (a Lichthaus-plasma package with "
     "contents/standalone/main.qml). Looked in:":
-        "hauslicht config: die Seiten des Widgets wurden nicht gefunden (ein Haus.Licht-plasma-Paket mit "
+        "lichthaus config: die Seiten des Widgets wurden nicht gefunden (ein Lichthaus-plasma-Paket mit "
         "contents/standalone/main.qml). Gesucht in:",
-    "install/install.sh fetches them; or point HAUSLICHT_PLASMOID at a package directory.":
-        "install/install.sh holt sie; oder HAUSLICHT_PLASMOID auf ein Paketverzeichnis zeigen lassen.",
-    "hauslicht config: the window did not open (exit {code}); log: {log}":
-        "hauslicht config: das Fenster hat sich nicht geöffnet (Exit {code}); Protokoll: {log}",
+    "install/install.sh fetches them; or point LICHTHAUS_PLASMOID at a package directory.":
+        "install/install.sh holt sie; oder LICHTHAUS_PLASMOID auf ein Paketverzeichnis zeigen lassen.",
+    "lichthaus config: the window did not open (exit {code}); log: {log}":
+        "lichthaus config: das Fenster hat sich nicht geöffnet (Exit {code}); Protokoll: {log}",
     "open a window showing each bulb's intended state and the daemon's events, live (PyQt6)":
         "ein Fenster öffnen, das den Sollzustand jeder Lampe und die Ereignisse des Dienstes live zeigt (PyQt6)",
     "While the daemon runs it owns the Bluetooth link; the other commands then go to it over its socket. "
-    "man hauslicht: files, environment, exit status, examples.":
+    "man lichthaus: files, environment, exit status, examples.":
         "Während der Dienst läuft, gehört ihm die Bluetooth-Verbindung; die anderen Befehle gehen dann über seinen "
-        "Socket an ihn. man hauslicht: Dateien, Umgebung, Rückgabewerte, Beispiele.",
+        "Socket an ihn. man lichthaus: Dateien, Umgebung, Rückgabewerte, Beispiele.",
     "range needs both LO and HI, or neither": "range braucht UNTEN und OBEN, oder keines von beiden",
     "profile {action} needs a NAME": "profile {action} braucht einen NAMEN",
     "not in use": "nicht verwendet",
@@ -423,7 +494,7 @@ def read_state(path: Path) -> dict | None:
 
 def armed_path(state_path: Path) -> Path:
     """Beside the state file: the bulbs whose OnPowerUp may be armed to
-    anything but "on" (hauslicht.json -> hauslicht.armed.json). Kept apart
+    anything but "on" (lichthaus.json -> lichthaus.armed.json). Kept apart
     so that arming never rewrites the file with the keys and the SEQ, and
     `disarm --if-armed` can tell "nothing to do" without reading that."""
     return state_path.with_suffix(".armed.json")
@@ -459,8 +530,8 @@ def link_lock(state_path: Path):
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
         os.close(fd)
-        sys.exit(_("another hauslicht process holds the mesh link "
-                   "(for adopt/setup: systemctl --user stop hauslicht first)"))
+        sys.exit(_("another lichthaus process holds the mesh link "
+                   "(for adopt/setup: systemctl --user stop lichthaus first)"))
     try:
         yield
     finally:

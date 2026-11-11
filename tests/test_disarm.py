@@ -1,4 +1,4 @@
-"""The arm marker (common.armed_path) and `hauslicht disarm`, the unit's ExecStopPost."""
+"""The arm marker (common.armed_path) and `lichthaus disarm`, the unit's ExecStopPost."""
 
 import asyncio
 import os
@@ -67,7 +67,7 @@ def test_suspend_logs_each_bulb_and_keeps_an_unanswered_one(tmp_path, caplog):
             ok = await real(bulb, value)
             return answers.pop(0) if answers else ok
         m.set_powerup = flaky
-        caplog.set_level("INFO", logger="hauslicht")
+        caplog.set_level("INFO", logger="lichthaus")
         await d.before_sleep()
         assert "suspend: mock:1 OnPowerUp on (no answer)" in caplog.text
         assert read_armed(path) == {"mock:1": "off"}
@@ -257,7 +257,7 @@ def test_bluetooth_ready(monkeypatch, bluez, sysfs, want):
 
 def test_the_unit_and_the_installer_carry_the_same_stop_post():
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    unit = open(os.path.join(root, "hauslicht.service")).read()
+    unit = open(os.path.join(root, "lichthaus.service")).read()
     install = open(os.path.join(root, "install", "install.sh")).read()
     assert "\nExecStopPost=-" in unit and unit.count("disarm --if-armed") == 1
-    assert "s|^ExecStopPost=.*|ExecStopPost=-$dir/.venv/bin/python $dir/hauslicht.py disarm --if-armed|" in install
+    assert "s|^ExecStopPost=.*|ExecStopPost=-$dir/.venv/bin/python $dir/lichthaus.py disarm --if-armed|" in install

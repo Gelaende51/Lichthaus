@@ -21,13 +21,15 @@ import sys
 from pathlib import Path
 
 from . import _platform
-from .common import ROOT
+from . import common
+from .common import HELPER_DIR, OLD_HELPER_DIR, ROOT, helper_dir
 
 SCRIPT = ROOT / "install" / "setup-root.sh"
 VERSION_FILE = ROOT / "install" / "setup-version"
-STAMP = Path("/usr/local/lib/hauslicht/setup-version")
+STAMP = HELPER_DIR / "setup-version"  # or the same name in OLD_HELPER_DIR (common.helper_dir)
 # what a run from before the stamp left behind: such a setup is outdated, not missing
-LEGACY = (Path("/usr/local/lib/hauslicht/conn-update"), Path("/etc/modules-load.d/haus-licht.conf"))
+LEGACY = (OLD_HELPER_DIR / "conn-update",
+          Path("/etc/modules-load.d/haus-licht.conf"))  # rename-lichthaus: keep
 
 
 def required() -> int:
@@ -36,7 +38,7 @@ def required() -> int:
 
 def installed(stamp: Path | None = None) -> int | None:
     try:
-        return int((stamp or STAMP).read_text().strip())
+        return int((stamp or helper_dir() / STAMP.name).read_text().strip())
     except (OSError, ValueError):
         return None
 
@@ -50,6 +52,10 @@ def status(stamp: Path | None = None, legacy=None) -> dict:
     if have is None:
         legacy = LEGACY if legacy is None else legacy
         state = "outdated" if any(p.exists() for p in legacy) else "missing"
+    elif stamp is None and helper_dir() != common.HELPER_DIR:
+        # the helpers only under the name from before the rename: they work,
+        # but setup-root.sh has to run once more to move them
+        state = "outdated"
     else:
         state = "current" if have >= want else "outdated"
     return {"status": state, "installed": have, "required": want}
@@ -77,6 +83,6 @@ async def run(cmd: list[str] | None = None) -> tuple[int, str]:
 
 
 def run_on_tty() -> int:
-    """`hauslicht setup-root` on a terminal: sudo, the output shown as it comes."""
+    """`lichthaus setup-root` on a terminal: sudo, the output shown as it comes."""
     import subprocess
     return subprocess.call(command(True), stdin=sys.stdin)

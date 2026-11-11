@@ -1,4 +1,4 @@
-"""The daemon off Linux: `hauslicht sync` starts, serves the ctl protocol and
+"""The daemon off Linux: `lichthaus sync` starts, serves the ctl protocol and
 leaves every Linux-only part alone (desktop, KDE, notification watcher, raw
 HCI, root setup). Each run is a subprocess with mock backends, its own state,
 socket, HOME and XDG dirs and no session bus. Tripwires in the subprocess make
@@ -79,17 +79,17 @@ def ask(sock: Path, cmd: str, *args: str) -> dict:
 def run_daemon(tmp_path: Path, prelude: str, transport: str) -> dict:
     """Start the daemon, ask it, stop it; the answers by command."""
     # macOS caps a Unix socket path at 104 bytes; its pytest tmp_path is longer
-    sock = (tmp_path if sys.platform == "win32" else Path(tempfile.mkdtemp(prefix="hl", dir="/tmp"))) / "hauslicht.sock"
+    sock = (tmp_path if sys.platform == "win32" else Path(tempfile.mkdtemp(prefix="hl", dir="/tmp"))) / "lichthaus.sock"
     env = {**os.environ,
-           "HAUSLICHT_BACKENDS": "mock", "HAUSLICHT_STATE": str(tmp_path / "state.json"),
-           "HAUSLICHT_SOCK": str(sock), "HAUSLICHT_NO_PANEL": "1", "HAUSLICHT_TRANSPORT": transport,
+           "LICHTHAUS_BACKENDS": "mock", "LICHTHAUS_STATE": str(tmp_path / "state.json"),
+           "LICHTHAUS_SOCK": str(sock), "LICHTHAUS_NO_PANEL": "1", "LICHTHAUS_TRANSPORT": transport,
            "HOME": str(tmp_path / "home"), "XDG_CONFIG_HOME": str(tmp_path / "config"),
            "XDG_STATE_HOME": str(tmp_path / "state"), "XDG_CACHE_HOME": str(tmp_path / "cache"),
            "XDG_RUNTIME_DIR": str(tmp_path / "run"),
            "DBUS_SESSION_BUS_ADDRESS": "unix:path=/nonexistent",
            "DBUS_SYSTEM_BUS_ADDRESS": "unix:path=/nonexistent",
            "PYTHONPATH": str(REPO)}
-    env.pop("HAUSLICHT_DEBUG", None)
+    env.pop("LICHTHAUS_DEBUG", None)
     log = tmp_path / "daemon.log"
     with open(log, "wb") as out:
         # Windows: its own process group, so Ctrl+Break reaches the daemon alone
@@ -135,17 +135,17 @@ def check_answers(answers: dict) -> None:
     assert got["exclusive"]["active"] is False
     assert answers["adapters"]["results"][0]["adapters"] == []
     assert answers["adapters"]["results"][0]["chosen"] is None
-    assert "hauslicht setup-root" in answers["flick"]["error"]  # fast needs the setup, which is Linux's
+    assert "lichthaus setup-root" in answers["flick"]["error"]  # fast needs the setup, which is Linux's
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="fakes darwin on a Unix host: no fcntl, no AF_UNIX server on Windows")
 def test_daemon_serves_on_macos(tmp_path, monkeypatch):
-    monkeypatch.delenv("HAUSLICHT_TRANSPORT", raising=False)  # macOS keeps the Unix socket
+    monkeypatch.delenv("LICHTHAUS_TRANSPORT", raising=False)  # macOS keeps the Unix socket
     check_answers(run_daemon(tmp_path, FAKE_DARWIN, "unix"))
 
 
 def test_daemon_serves_on_windows_gate(tmp_path, monkeypatch):
-    monkeypatch.setenv("HAUSLICHT_TRANSPORT", "tcp")  # this side's ipc.connect: port file and token
+    monkeypatch.setenv("LICHTHAUS_TRANSPORT", "tcp")  # this side's ipc.connect: port file and token
     answers = run_daemon(tmp_path, GATE_OFF, "tcp")
     assert not answers["sock"].exists()  # TCP: no socket file, only the port file beside it
     check_answers(answers)

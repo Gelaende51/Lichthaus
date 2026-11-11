@@ -296,9 +296,9 @@ def test_the_root_helper_checks_its_input_without_root():
 def test_setup_v4_installs_the_helper_for_sudo():
     script = rootsetup.SCRIPT.read_text()
     assert rootsetup.required() >= 4  # 5: the device udev rule (test_localdevices)
-    assert '"$here/hci-claim" /usr/local/lib/hauslicht/hci-claim' in script
-    assert "NOPASSWD: /usr/local/lib/hauslicht/conn-update, /usr/local/lib/hauslicht/hci-claim" in script
-    assert hci.HELPER == "/usr/local/lib/hauslicht/hci-claim"
+    assert '"$here/hci-claim" /usr/local/lib/lichthaus/hci-claim' in script
+    assert "NOPASSWD: /usr/local/lib/lichthaus/conn-update, /usr/local/lib/lichthaus/hci-claim" in script
+    assert hci.HELPER == "/usr/local/lib/lichthaus/hci-claim"
     assert os.access(ROOT / "install" / "hci-claim", os.X_OK)
 
 
@@ -443,7 +443,7 @@ class Ctx:
         self.bulb = SimpleNamespace(id=BID, config={"unicast": "0x0002"})
         self.events: list[tuple] = []
         self.saved: list[int] = []  # state["seq"] at each save: what a crash would restart from
-        self.state_path = Path("hauslicht.json")
+        self.state_path = Path("lichthaus.json")
 
     def bulbs(self):
         return [self.bulb]
@@ -779,7 +779,7 @@ def test_a_late_repeat_of_an_earlier_reply_is_not_the_next_count(monkeypatch):
 
 def test_sessions_share_the_node_and_reserve_no_seq(monkeypatch):
     """Each check opened a session with a fresh MeshNode: 64 SEQ reserved and
-    hauslicht.json written each time (1786 times in 4 h: ~0.7 M of the 24-bit
+    lichthaus.json written each time (1786 times in 4 h: ~0.7 M of the 24-bit
     SEQ space a day, used up in under a month)."""
     async def body():
         ctx, bulb, b, ctrl = await exclusive_session(monkeypatch)

@@ -1,4 +1,4 @@
-# Haus.Licht
+# Lichthaus
 
 [English](../../README.md) · **Deutsch**
 
@@ -10,6 +10,14 @@ Hersteller-App, Konto oder Cloud.
 
 Abgespalten von [Licht.Haus](https://github.com/Gelaende51/Licht.Haus).
 
+<!-- rename-lichthaus: keep-begin -->
+**Umbenannt:** früher Haus.Licht. Bei einer bestehenden Installation gleich
+nach `git pull` `install/install.sh` ausführen: es zieht die Installation auf
+die neuen Namen um (Dienst, Einstellungen, Widget und Leiste; die
+Zustandsdatei benennt der Dienst bei seinem nächsten Start um). Danach
+`sudo install/setup-root.sh` noch einmal ausführen.
+<!-- rename-lichthaus: keep-end -->
+
 - **Offenlegung KI-Einsatz**
   - Agent: Claude Code mit Claude Opus 5.5 (Anthropic) hat Code und
     Dokumentation geschrieben und untersucht, wie die offizielle App die
@@ -20,7 +28,7 @@ Abgespalten von [Licht.Haus](https://github.com/Gelaende51/Licht.Haus).
   - Autor: an den echten Lampen getestet, Funktionen und Regler-Modi festgelegt.
 
 [Lizenz: AGPL-3.0](../../LICENSE) · [Notizen und Erkenntnisse (englisch)](../../dev/takeaways.md) ·
-[Fehlermeldungen](https://github.com/Gelaende51/Haus.Licht/issues) ·
+[Fehlermeldungen](https://github.com/Gelaende51/Lichthaus/issues) ·
 [Spenden (CO₂-Ausgleich für die Tokens)](https://ko-fi.com/vault51)
 
 ## Funktionen
@@ -31,7 +39,7 @@ Benachrichtigungstexte werden nie protokolliert.
 
 ### Dem Bildschirm folgen
 
-- Die Lampen folgen der Bildschirmhelligkeit (`hauslicht sync`, ein
+- Die Lampen folgen der Bildschirmhelligkeit (`lichthaus sync`, ein
   systemd-Benutzerdienst): *immer*, nur mit Nachtlicht, bei Tageslicht, im
   dunklen Farbschema, im hellen Farbschema oder *nie*.
 - **Bildschirmfenster** (zwei Griffe: Bildschirmhelligkeit am linken heißt
@@ -50,7 +58,7 @@ Benachrichtigungstexte werden nie protokolliert.
   trennt die Lampen des Widgets und verbindet sie wieder. Solange sie getrennt
   sind, wirkt der Wandschalter wie ein gewöhnlicher Schalter, und das Licht
   bleibt, wie es ist; eine gescheiterte Verbindung wird sofort neu versucht
-  (`hauslicht connect` / `disconnect`).
+  (`lichthaus connect` / `disconnect`).
 - **Tastaturregler als Fernbedienung:** der Regler *Tastaturhelligkeit* von
   Plasma bewegt ein Widget-Element nach Wahl (einen Fenstergriff, die Kurve,
   die Helligkeit); braucht die Systemeinrichtung.
@@ -65,7 +73,7 @@ Benachrichtigungstexte werden nie protokolliert.
   - *Aus*: ein normaler Schalter. *An*: Umschalten per Wandschalter.
     *Schnell*: wie An, mit Bluetooth auf schnelles Wiederverbinden
     eingestellt. *Exklusiv*: wie Schnell, ohne Bluetooth-Verbindung;
-    Haus.Licht nimmt einen Bluetooth-Adapter für sich (andere
+    Lichthaus nimmt einen Bluetooth-Adapter für sich (andere
     Bluetooth-Geräte daran funktionieren dann nicht) und macht die Lampe
     schneller wieder scharf.
   - Schnell und Exklusiv brauchen die **Systemeinrichtung**
@@ -82,7 +90,7 @@ Benachrichtigungstexte werden nie protokolliert.
   Beenden wird das Einschaltverhalten der Lampen wieder auf „an“ gesetzt, der
   Wandschalter wirkt dann wie ein normaler Schalter, solange der Laptop weg
   ist. Nach einem Absturz oder Abbruch setzt die Dienst-Unit die Lampen
-  zurück, die noch scharf sein könnten (`hauslicht disarm --if-armed`).
+  zurück, die noch scharf sein könnten (`lichthaus disarm --if-armed`).
 - **Laptop-Deckel:** Zuklappen schaltet die Lampen aus, Aufklappen ein (oder
   nur eins davon, oder nie); aus vor dem Ruhezustand.
 - **Monitorschalter folgen** (nur Desktop-PCs, wo es erkennbar ist): das Licht
@@ -121,35 +129,35 @@ Benachrichtigungstexte werden nie protokolliert.
 - **Tray-Widget** (Plasma 6) mit den Schaltern **Klatschen**, **Schalter** und
   **An/Aus**; Mittelklick schaltet um, das Mausrad dimmt (Scrollrichtung
   umkehrbar). Weitere Widgets für die Kontrollleiste, jedes mit eigenen
-  Lampen. Das Widget liegt in [Haus.Licht-plasma](https://github.com/Gelaende51/Haus.Licht-plasma);
+  Lampen. Das Widget liegt in [Lichthaus-plasma](https://github.com/Gelaende51/Lichthaus-plasma);
   `install/install.sh` installiert seine neueste Version.
 - **Einstellungen:** die Einrichtungsseiten des Widgets (Lampen, Profile,
   Ton, Video, Benachrichtigungen). Unter Plasma stehen sie in den
-  Systemeinstellungen → Angeschlossene Geräte → Haus.Licht, und `hauslicht config` öffnet
+  Systemeinstellungen → Angeschlossene Geräte → Lichthaus, und `lichthaus config` öffnet
   sie dort ([Systemeinstellungen](../system-settings.md), englisch); sonst,
-  und mit `hauslicht config --window`, in einem eigenen Fenster, auch unter
+  und mit `lichthaus config --window`, in einem eigenen Fenster, auch unter
   GNOME, XFCE oder einem Tiling-WM ([Einstellungsfenster](../settings-window.md),
   englisch).
 - **Symbolsätze:** sechs Sätze für Tray- und Lampensymbole, mit Vorschau in
   einer Auswahlliste unter Einrichten → *Lampen*, passend zum
   Plasma-Farbschema; Quellen und Lizenzen in
-  [LICENSES.md von Haus.Licht-plasma](https://github.com/Gelaende51/Haus.Licht-plasma/blob/main/package/LICENSES.md) (englisch).
+  [LICENSES.md von Lichthaus-plasma](https://github.com/Gelaende51/Lichthaus-plasma/blob/main/package/LICENSES.md) (englisch).
 - **Identifizieren und Testen** (Einrichten → *Lampen*, oder
-  `hauslicht identify` / `test`): Identifizieren lässt eine Lampe langsam
+  `lichthaus identify` / `test`): Identifizieren lässt eine Lampe langsam
   blinken, um sie zu finden (aus nach 2 Minuten). Testen zeigt am hellsten,
   ein Abblenden, Farben und An/Aus von schnell nach langsam.
   **Warnung:** Testen blitzt schnell; nicht für Menschen mit fotosensibler
   Epilepsie.
 - **Kommandozeile:** alles, was das Widget kann, ist auch ein
-  `hauslicht`-Befehl (`hauslicht --help` gruppiert sie), z. B.
-  `hauslicht on | off | dim 40 | status | flick exclusive | video on`;
-  `hauslicht-ctl` spricht JSON ([Protokoll](../ctl-protocol.md)).
-  `man hauslicht` und `man hauslicht-ctl` (auch deutsch) nach
+  `lichthaus`-Befehl (`lichthaus --help` gruppiert sie), z. B.
+  `lichthaus on | off | dim 40 | status | flick exclusive | video on`;
+  `lichthaus-ctl` spricht JSON ([Protokoll](../ctl-protocol.md)).
+  `man lichthaus` und `man lichthaus-ctl` (auch deutsch) nach
   `install/install.sh`.
 - **Bei jedem Push getestet** (Python 3.12–3.14, Handbuchseiten),
   wöchentlich in fünf Distributionen: [docs/ci.md](../ci.md) (englisch).
   QML-Lint und Plasma-6-Lauf des Widgets liegen in
-  [Haus.Licht-plasma](https://github.com/Gelaende51/Haus.Licht-plasma).
+  [Lichthaus-plasma](https://github.com/Gelaende51/Lichthaus-plasma).
 
 ## Unterstützte Lampen
 
@@ -162,7 +170,7 @@ meldet.
 
 | Art | Bibliothek | Farbe | Was man zum Hinzufügen eingibt |
 |---|---|---|---|
-| Ledvance Volkslicht, SIG-Mesh-Lampen (`mesh`) | btmesh, bleak | hs, Weiß, wo die Lampe sie hat | nichts: `hauslicht adopt` |
+| Ledvance Volkslicht, SIG-Mesh-Lampen (`mesh`) | btmesh, bleak | hs, Weiß, wo die Lampe sie hat | nichts: `lichthaus adopt` |
 | Philips Hue Bluetooth (`huebt`) | HueBLE | hs, Weiß | Bluetooth-Adresse (Suche) |
 | Triones / LEDBlue BLE (`ledble`) | led-ble | hs | Bluetooth-Adresse (Suche) |
 
@@ -219,22 +227,22 @@ Benötigt Linux mit BlueZ, Python 3.12+ und für Widget und Regler KDE Plasma 6
 mit UPower.
 
 ```sh
-git clone https://github.com/Gelaende51/Haus.Licht && cd Haus.Licht
+git clone https://github.com/Gelaende51/Lichthaus && cd Lichthaus
 sudo install/setup-root.sh             # einmalig: Tastaturregler, Gerätezugriff, Bluetooth-Einstellungen
 install/install.sh                     # venv, Befehle, Handbuchseiten, Dienst, Tray-Widget (nur Mesh)
 install/install.sh --backend wiz,hue   # dazu die Bibliotheken dieser Arten
 install/install.sh --all-backends      # dazu die Bibliotheken aller Arten
-systemctl --user enable --now hauslicht
+systemctl --user enable --now lichthaus
 ```
 
 - `install/install.sh --dry-run …` zeigt, was installiert würde;
-  `hauslicht backends --requires ART` listet die pip-Pakete einer Art.
+  `lichthaus backends --requires ART` listet die pip-Pakete einer Art.
 - USB-Statuslichter brauchen hidapi; wo pip kein Wheel für die vorhandene
   Python-Version hat (Fedoras 3.15 im November 2026), wird es kompiliert:
   vorher Compiler und Header installieren, z. B.
   `sudo dnf install gcc python3-devel libusb1-devel systemd-devel`.
 - Das Tray-Widget kommt aus der neuesten Version von
-  [Haus.Licht-plasma](https://github.com/Gelaende51/Haus.Licht-plasma/releases) (geprüft gegen ihre SHA-256-Summe).
+  [Lichthaus-plasma](https://github.com/Gelaende51/Lichthaus-plasma/releases) (geprüft gegen ihre SHA-256-Summe).
   Ohne Netz wird der Rest installiert, und ein Hinweis sagt, wie das Widget
   später dazukommt; `install/install.sh --plasmoid DATEI` installiert es
   stattdessen aus einer heruntergeladenen `.plasmoid` oder dem `package/`
@@ -256,7 +264,7 @@ systemctl --user enable --now hauslicht
 
 Auf echten Macs/PCs bisher ungetestet.
 
-- Funktioniert: der Dienst und `hauslicht-ctl`, Bluetooth-Mesh-Lampen über bleak, LAN-Backends, serielle Lampen, Klatschen schaltet und Audio folgen (mit dem optionalen Paket `sounddevice`).
+- Funktioniert: der Dienst und `lichthaus-ctl`, Bluetooth-Mesh-Lampen über bleak, LAN-Backends, serielle Lampen, Klatschen schaltet und Audio folgen (mit dem optionalen Paket `sounddevice`).
 - Nur unter Linux: die Schalter-Modi *Schnell* und *Exklusiv* (setup-root), dem Bildschirm und dem Nachtlicht folgen, Blinken bei Benachrichtigungen, die KDE-Einbindung, beim Klatschen der Abgleich mit den Lautsprechern.
 - Audio folgen hört dort das Standardmikrofon, nicht die Lautsprecher; wer der Musik folgen will, wählt ein Loopback-Gerät (BlackHole, Stereomix) als Quelle.
 - Windows spricht mit dem Dienst über TCP auf 127.0.0.1 mit einer Token-Datei statt über den Unix-Socket.
@@ -267,12 +275,12 @@ Auf echten Macs/PCs bisher ungetestet.
 - **Die meisten Arten:** Widget → *Einrichten* → *Lampen* → *Lampe
   hinzufügen*: Art wählen, *Netzwerk durchsuchen* (oder *Bluetooth
   durchsuchen*, *Alles durchsuchen*) oder die Felder aus der Tabelle
-  ausfüllen, *Hinzufügen*. Im Terminal: `hauslicht discover [ART]`,
-  `hauslicht add ART schlüssel=wert…`.
+  ausfüllen, *Hinzufügen*. Im Terminal: `lichthaus discover [ART]`,
+  `lichthaus add ART schlüssel=wert…`.
 - **Ledvance Volkslicht (Mesh):** Lampe auf Werkseinstellung zurücksetzen
   (fünfmal je 5 s ein- und ausschalten, dann eingeschaltet lassen; sie
-  blinkt). Innerhalb von 8 Minuten `hauslicht adopt` ausführen. Die Lampe ist
-  danach nicht mehr in der Ledvance-App. `hauslicht.json` enthält die
+  blinkt). Innerhalb von 8 Minuten `lichthaus adopt` ausführen. Die Lampe ist
+  danach nicht mehr in der Ledvance-App. `lichthaus.json` enthält die
   Mesh-Schlüssel: sichern, ohne sie lassen sich die Lampen nur noch
   zurücksetzen.
 

@@ -1,4 +1,4 @@
-"""The ctl transport: a Unix socket, or on Windows (and with HAUSLICHT_TRANSPORT=tcp)
+"""The ctl transport: a Unix socket, or on Windows (and with LICHTHAUS_TRANSPORT=tcp)
 TCP on 127.0.0.1 with a token in a port file beside the socket path."""
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from haus._platform import IS_WIN
 def transport() -> str:
     if IS_WIN:
         return "tcp"
-    if os.environ.get("HAUSLICHT_TRANSPORT") == "tcp":
+    if os.environ.get("LICHTHAUS_TRANSPORT") == "tcp":
         return "tcp"
     return "unix"
 
@@ -60,7 +60,7 @@ async def serve(handler, sock_path):
     fd = os.open(ppath, os.O_CREAT | os.O_WRONLY | os.O_TRUNC, 0o600)  # the token: owner only
     with os.fdopen(fd, "w") as f:
         f.write(f"{port} {token}\n")
-    server._hauslicht_port_path = ppath  # type: ignore[attr-defined]
+    server._lichthaus_port_path = ppath  # type: ignore[attr-defined]
     return server
 
 

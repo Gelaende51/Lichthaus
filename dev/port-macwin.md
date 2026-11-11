@@ -1,4 +1,4 @@
-# Port plan: Haus.Licht daemon to macOS and Windows
+# Port plan: Lichthaus daemon to macOS and Windows
 
 ## 1. Module table
 
@@ -28,7 +28,7 @@ Already cross-platform dependencies: bleak (macOS CoreBluetooth, Windows WinRT),
 ## 2. Shims to write (one small module each)
 
 - haus/_platform.py — IS_LINUX / IS_MAC / IS_WIN from sys.platform; single import point for gating.
-- haus/paths.py — platformdirs AppDirs("hauslicht") for config/state/cache; replaces XDG_STATE_HOME/XDG_CACHE_HOME reads in haus/common.py, haus/configwin.py, haus/clap.py.
+- haus/paths.py — platformdirs AppDirs("lichthaus") for config/state/cache; replaces XDG_STATE_HOME/XDG_CACHE_HOME reads in haus/common.py, haus/configwin.py, haus/clap.py.
 - haus/lock.py — filelock-based replacement for fcntl.flock in haus/common.py (single-instance socket lock).
 - haus/ipc.py — Unix socket at the runtime dir on Linux; TCP localhost with a token file on macOS; named pipe or TCP on Windows. Used by haus/daemon.py (server) and haus/debugview.py (client).
 - haus/audio_capture.py — sounddevice callback yielding 10 ms s16 16 kHz mono blocks; replaces pw-record/parec+pactl in haus/clap.py and haus/audiofollow.py when those binaries are absent.
@@ -46,13 +46,13 @@ Autostart (no new code file): launchd plist in ~/Library/LaunchAgents on macOS; 
 5. Write haus/notify_stub.py; stub haus/desktop.py (no /sys, no D-Bus portals) off Linux; disable notifywatch/desktop/kde/sysled elsewhere. Test: status JSON omits Linux-only keys off Linux.
 6. Write haus/screencap.py (mss); haus/videofollow.py uses it only when portal/gstreamer are absent. Test: returns frames or reports "unavailable".
 7. haus/backends/serial.py via serial.tools.list_ports; document haus/backends/usblight.py path differences; gate haus/cli.py setup-root to Linux.
-8. Freeze: full unit suite plus `hauslicht-ctl status` smoke test on macos-latest/windows-latest/ubuntu-latest; write autostart docs (launchd plist / Task Scheduler / Startup shortcut).
+8. Freeze: full unit suite plus `lichthaus-ctl status` smoke test on macos-latest/windows-latest/ubuntu-latest; write autostart docs (launchd plist / Task Scheduler / Startup shortcut).
 
 ## 4. CI plan
 
 GitHub Actions job `test`, strategy.matrix `os: [ubuntu-latest, macos-latest, windows-latest]`, Python 3.11:
 - install: `pip install -r requirements.txt -r requirements-clap.txt pytest pytest-asyncio` (clap model download pinned by sha256 in haus/clap.py; allow failure or pre-fetch the model).
-- run: `pytest -q` with `HAUSLICHT_BACKEND=mock`; deselect hardware tests.
+- run: `pytest -q` with `LICHTHAUS_BACKEND=mock`; deselect hardware tests.
 - Mocked everywhere: no Bluetooth adapter on runners → mock hci.list_adapters, hci.bluez_adapters, bleak.BleakScanner; no D-Bus session bus → session-bus calls raise or return stubs; no pw-record/parec/pactl or PipeWire → audio path asserts "unavailable"; no xdg-desktop-portal/gst-launch → videofollow asserts "unavailable"; /sys and /proc fixtures already tmp-tree based in haus/backends/usblight.py, haus/backends/serial.py, haus/backends/sysled.py tests.
 - macOS/Windows CI only validates "feature unavailable" behavior and cross-platform core (IPC, config paths, LAN backends); real-device mesh/clip/audio parity is out of scope for CI.
 
@@ -62,19 +62,19 @@ GitHub Actions job `test`, strategy.matrix `os: [ubuntu-latest, macos-latest, wi
 - CI runners have no Bluetooth adapter and no mic/screen permissions → only "unavailable" paths are tested; real clap/audio/video-follow parity unverified.
 - sounddevice defaults (device, sample rate, WASAPI exclusive mode, macOS mic permission) differ from the pw-record pipeline → clap thresholds/latency need per-OS retuning.
 - mss on macOS requires Screen Recording permission; on Windows it captures all displays → videofollow parity low, may remain Linux-only.
-- TCP/named-pipe IPC with a token changes the client contract (hauslicht-ctl, Plasma widget, applets, Qt tray, bar modules); no listed file covers token auth — it must be designed.
+- TCP/named-pipe IPC with a token changes the client contract (lichthaus-ctl, Plasma widget, applets, Qt tray, bar modules); no listed file covers token auth — it must be designed.
 - Moving config/state to platformdirs changes default paths on Linux unless XDG_* overrides are explicitly preserved.
 - No pkexec/sudo equivalent → rootsetup.py, disarm.py, exclusive_adapter, and `ctl setup-root` are Linux-only; document as such.
 - No macOS/Windows hardware or developers in scope → high risk of undetected regressions; gate features behind IS_LINUX by default.
 
 ## Review notes (orchestrator, 2026-11-03) — these override the plan above
 - The mesh backend's normal mode talks to the bulbs through bleak (GATT proxy, bleak_retry_connector), which is cross-platform. Only exclusive mode (hci.py, raw HCI, root helper) is Linux-only. So mesh control should work on macOS/Windows; verify by reading backends/mesh.py.
-- macOS keeps the Unix socket (asyncio.start_unix_server works there); only Windows needs TCP 127.0.0.1 + a token file in %LOCALAPPDATA%\hauslicht. Linux paths and the socket contract stay exactly as they are (no platformdirs on Linux).
+- macOS keeps the Unix socket (asyncio.start_unix_server works there); only Windows needs TCP 127.0.0.1 + a token file in %LOCALAPPDATA%\lichthaus. Linux paths and the socket contract stay exactly as they are (no platformdirs on Linux).
 - Prefer stdlib over new dependencies where it is cheap (msvcrt.locking instead of filelock; os.environ LOCALAPPDATA / ~/Library/Application Support instead of platformdirs).
 - No CI run on macOS/Windows until the user decides about pushing; meanwhile tests simulate non-Linux in a subprocess.
 
 ## Step 2 done
-TCP transport (haus/ipc.py) on Windows or HAUSLICHT_TRANSPORT=tcp; Unix socket unchanged on Linux.
+TCP transport (haus/ipc.py) on Windows or LICHTHAUS_TRANSPORT=tcp; Unix socket unchanged on Linux.
 
 ## Step 3 done
 The daemon starts and serves on macOS and Windows (tests/test_platform_daemon.py: faked darwin over the Unix socket; the IS_LINUX gate off over TCP with the token). Off Linux:
@@ -82,7 +82,7 @@ The daemon starts and serves on macOS and Windows (tests/test_platform_daemon.py
 - KDE integration (shortcuts, OSD, panel widgets) and the notification watcher: not created (None).
 - Root setup: always "missing"; `ctl setup-root` ends at once with exit 127 ("not allowed, or no password prompt available"), so flick fast and exclusive are refused as without the setup.
 - hci.list_adapters: no adapters, so `ctl adapters` lists none and exclusive mode has none to take.
-Done since: `hauslicht setup-root` off Linux prints a note and exits 0 (step 4, c204a3b); NullDesktop.laptop is False, so monitor_power's reason no longer says "a laptop" (2873a06).
+Done since: `lichthaus setup-root` off Linux prints a note and exits 0 (step 4, c204a3b); NullDesktop.laptop is False, so monitor_power's reason no longer says "a laptop" (2873a06).
 
 ## Step 6 done
 Microphone and follow-audio capture off Linux through the optional python-sounddevice (PortAudio: CoreAudio, WASAPI with auto_convert to 16 kHz): haus/audiocapture.py, used by clap.Capture.run and audiofollow.AudioCapture. Same blocks as the Linux pipe (mono 16 kHz s16 as float32, 50 ms), so the detector and the analyser are untouched; on Linux the pw-record/parec commands are unchanged. sounddevice is in requirements-clap.txt with `sys_platform != "linux"`; without it `missing()` names it and both features report unavailable (tests/test_platform_audio.py, a stand-in module).

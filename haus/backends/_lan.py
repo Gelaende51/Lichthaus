@@ -9,7 +9,7 @@ import asyncio
 import logging
 import time
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 
 class Throttle:

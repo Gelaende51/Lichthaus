@@ -1,4 +1,4 @@
-# Haus.Licht
+# Lichthaus
 
 **English** · [Deutsch](docs/i18n/README.de.md)
 
@@ -9,6 +9,13 @@ other kinds. Local only: no vendor app, account or cloud.
 
 Forked from [Licht.Haus](https://github.com/Gelaende51/Licht.Haus).
 
+<!-- rename-lichthaus: keep-begin -->
+**Renamed:** formerly Haus.Licht. On an existing install, run
+`install/install.sh` right after `git pull`: it moves the install to the new
+names (service, settings, widget and panel; the daemon renames the state
+file at its next start). Then run `sudo install/setup-root.sh` again.
+<!-- rename-lichthaus: keep-end -->
+
 - **AI disclosure**
   - Agent: Claude Code with Claude Opus 5.5 (Anthropic) wrote the
     code and docs and analysed how the official app sets brightness; about
@@ -18,7 +25,7 @@ Forked from [Licht.Haus](https://github.com/Gelaende51/Licht.Haus).
   - Author: tested on the real bulbs, chose the features and the slider modes.
 
 [License: AGPL-3.0](LICENSE) · [Notes and findings](dev/takeaways.md) ·
-[Issues](https://github.com/Gelaende51/Haus.Licht/issues) ·
+[Issues](https://github.com/Gelaende51/Lichthaus/issues) ·
 [Donate (carbon offset for the tokens)](https://ko-fi.com/vault51)
 
 ## Features
@@ -28,7 +35,7 @@ only; nothing is stored or sent, and notification text is never logged.
 
 ### Follow the screen
 
-- The bulbs follow the screen brightness (`hauslicht sync`, a systemd user
+- The bulbs follow the screen brightness (`lichthaus sync`, a systemd user
   service): *always*, only with Night Light, in daylight, in dark mode, in
   light mode, or *never*.
 - **Screen window** (two handles: screen brightness at the left one means
@@ -44,7 +51,7 @@ only; nothing is stored or sent, and notification text is never logged.
 - **Connect / Disconnect:** a click on the connection indicator (beside it)
   disconnects the widget's bulbs and connects them again. While disconnected
   the wall switch works like an ordinary switch, and the lights stay as they
-  are; a failed connection is retried at once (`hauslicht connect` /
+  are; a failed connection is retried at once (`lichthaus connect` /
   `disconnect`).
 - **Keyboard slider as a remote:** Plasma's *Keyboard brightness* slider moves
   a widget control of your choice (a window handle, the curve, the
@@ -58,7 +65,7 @@ only; nothing is stored or sent, and notification text is never logged.
   daemon keeps the bulb's power-on setting at the toggled state.
   - *Off*: a normal switch. *On*: flicks toggle. *Fast*: like On, with
     Bluetooth tuned to reconnect faster. *Exclusive*: like Fast without a
-    Bluetooth connection; Haus.Licht takes one Bluetooth adapter for itself
+    Bluetooth connection; Lichthaus takes one Bluetooth adapter for itself
     (other Bluetooth devices on it stop working) and re-arms the bulb sooner.
   - Fast and Exclusive need the **root setup** (`sudo install/setup-root.sh`,
     or the widget asks for the administrator password): it loads the
@@ -71,7 +78,7 @@ only; nothing is stored or sent, and notification text is never logged.
 - **Suspend and crashes are safe:** before sleep and on stop the bulbs' power-on
   setting goes back to "on", so the wall switch works like a normal switch
   while the laptop is away. After a crash or kill the service unit resets the
-  bulbs that may still be armed (`hauslicht disarm --if-armed`).
+  bulbs that may still be armed (`lichthaus disarm --if-armed`).
 - **Laptop lid:** closing switches the bulbs off, opening on (or only one of
   them, or never); off before the laptop sleeps.
 - **Desktop monitor power** (desktops only, where it can be detected): the
@@ -106,31 +113,31 @@ only; nothing is stored or sent, and notification text is never logged.
 - **Tray widget** (Plasma 6) with **Clap**, **Flick** and **On/Off**
   switches; middle click toggles, the wheel dims (scroll direction can be
   inverted). Extra widgets for the panel, each with its own bulbs. The
-  widget lives in [Haus.Licht-plasma](https://github.com/Gelaende51/Haus.Licht-plasma); `install/install.sh`
+  widget lives in [Lichthaus-plasma](https://github.com/Gelaende51/Lichthaus-plasma); `install/install.sh`
   installs its latest release.
 - **Settings:** the widget's Configure pages (Bulbs, Profiles, Sound, Video,
   Notifications). On Plasma they live in System Settings → Connected Devices →
-  Haus.Licht, where `hauslicht config` opens them
+  Lichthaus, where `lichthaus config` opens them
   ([System Settings](docs/system-settings.md)); elsewhere, and with
-  `hauslicht config --window`, in a window of their own, also on GNOME, XFCE
+  `lichthaus config --window`, in a window of their own, also on GNOME, XFCE
   or a tiling WM ([settings window](docs/settings-window.md)).
 - **Icon sets:** six sets for the tray and bulb icons, previewed in a
   drop-down on Configure → *Bulbs*, following the Plasma colour scheme;
   sources and licences in
-  [Haus.Licht-plasma's LICENSES.md](https://github.com/Gelaende51/Haus.Licht-plasma/blob/main/package/LICENSES.md).
-- **Identify and Test** (Configure → *Bulbs*, or `hauslicht identify` /
+  [Lichthaus-plasma's LICENSES.md](https://github.com/Gelaende51/Lichthaus-plasma/blob/main/package/LICENSES.md).
+- **Identify and Test** (Configure → *Bulbs*, or `lichthaus identify` /
   `test`): Identify blinks a bulb slowly to find it (off after 2 min). Test
   runs brightest, a fade, colours and on/off from fast to slow.
   **Warning:** Test flashes quickly; not for people with photosensitive
   epilepsy.
-- **Command line:** everything the widget does is also a `hauslicht` command
-  (`hauslicht --help` groups them), e.g. `hauslicht on | off | dim 40 |
-  status | flick exclusive | video on`; `hauslicht-ctl` speaks JSON
-  ([protocol](docs/ctl-protocol.md)). `man hauslicht` and `man hauslicht-ctl`
+- **Command line:** everything the widget does is also a `lichthaus` command
+  (`lichthaus --help` groups them), e.g. `lichthaus on | off | dim 40 |
+  status | flick exclusive | video on`; `lichthaus-ctl` speaks JSON
+  ([protocol](docs/ctl-protocol.md)). `man lichthaus` and `man lichthaus-ctl`
   (also in German) after `install/install.sh`.
 - **Tested on every push** (Python 3.12–3.14, man pages), weekly in five
   distributions: [docs/ci.md](docs/ci.md). The widget's QML lint and Plasma 6
-  run are in [Haus.Licht-plasma](https://github.com/Gelaende51/Haus.Licht-plasma).
+  run are in [Lichthaus-plasma](https://github.com/Gelaende51/Lichthaus-plasma).
 
 ## Supported bulbs
 
@@ -142,7 +149,7 @@ colour temperature, each where the device reports it.
 
 | Kind | Library | Colour | What you enter to add one |
 |---|---|---|---|
-| Ledvance Volkslicht, SIG mesh lights (`mesh`) | btmesh, bleak | hs, white where the light has them | nothing: `hauslicht adopt` |
+| Ledvance Volkslicht, SIG mesh lights (`mesh`) | btmesh, bleak | hs, white where the light has them | nothing: `lichthaus adopt` |
 | Philips Hue Bluetooth (`huebt`) | HueBLE | hs, white | Bluetooth address (search) |
 | Triones / LEDBlue BLE (`ledble`) | led-ble | hs | Bluetooth address (search) |
 
@@ -198,21 +205,21 @@ Needs Linux with BlueZ, Python 3.12+, and for the widget and slider KDE
 Plasma 6 with UPower.
 
 ```sh
-git clone https://github.com/Gelaende51/Haus.Licht && cd Haus.Licht
+git clone https://github.com/Gelaende51/Lichthaus && cd Lichthaus
 sudo install/setup-root.sh             # once: keyboard slider, device access, Bluetooth tuning
 install/install.sh                     # venv, commands, man pages, service, tray widget (mesh only)
 install/install.sh --backend wiz,hue   # plus the libraries of these kinds
 install/install.sh --all-backends      # plus every kind's libraries
-systemctl --user enable --now hauslicht
+systemctl --user enable --now lichthaus
 ```
 
 - `install/install.sh --dry-run …` prints what would be installed;
-  `hauslicht backends --requires KIND` lists a kind's pip packages.
+  `lichthaus backends --requires KIND` lists a kind's pip packages.
 - USB status lights need hidapi; where pip has no wheel for your Python
   (Fedora's 3.15 in November 2026) it compiles it: install a compiler and the
   headers first, e.g. `sudo dnf install gcc python3-devel libusb1-devel systemd-devel`.
 - The tray widget comes from the latest release of
-  [Haus.Licht-plasma](https://github.com/Gelaende51/Haus.Licht-plasma/releases) (checked against its SHA-256).
+  [Lichthaus-plasma](https://github.com/Gelaende51/Lichthaus-plasma/releases) (checked against its SHA-256).
   Offline, the rest installs and a note says how to add the widget later;
   `install/install.sh --plasmoid FILE` installs it from a downloaded
   `.plasmoid` or a checkout's `package/` instead.
@@ -231,7 +238,7 @@ systemctl --user enable --now hauslicht
 
 Untested on real Macs/PCs so far.
 
-- What works: the daemon and `hauslicht-ctl`, Bluetooth-mesh bulbs via bleak, LAN backends, serial lights, clap detection and follow-audio (with the optional `sounddevice` package).
+- What works: the daemon and `lichthaus-ctl`, Bluetooth-mesh bulbs via bleak, LAN backends, serial lights, clap detection and follow-audio (with the optional `sounddevice` package).
 - Linux-only: the Fast and Exclusive flick modes (setup-root), following the screen and Night Light, notification blinks, KDE integration, the clap detector's speaker check.
 - Follow-audio hears the default microphone there, not the speakers; pick a loopback device (BlackHole, Stereo Mix) as its source to follow music.
 - Windows talks to the daemon over TCP 127.0.0.1 with a token file instead of the Unix socket.
@@ -241,11 +248,11 @@ Untested on real Macs/PCs so far.
 
 - **Most kinds:** widget → *Configure* → *Bulbs* → *Add a bulb*: choose the
   kind, *Search network* (or *Scan Bluetooth*, *Scan everything*) or enter the
-  fields from the table, *Add*. From a terminal: `hauslicht discover [KIND]`,
-  `hauslicht add KIND key=value…`.
+  fields from the table, *Add*. From a terminal: `lichthaus discover [KIND]`,
+  `lichthaus add KIND key=value…`.
 - **Ledvance Volkslicht (mesh):** factory-reset the bulb (switch it on and off
   five times, 5 s each, then leave it on; it flashes). Within 8 minutes run
-  `hauslicht adopt`. The bulb then leaves the Ledvance app. `hauslicht.json`
+  `lichthaus adopt`. The bulb then leaves the Ledvance app. `lichthaus.json`
   holds the mesh keys: back it up, without it the bulbs can only be reset.
 
 ## Works with

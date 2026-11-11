@@ -2,7 +2,7 @@
 auto_scan_bluetooth) kept by the daemon per widget, so the Plasma widget and
 the settings window show the same: storage and migration, the ctl commands
 with their validation, the clap mode carrying clap_last, the CLI, and the
-hauslicht-ctl client against a test socket (never the live daemon)."""
+lichthaus-ctl client against a test socket (never the live daemon)."""
 
 import asyncio
 import json
@@ -137,14 +137,14 @@ def test_cli_widget_settings(tmp_path, monkeypatch, capsys):
     with_cli(tmp_path, monkeypatch, capsys, mock_state(mock_1={}), body)
 
 
-def test_hauslicht_ctl_client_against_a_test_socket(tmp_path):
+def test_lichthaus_ctl_client_against_a_test_socket(tmp_path):
     """The client the widget runs: `@N widget-settings-set` and `get` through
-    HAUSLICHT_SOCK pointing at an in-process daemon."""
+    LICHTHAUS_SOCK pointing at an in-process daemon."""
     sock = tmp_path / "ctl.sock"
-    env = {**os.environ, "HAUSLICHT_SOCK": str(sock)}
+    env = {**os.environ, "LICHTHAUS_SOCK": str(sock)}
 
     def ctl(*argv):
-        p = subprocess.run([sys.executable, str(ROOT / "hauslicht-ctl"), *argv], env=env,
+        p = subprocess.run([sys.executable, str(ROOT / "lichthaus-ctl"), *argv], env=env,
                            capture_output=True, text=True, timeout=30)
         return p.returncode, json.loads(p.stdout)
 

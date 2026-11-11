@@ -1,6 +1,6 @@
 """Mock bulbs: no device, no library. Each remembers the last percent, colour
 and OnPowerUp it was given (config `color`: none | ct | hs | both sets the colour caps;
-`transition` on: fade() takes a transition time, one call), for tests and widget work (with HAUSLICHT_BACKENDS=mock
+`transition` on: fade() takes a transition time, one call), for tests and widget work (with LICHTHAUS_BACKENDS=mock
 in a test instance; see docs/ctl-protocol.md). The core's ctl commands
 mock-flick, mock-return and mock-offline drive the callbacks."""
 
@@ -12,7 +12,7 @@ import logging
 from . import CAPS, Backend, Offline
 from ..common import UserError
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 
 class MockBackend(Backend):

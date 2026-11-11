@@ -80,9 +80,9 @@ def disabled(root: Path, port: str) -> str:
 
 
 def helper(root: Path, *args: str, env_root: bool = True) -> subprocess.CompletedProcess:
-    env = {k: v for k, v in os.environ.items() if k != "HAUSLICHT_TEST_USB_SYSFS"}
+    env = {k: v for k, v in os.environ.items() if k != "LICHTHAUS_TEST_USB_SYSFS"}
     if env_root:
-        env["HAUSLICHT_TEST_USB_SYSFS"] = str(root)
+        env["LICHTHAUS_TEST_USB_SYSFS"] = str(root)
     return subprocess.run([sys.executable, "-I", str(HELPER), *args], env=env,
                           capture_output=True, text=True, timeout=20)
 
@@ -181,9 +181,9 @@ def test_helper_ignores_the_test_root_as_root(monkeypatch, tmp_path):
 def test_setup_v6_installs_the_helper_for_sudo():
     script = (ROOT / "install" / "setup-root.sh").read_text()
     assert (ROOT / "install" / "setup-version").read_text().strip() == "6"
-    assert '"$here/usb-port-power" /usr/local/lib/hauslicht/usb-port-power' in script
-    assert ("NOPASSWD: /usr/local/lib/hauslicht/conn-update, /usr/local/lib/hauslicht/hci-claim, "
-            "/usr/local/lib/hauslicht/usb-port-power\"") in script
+    assert '"$here/usb-port-power" /usr/local/lib/lichthaus/usb-port-power' in script
+    assert ("NOPASSWD: /usr/local/lib/lichthaus/conn-update, /usr/local/lib/lichthaus/hci-claim, "
+            "/usr/local/lib/lichthaus/usb-port-power\"") in script
     assert "SETENV" not in script  # the test root can never be passed through sudo
     assert os.access(HELPER, os.X_OK)
     assert HELPER.read_text().startswith("#!/usr/bin/python3 -I\n")
@@ -341,7 +341,7 @@ def test_a_gone_port_is_offline(ports):
 @pytest.mark.skipif(os.geteuid() == 0, reason="the test sysfs is ignored as root")
 def test_backend_with_the_real_helper_on_the_fake_tree(ports, monkeypatch):
     monkeypatch.setattr(usbport, "HELPER", str(HELPER))
-    monkeypatch.setenv("HAUSLICHT_TEST_USB_SYSFS", str(ports.root))
+    monkeypatch.setenv("LICHTHAUS_TEST_USB_SYSFS", str(ports.root))
 
     async def body():
         be = usbport.UsbPortBackend(FakeCtx())

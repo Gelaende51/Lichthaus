@@ -1,10 +1,10 @@
-"""Haus.Licht debug window: each bulb's intended state, live from the daemon.
+"""Lichthaus debug window: each bulb's intended state, live from the daemon.
 
-    hauslicht debug                  open the window (detached; needs PyQt6)
+    lichthaus debug                  open the window (detached; needs PyQt6)
     python3 -m haus.debugview        the same, in the foreground
 
-Connects to the daemon socket ($HAUSLICHT_SOCK, else
-$XDG_RUNTIME_DIR/hauslicht.sock, as hauslicht-ctl does), sends `watch` and
+Connects to the daemon socket ($LICHTHAUS_SOCK, else
+$XDG_RUNTIME_DIR/lichthaus.sock, as lichthaus-ctl does), sends `watch` and
 draws every JSON line the moment it arrives (no polling; reconnects every
 second while no daemon answers). One tile per bulb in the snapshot's order:
 a swatch of what the daemon wants the bulb to show (black "off", the colour
@@ -29,9 +29,9 @@ FLICK_SECONDS = 1.5
 
 
 def sock_path() -> Path:
-    """The daemon socket, resolved as hauslicht-ctl does."""
+    """The daemon socket, resolved as lichthaus-ctl does."""
     from haus.common import SOCK_PATH
-    return Path(os.environ.get("HAUSLICHT_SOCK") or SOCK_PATH)
+    return Path(os.environ.get("LICHTHAUS_SOCK") or SOCK_PATH)
 
 
 # ----------------------------------------------------------------- pure parts
@@ -324,7 +324,7 @@ def run() -> int:  # pragma: no cover - needs a display
     class Window(QWidget):
         def __init__(self):
             super().__init__()
-            self.setWindowTitle("Haus.Licht debug")
+            self.setWindowTitle("Lichthaus debug")
             self.resize(820, 640)
             self.state = ViewState()
             self.tiles: dict[str, Tile] = {}
@@ -430,7 +430,7 @@ def run() -> int:  # pragma: no cover - needs a display
             self.logview.moveCursor(self.logview.textCursor().MoveOperation.Start)
 
     app = QApplication(sys.argv[:1])
-    app.setApplicationName("Haus.Licht debug")
+    app.setApplicationName("Lichthaus debug")
     w = Window()
     w.show()
     return app.exec()

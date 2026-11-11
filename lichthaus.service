@@ -1,0 +1,14 @@
+[Unit]
+Description=lichthaus: Volkslicht bulbs follow the screen brightness
+After=bluetooth.target graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+ExecStart=/home/niemand/building_stuff/Lichthaus/.venv/bin/python /home/niemand/building_stuff/Lichthaus/lichthaus.py sync
+# after an unclean exit: OnPowerUp back to "on" on bulbs left armed (instant after a clean stop; '-': never fails the unit)
+ExecStopPost=-/home/niemand/building_stuff/Lichthaus/.venv/bin/python /home/niemand/building_stuff/Lichthaus/lichthaus.py disarm --if-armed
+Restart=on-failure
+RestartSec=15
+
+[Install]
+WantedBy=graphical-session.target

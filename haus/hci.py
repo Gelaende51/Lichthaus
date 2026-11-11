@@ -35,8 +35,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import _platform
+from .common import helper_path
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 # H4 packet types
 CMD_PKT, ACL_PKT, EVT_PKT = 0x01, 0x02, 0x04
@@ -72,7 +73,7 @@ SCAN_INTERVAL = SCAN_WINDOW = 0x0030  # 30 ms both: scanning 100 % of the time
 COMMAND_TIMEOUT_S = 2.0
 STATUS_UNKNOWN_COMMAND, STATUS_UNSUPPORTED, STATUS_INVALID_PARAMS = 0x01, 0x11, 0x12
 
-HELPER = "/usr/local/lib/hauslicht/hci-claim"
+HELPER = "/usr/local/lib/lichthaus/hci-claim"
 CLAIM_TIMEOUT_S = 12.0  # sudo, mgmt power-off and the bind take well under 1 s here
 RELEASE_TIMEOUT_S = 10.0  # the helper powers the adapter on again (retries up to 8 s)
 SYSFS = Path("/sys/class/bluetooth")
@@ -472,8 +473,8 @@ class Claim:
         return lines[-1] if lines else ""
 
 
-def helper_command(adapter: str, helper: str = HELPER) -> list[str]:
-    return ["sudo", "-n", helper, adapter]
+def helper_command(adapter: str, helper: str | None = None) -> list[str]:
+    return ["sudo", "-n", helper or helper_path(HELPER), adapter]
 
 
 async def claim(adapter: str, command: list[str] | None = None, timeout: float = CLAIM_TIMEOUT_S) -> Claim:
@@ -481,7 +482,7 @@ async def claim(adapter: str, command: list[str] | None = None, timeout: float =
     if not NAME_RE.fullmatch(adapter):
         raise ClaimError(f"not an adapter name: {adapter!r}")
     cmd = command or helper_command(adapter)
-    if command is None and not os.path.exists(HELPER):
+    if command is None and not os.path.exists(helper_path(HELPER)):
         raise ClaimError("the helper is not installed (system setup v4)")
     ours, theirs = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
     try:

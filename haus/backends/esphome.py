@@ -26,7 +26,7 @@ from ..common import UserError
 from ._bulbkit import color_caps, hs_rgb, kelvin_range, learn_color, mired_kelvin
 from ._lan import Presence, Throttle, mdns_browse, mdns_host
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 TIMEOUT_S = 8.0
 RETRY_S = (5, 10, 30, 60)
@@ -96,7 +96,7 @@ class EsphomeBackend(Backend):
         """A new APIClient for `config` (tests replace this)."""
         from aioesphomeapi import APIClient
         return APIClient(config["host"], int(config.get("port") or 6053), None,
-                         noise_psk=(config.get("encryption_key") or None), client_info="hauslicht")
+                         noise_psk=(config.get("encryption_key") or None), client_info="lichthaus")
 
     async def _connect(self, bulb_id: str, config: dict) -> tuple[Link, object]:
         """Connect, find the light; returns (link, device_info). Raises the

@@ -21,7 +21,7 @@ import asyncio
 import contextlib
 import logging
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 NOTIFY_IFACE = "org.freedesktop.Notifications"
 NOTIFY_PATH = "/org/freedesktop/Notifications"

@@ -27,13 +27,13 @@ import re
 from pathlib import Path
 
 from . import Backend, NeedsAccess, Offline
-from ..common import UserError
+from ..common import UserError, helper_path
 from ._bulbkit import Presence, tr
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 SYSFS = Path("/sys")  # tests point it at a tmp tree
-HELPER = "/usr/local/lib/hauslicht/usb-port-power"
+HELPER = "/usr/local/lib/lichthaus/usb-port-power"
 SUDO: tuple[str, ...] = ("sudo", "-n")  # tests: the Python interpreter
 HELPER_TIMEOUT_S = 10.0
 PORT_RE = re.compile(r"(usb[0-9]{1,3}|[0-9]{1,3}-[0-9]{1,3}(?:\.[0-9]{1,3}){0,6})-port([0-9]{1,3})")
@@ -187,13 +187,14 @@ class UsbPortBackend(Backend):
 
     async def switch(self, name: str, on: bool) -> None:
         """The root helper: `usb-port-power PORT on|off` via sudo."""
-        if not os.path.exists(HELPER):
+        helper = helper_path(HELPER)
+        if not os.path.exists(helper):
             raise NeedsAccess(tr("Switching USB ports needs the system setup v6 (Grant access…, or: "
-                                 "hauslicht setup-root).",
+                                 "lichthaus setup-root).",
                                  "USB-Ports schalten braucht die Systemeinrichtung v6 (Zugriff erlauben…, "
-                                 "oder: hauslicht setup-root)."))
+                                 "oder: lichthaus setup-root)."))
         proc = await asyncio.create_subprocess_exec(
-            *SUDO, HELPER, name, "on" if on else "off", stdin=asyncio.subprocess.DEVNULL,
+            *SUDO, helper, name, "on" if on else "off", stdin=asyncio.subprocess.DEVNULL,
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
         try:
             _out, err = await asyncio.wait_for(proc.communicate(), HELPER_TIMEOUT_S)
@@ -245,17 +246,17 @@ class UsbPortBackend(Backend):
         name = str(config.get("port", "")).strip()
         port = find(name)
         if port is None:
-            raise UserError(tr(f"no USB port {name} (hauslicht discover usbport lists them)",
-                               f"Kein USB-Port {name} (hauslicht discover usbport listet sie)"))
+            raise UserError(tr(f"no USB port {name} (lichthaus discover usbport lists them)",
+                               f"Kein USB-Port {name} (lichthaus discover usbport listet sie)"))
         if port.connect_type != "hotplug":
             raise UserError(tr(f"{name} is not a socket (connect_type {port.connect_type or '?'}): never switched",
                                f"{name} ist keine Buchse (connect_type {port.connect_type or '?'}): "
                                "wird nie geschaltet"))
-        if not os.path.exists(HELPER):
+        if not os.path.exists(helper_path(HELPER)):
             raise NeedsAccess(tr("Switching USB ports needs the system setup v6 (Grant access…, or: "
-                                 "hauslicht setup-root).",
+                                 "lichthaus setup-root).",
                                  "USB-Ports schalten braucht die Systemeinrichtung v6 (Zugriff erlauben…, "
-                                 "oder: hauslicht setup-root)."))
+                                 "oder: lichthaus setup-root)."))
         peer = port.peer()
         if peer is not None and _sort_key(peer.name) < _sort_key(name):
             port, peer = peer, port  # one socket, one bulb: named by its lower port, as discover lists it
