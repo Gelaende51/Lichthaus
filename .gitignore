@@ -5,6 +5,15 @@ lichthaus.lock
 lichthaus.armed.json
 lichthaus.armed.json.tmp
 provision_run.log
+# rename-lichthaus: keep-begin
+# the names from before the rename to Lichthaus: the daemon moves these files
+# to the new names at its next start; until then they stay ignored
+hauslicht.json
+hauslicht.json.*
+hauslicht.lock
+hauslicht.armed.json
+hauslicht.armed.json.tmp
+# rename-lichthaus: keep-end
 # third-party downloads and the decompiled app: analysis only, not redistributable
 re/
 dl/

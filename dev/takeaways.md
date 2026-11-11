@@ -429,7 +429,7 @@ onto Linux. Worth reporting upstream where marked.
 - Splitting the widget into Lichthaus-plasma (2026-10): `uvx git-filter-repo`
   on a `git clone --no-local` copy with `--path plasmoid/ --path
   .github/workflows/plasmoid.yml --path tests/test_iconsets.py
-  --path-rename plasmoid/lichthaus.tray/:package/` kept every widget commit
+  --path-rename plasmoid/haus.licht.tray/:package/` kept every widget commit <!-- rename-lichthaus: keep (the command as it ran) -->
   (main.qml: 24 before and after) and dropped the remote, so nothing could be
   pushed by accident. Unexpected coupling: dev/gen-man.py took the man
   pages' version from the widget's metadata.json; the daemon now has its own
