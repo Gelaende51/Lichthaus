@@ -56,7 +56,7 @@ A distribution run, in a copy of the checkout inside the container
 
 ```sh
 podman run --rm -v "$PWD":/src:ro,Z fedora:latest sh -c '
-  dnf install -y python3 python3-pip bluez && cp -r /src /w && cd /w &&
+  dnf install -y python3 python3-pip bluez gcc python3-devel libusb1-devel systemd-devel && cp -r /src /w && cd /w &&
   rm -rf .venv hauslicht*.json* &&
   mkdir -p /tmp/stub && printf "#!/bin/sh\n" > /tmp/stub/systemctl && chmod +x /tmp/stub/systemctl &&
   PATH=/tmp/stub:$PATH install/install.sh --all-backends &&

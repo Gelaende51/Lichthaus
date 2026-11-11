@@ -52,7 +52,9 @@ jobs:
               apt-get update -q
               apt-get install -y -q python3 python3-venv python3-pip bluez ca-certificates ;;
             *fedora*)
-              dnf install -y python3 python3-pip bluez ;;
+              # Python 3.15 there (2026-11): no hidapi wheel yet (USB busylight
+              # backend), pip builds it, which needs a compiler and these headers
+              dnf install -y python3 python3-pip bluez gcc python3-devel libusb1-devel systemd-devel ;;
             *arch*)
               pacman -Syu --noconfirm --needed python python-pip bluez ;;
             *suse*)
@@ -81,7 +83,10 @@ jobs:
           "$HOME/.local/bin/hauslicht" --help > /dev/null
       - name: Test requirements
         run: |
-          .venv/bin/pip install -r requirements-dev.txt -r requirements-clap.txt
+          .venv/bin/pip install -r requirements-dev.txt
+          # ai-edge-litert (the clap extra's model runtime) ships wheels only,
+          # none yet for Fedora's Python 3.15 (2026-11): numpy alone then
+          .venv/bin/pip install -r requirements-clap.txt || .venv/bin/pip install numpy
           .venv/bin/pip install --no-deps amqtt==0.12.1
       - name: pytest
         run: .venv/bin/python -m pytest -q -rs

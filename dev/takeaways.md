@@ -545,3 +545,8 @@ onto Linux. Worth reporting upstream where marked.
     throws "TypeError: Property 'positionToRectangle' … is not a function"
     unless it answers `positionToRectangle()`, `selectionStart` and
     `selectedText` (its `visible` reads that in tablet mode).
+
+## Clap detection tested end to end without anyone clapping (2026-11-05)
+- A PipeWire null sink plus `module-remap-source master=<sink>.monitor` gives a virtual microphone that is not a `.monitor` (so `clap-sources` and `check_source` take it) and is not the default sink (so the speaker check never sees what is played into it): `pw-play --target <sink> clip.wav` then reaches the detector like a real clap.
+- Synthetic claps (white-noise bursts, 8 ms decay) pass the transient gate ("clap-like") but YAMNet scores them 0.02–0.06 for the clap family, under the cut-off: they never toggle. Of five ESC-50 "clapping" clips, one single clap cut from its loudest peak passed (family 0.08–0.10).
+- With that clip: test mode reported a triple with `test: true` and switched nothing; with `clap_count` 3 a double did not switch, a triple switched off and the next one back on.

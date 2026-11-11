@@ -229,6 +229,10 @@ systemctl --user enable --now hauslicht
 
 - `install/install.sh --dry-run …` zeigt, was installiert würde;
   `hauslicht backends --requires ART` listet die pip-Pakete einer Art.
+- USB-Statuslichter brauchen hidapi; wo pip kein Wheel für die vorhandene
+  Python-Version hat (Fedoras 3.15 im November 2026), wird es kompiliert:
+  vorher Compiler und Header installieren, z. B.
+  `sudo dnf install gcc python3-devel libusb1-devel systemd-devel`.
 - Das Tray-Widget kommt aus der neuesten Version von
   [Haus.Licht-plasma](https://github.com/Gelaende51/Haus.Licht-plasma/releases) (geprüft gegen ihre SHA-256-Summe).
   Ohne Netz wird der Rest installiert, und ein Hinweis sagt, wie das Widget
@@ -239,6 +243,9 @@ systemctl --user enable --now hauslicht
   requirements-clap.txt` (numpy, ai-edge-litert; das 4-MB-Klangmodell wird
   beim ersten Klatschen geladen). Beide nehmen mit `pw-record` oder `parec`
   auf.
+  ai-edge-litert gibt es nur als fertige Wheels, bisher bis Python 3.14; mit
+  einer neueren Version (Fedoras 3.15) vor `install.sh` das venv mit 3.14
+  anlegen: `sudo dnf install python3.14 && python3.14 -m venv .venv`.
 - Video folgen: GStreamer mit seinem PipeWire-Plugin (`gst-launch-1.0`,
   `pipewiresrc`) und xdg-desktop-portal.
 - Tests: `pip install -r requirements-dev.txt` (siehe dort den Hinweis zu

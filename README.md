@@ -208,6 +208,9 @@ systemctl --user enable --now hauslicht
 
 - `install/install.sh --dry-run …` prints what would be installed;
   `hauslicht backends --requires KIND` lists a kind's pip packages.
+- USB status lights need hidapi; where pip has no wheel for your Python
+  (Fedora's 3.15 in November 2026) it compiles it: install a compiler and the
+  headers first, e.g. `sudo dnf install gcc python3-devel libusb1-devel systemd-devel`.
 - The tray widget comes from the latest release of
   [Haus.Licht-plasma](https://github.com/Gelaende51/Haus.Licht-plasma/releases) (checked against its SHA-256).
   Offline, the rest installs and a note says how to add the widget later;
@@ -216,6 +219,9 @@ systemctl --user enable --now hauslicht
 - Clap to toggle and Follow audio: `.venv/bin/pip install -r
   requirements-clap.txt` (numpy, ai-edge-litert; the 4 MB sound model is
   fetched on first clap use). Both record with `pw-record` or `parec`.
+  ai-edge-litert ships prebuilt wheels only, so far up to Python 3.14; on a
+  newer Python (Fedora's 3.15) create the venv with 3.14 before `install.sh`:
+  `sudo dnf install python3.14 && python3.14 -m venv .venv`.
 - Follow video: GStreamer with its PipeWire plugin (`gst-launch-1.0`,
   `pipewiresrc`) and xdg-desktop-portal.
 - Tests: `pip install -r requirements-dev.txt` (see the note on amqtt there);
