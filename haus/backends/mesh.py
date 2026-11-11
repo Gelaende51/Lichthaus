@@ -238,6 +238,9 @@ BOOT_MISSES = 2  # never answered this often: no counter (not a Telink bulb), st
 BOOT_GETS_PER_READ = 2  # the Get and its one retry
 BOOT_EXTRA_MAX = 12
 SAME, REBOOTED, UNKNOWN = "same boot", "rebooted", "unknown"
+# Exclusive: each silence check that reads the same boot (~270 an hour here,
+# see ADV_SUSPECT_MIN_S) logs at debug; one info line per this long counts them.
+DROPS_SUMMARY_S = 3600.0
 HOLDUP_S = 5.0  # the supply keeps the chip alive up to ~5 s: an advert later than this after an off-beat one is a bulb up again
 ARM_WAIT_S = 1.5  # after a new link, held levels and boot-count clearing wait this long for the core's arm
 CONN_UPDATE_WAIT_S = 3.0  # the link-timeout update waits at most this long for the first arm
@@ -804,14 +807,15 @@ class AdvLink(MeshLink):
                 raise ConnectionError("no bulb of our mesh advertising: "
                                       "bulbs switched off at the wall, or out of range")
             await asyncio.sleep(0.05)
-        self.address = device.address.upper()
+        first = device.address.upper() != getattr(self, "followed", None)  # a new bulb, not a new session
+        self.address = self.followed = device.address.upper()
         self.client = self.radio
         self.connected_at = time.monotonic()
         if self.node is None:
             self._make_node(self.radio.send_mesh)
         self.radio.on_mesh = self._receive
         rssi = self.rssi_of(device.address) if self.rssi_of else None
-        log.info("advertising bearer: following %s%s", self.address, "" if rssi is None else f" (RSSI {rssi})")
+        log.log(logging.INFO if first else logging.DEBUG, "advertising bearer: following %s%s", self.address, "" if rssi is None else f" (RSSI {rssi})")
         if self.after_connect:
             asyncio.get_running_loop().create_task(self.after_connect(device.address))
         if self.on_change:
@@ -902,6 +906,8 @@ class MeshBackend(Backend):
         self.boot_unread: set[int] = set()  # addrs whose reboot was counted without reading the count
         self.clear_on: dict[int, float] = {}  # addr -> connected_at of the link whose boot reference awaits clearing
         self.suspects: dict[int, float] = {}  # addr -> off-beat advert awaiting the boot verdict
+        self.drops_seen = 0  # off-beat adverts that were link drops since drops_since (DROPS_SUMMARY_S)
+        self.drops_since = time.monotonic()
         self.back_seen: dict[int, float] = {}  # addr -> first advert HOLDUP_S after its off-beat one (up again)
         self.reports: dict[int, int] = {}  # addr -> flicks/returns reported (an older call's argument is stale)
         self.decided_at: dict[int, float] = {}  # addr -> when its last flick/return was reported (FLICK_HOLDOFF_S)
@@ -1174,7 +1180,7 @@ class MeshBackend(Backend):
         if gap <= ADV_LEARN_MAX_S:
             self.adv_gaps.append(gap)
         if gap >= self.adv_suspect_s() and prev >= link.connected_at and not self.force_reconnect:
-            log.info("silent %.2f s (adverts every %.2f s, RSSI %s): rebooted?", gap, self.adv_interval(),
+            log.debug("silent %.2f s (adverts every %.2f s, RSSI %s): rebooted?", gap, self.adv_interval(),
                      self.rssi.get(mac, "?"))
             self.offbeat(bulb, now, drop=prev)
 
@@ -1362,7 +1368,13 @@ class MeshBackend(Backend):
         if bulb is None:
             return
         if verdict == SAME:
-            log.info("%s: off-beat advert, but the boot count went on: link drop, no flick", bulb.id)
+            log.debug("%s: off-beat advert, but the boot count went on: link drop, no flick", bulb.id)
+            self.drops_seen += 1
+            now = time.monotonic()
+            if now - self.drops_since >= DROPS_SUMMARY_S:
+                log.info("%d off-beat adverts in %.0f min were link drops (the boot count went on), no flick",
+                         self.drops_seen, (now - self.drops_since) / 60)
+                self.drops_seen, self.drops_since = 0, now
             return
         if verdict == UNKNOWN:
             if self._holding_off(addr):
@@ -1518,7 +1530,8 @@ class MeshBackend(Backend):
         self.boot_counts[addr] = value
         if not boot_count_clear(value):
             self.clear_on[addr] = self.link.connected_at
-        log.info("0x%04x: boot count %s -> %d: %s", addr, "-" if last is None else last, value, verdict)
+        log.log(logging.DEBUG if verdict == SAME and last is not None else logging.INFO,
+                "0x%04x: boot count %s -> %d: %s", addr, "-" if last is None else last, value, verdict)
         return verdict
 
     async def _clear_boot(self, addr: int) -> None:

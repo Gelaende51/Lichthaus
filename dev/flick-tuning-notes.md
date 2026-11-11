@@ -230,11 +230,14 @@
    "Exclusive mode unavailable (...)" instead: the reason is in the line; the
    mode then works like fast.
 4. The slider moves the bulb (levels over adverts).
-5. A minute of nothing: "silent ... rebooted?" lines, each followed by "boot
-   count went on" / "link drop, no flick", are lost adverts (harmless, one Get
-   each; on hci0 a few a minute, see the afternoon section below). The
-   "adverts every X s" figure in those lines is the learnt rhythm.
-6. Flick (off ~2 s, on): "silent 2.x s ...: rebooted?" (or "bulb
+5. A minute of nothing: with debug logging (HAUSLICHT_DEBUG=1), "silent ... rebooted?" lines,
+   each followed by "boot count went on" / "link drop, no flick", are lost
+   adverts (harmless, one Get each; on hci0 a few a minute, see the afternoon
+   section below). The "adverts every X s" figure in those lines is the learnt
+   rhythm. Since 2026-11-11 they are debug (~270 checks an hour, four lines
+   each, filled the journal); without debug one line an hour counts them:
+   "N off-beat adverts in 60 min were link drops ...".
+6. Flick (off ~2 s, on): "silent 2.x s ...: rebooted?" (debug) (or "bulb
    unreachable" then "bulb back"), "boot count N -> 1: rebooted", the toggle,
    "OnPowerUp of 0x0002 set to ...". With debug logging the "re-arm timings:
    advert -> connected -> verdict -> armed" line: the goal is well under 1 s

@@ -1235,3 +1235,20 @@ def test_abort_while_the_caller_is_stopping_is_link_aborted():
                 await b.set_powerup(b.ctx.bulb, "off")
         assert asyncio.current_task().cancelling() == 2
     asyncio.run(run())
+
+
+def test_same_boot_checks_log_one_line_an_hour(caplog, monkeypatch):
+    """Exclusive: a silence check reading the same boot came ~270 times an
+    hour, four info lines each (2026-11-11); now debug, counted in one info
+    line per DROPS_SUMMARY_S. A reboot still logs at once."""
+    from haus.backends import mesh
+    caplog.set_level("INFO", logger="hauslicht")
+    device = FakeBulb(count=40)
+    assert offbeat(device, reboot=False) == []
+    assert "link drop" not in caplog.text and "same boot" not in caplog.text
+    monkeypatch.setattr(mesh, "DROPS_SUMMARY_S", 0.0)
+    assert offbeat(FakeBulb(count=40), reboot=False) == []
+    assert "1 off-beat adverts in 0 min were link drops (the boot count went on), no flick" in caplog.text
+    caplog.clear()
+    assert [e[:2] for e in offbeat(FakeBulb(count=40), reboot=True)] == [("flick", BID)]
+    assert "rebooted" in caplog.text
