@@ -10,6 +10,14 @@ Hersteller-App, Konto oder Cloud.
 
 Abgespalten von [Licht.Haus](https://github.com/Gelaende51/Licht.Haus).
 
+<!-- rename-lichthaus: keep-begin -->
+**Umbenannt:** früher Haus.Licht. Bei einer bestehenden Installation gleich
+nach `git pull` `install/install.sh` ausführen: es zieht die Installation auf
+die neuen Namen um (Dienst, Einstellungen, Widget und Leiste; die
+Zustandsdatei benennt der Dienst bei seinem nächsten Start um). Danach
+`sudo install/setup-root.sh` noch einmal ausführen.
+<!-- rename-lichthaus: keep-end -->
+
 - **Offenlegung KI-Einsatz**
   - Agent: Claude Code mit Claude Opus 5.5 (Anthropic) hat Code und
     Dokumentation geschrieben und untersucht, wie die offizielle App die

@@ -550,3 +550,16 @@ onto Linux. Worth reporting upstream where marked.
 - A PipeWire null sink plus `module-remap-source master=<sink>.monitor` gives a virtual microphone that is not a `.monitor` (so `clap-sources` and `check_source` take it) and is not the default sink (so the speaker check never sees what is played into it): `pw-play --target <sink> clip.wav` then reaches the detector like a real clap.
 - Synthetic claps (white-noise bursts, 8 ms decay) pass the transient gate ("clap-like") but YAMNet scores them 0.02–0.06 for the clap family, under the cut-off: they never toggle. Of five ESC-50 "clapping" clips, one single clap cut from its loudest peak passed (family 0.08–0.10).
 - With that clip: test mode reported a triple with `test: true` and switched nothing; with `clap_count` 3 a double did not switch, a triple switched off and the next one back on.
+
+## Renamed to Lichthaus (2026-11-11) <!-- rename-lichthaus: keep -->
+- dev/rename-lichthaus.py does the mechanical part the same way in every
+  repository and branch. Code that must keep the old names (the migration,
+  the "formerly" notes) is marked `rename-lichthaus: keep` (a line),
+  `keep-begin`/`keep-end` (a block) or `keep-file`, so a later run, after a
+  merge from another branch, leaves it alone.
+- One test failed only through the length of the name: sACN's source name is
+  a fixed 64-byte field, and a test sliced 10 bytes for the old name.
+- The panel widgets are meant to keep their place and settings by changing
+  only their plugin id in plasma-org.kde.plasma.desktop-appletsrc (not yet
+  tried on a live panel). plasmashell writes that file when it quits, so
+  install/migrate-rename.sh changes it only while plasmashell is stopped.

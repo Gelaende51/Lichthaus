@@ -9,6 +9,13 @@ other kinds. Local only: no vendor app, account or cloud.
 
 Forked from [Licht.Haus](https://github.com/Gelaende51/Licht.Haus).
 
+<!-- rename-lichthaus: keep-begin -->
+**Renamed:** formerly Haus.Licht. On an existing install, run
+`install/install.sh` right after `git pull`: it moves the install to the new
+names (service, settings, widget and panel; the daemon renames the state
+file at its next start). Then run `sudo install/setup-root.sh` again.
+<!-- rename-lichthaus: keep-end -->
+
 - **AI disclosure**
   - Agent: Claude Code with Claude Opus 5.5 (Anthropic) wrote the
     code and docs and analysed how the official app sets brightness; about
