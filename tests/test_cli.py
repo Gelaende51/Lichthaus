@@ -1,4 +1,4 @@
-"""The hauslicht command line against an in-process daemon with mock bulbs:
+"""The lichthaus command line against an in-process daemon with mock bulbs:
 every widget feature has a subcommand, replies are readable text, and the
 man pages list every subcommand."""
 
@@ -18,9 +18,9 @@ ROOT = Path(__file__).resolve().parent.parent
 
 @pytest.fixture(autouse=True)
 def _logger_levels():
-    """cli.main sets the hauslicht, btmesh and bleak logger levels for a
+    """cli.main sets the lichthaus, btmesh and bleak logger levels for a
     terminal run; put them back so later tests' caplog still sees INFO."""
-    names = ("hauslicht", "btmesh", "bleak", "bleak_retry_connector")
+    names = ("lichthaus", "btmesh", "bleak", "bleak_retry_connector")
     saved = {n: logging.getLogger(n).level for n in names}
     yield
     for n, level in saved.items():
@@ -140,7 +140,7 @@ def test_discover_backends_and_rules_are_text(tmp_path, monkeypatch, capsys):
         code, out, _err = await hl("backends")
         assert code == 0 and out.startswith("mock  ") and "    address=  " in out
         code, out, _err = await hl("discover", "mock")
-        assert code == 0 and "add: hauslicht add mock" in out and "{" not in out
+        assert code == 0 and "add: lichthaus add mock" in out and "{" not in out
         rules = [{"name": "Mail", "app": "thunderbird", "pattern": "blink", "count": 2, "intensity": 100,
                   "color": "#3080ff", "bulbs": "all", "dark": False}]
         code, out, err = await hl("notify-rules-set", json.dumps(rules))
@@ -180,7 +180,7 @@ def test_help_groups_every_subcommand_once():
     assert set(names) == set(parser._subparsers._group_actions[0].choices)
 
 
-@pytest.mark.parametrize("page", ["man/hauslicht.1", "man/de/hauslicht.1"])
+@pytest.mark.parametrize("page", ["man/lichthaus.1", "man/de/lichthaus.1"])
 def test_man_page_lists_every_subcommand(page):
     text = (ROOT / page).read_text()
     # dev/gen-man.py writes each command as ".TP" then "\fBname\fR args" (hyphens as \-)
@@ -199,6 +199,6 @@ def test_discover_prints_the_note_after_the_name(capsys):
     lines = capsys.readouterr().out.splitlines()
     warn, plain = cli._("warning: "), "(1-2 / 2-2 · xHCI)"
     assert lines[0].startswith(f"usbport  usb1-port1  'USB port 1-1'  ({warn}1-1 / 2-1 · xHCI · Cam attached")
-    assert lines[0].endswith("add: hauslicht add usbport port=usb1-port1")
-    assert lines[1] == f"usbport  usb1-port2  'USB port 1-2'  {plain}  add: hauslicht add usbport port=usb1-port2"
-    assert lines[2] == "mock  mock-1  'Mock bulb 1'  add: hauslicht add mock address=mock-1"
+    assert lines[0].endswith("add: lichthaus add usbport port=usb1-port1")
+    assert lines[1] == f"usbport  usb1-port2  'USB port 1-2'  {plain}  add: lichthaus add usbport port=usb1-port2"
+    assert lines[2] == "mock  mock-1  'Mock bulb 1'  add: lichthaus add mock address=mock-1"

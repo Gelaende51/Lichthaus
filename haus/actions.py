@@ -35,7 +35,7 @@ import time
 from .backends import Offline
 from .profiles import NOTIFY_MIN_STEP_S, hex_hs, notify_steps
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 IDENTIFY_HALF_S = 1.0    # on this long, then off this long
 IDENTIFY_MAX_S = 120.0   # stops by itself after this

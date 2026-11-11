@@ -4,9 +4,9 @@ A module defines one subclass of Backend with a `kind`. The registry imports
 every module of this package on first use; a module that fails to import (a
 missing optional library at the top) is listed as unavailable, so optional
 libraries are best imported inside methods or guarded. See docs/backend-api.md.
-HAUSLICHT_BACKENDS (comma list of kinds) limits which kinds load: a test
+LICHTHAUS_BACKENDS (comma list of kinds) limits which kinds load: a test
 instance with `mock` only never touches Bluetooth. The mock backend is hidden
-unless HAUSLICHT_BACKENDS names it or HAUSLICHT_MOCK=1.
+unless LICHTHAUS_BACKENDS names it or LICHTHAUS_MOCK=1.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ import re
 
 from ..common import UserError, _
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 CAPS = ("onoff", "dim", "flick", "powerup", "ct", "hs")  # ct: white temperature, hs: hue/saturation
 FIELD_TYPES = ("text", "password", "int", "bool", "choice")
@@ -195,12 +195,12 @@ _registry: dict[str, Info] | None = None
 
 
 def allowed_kinds() -> set[str] | None:
-    value = os.environ.get("HAUSLICHT_BACKENDS", "").strip()
+    value = os.environ.get("LICHTHAUS_BACKENDS", "").strip()
     return {k.strip() for k in value.split(",") if k.strip()} if value else None
 
 
 def mock_enabled(allowed: set[str] | None) -> bool:
-    return (allowed is not None and "mock" in allowed) or os.environ.get("HAUSLICHT_MOCK", "") == "1"
+    return (allowed is not None and "mock" in allowed) or os.environ.get("LICHTHAUS_MOCK", "") == "1"
 
 
 def registry() -> dict[str, Info]:

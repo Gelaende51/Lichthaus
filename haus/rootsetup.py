@@ -24,9 +24,9 @@ from .common import ROOT
 
 SCRIPT = ROOT / "install" / "setup-root.sh"
 VERSION_FILE = ROOT / "install" / "setup-version"
-STAMP = Path("/usr/local/lib/hauslicht/setup-version")
+STAMP = Path("/usr/local/lib/lichthaus/setup-version")
 # what a run from before the stamp left behind: such a setup is outdated, not missing
-LEGACY = (Path("/usr/local/lib/hauslicht/conn-update"), Path("/etc/modules-load.d/haus-licht.conf"))
+LEGACY = (Path("/usr/local/lib/lichthaus/conn-update"), Path("/etc/modules-load.d/lichthaus.conf"))
 
 
 def required() -> int:
@@ -71,6 +71,6 @@ async def run(cmd: list[str] | None = None) -> tuple[int, str]:
 
 
 def run_on_tty() -> int:
-    """`hauslicht setup-root` on a terminal: sudo, the output shown as it comes."""
+    """`lichthaus setup-root` on a terminal: sudo, the output shown as it comes."""
     import subprocess
     return subprocess.call(command(True), stdin=sys.stdin)

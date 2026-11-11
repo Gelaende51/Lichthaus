@@ -45,7 +45,7 @@ from .profiles import (
     CLAP_LAST, check_widget_setting, clean_widget_settings,
 )
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 # QUICK_GAP_S (haus/backends): back within this after the drop: a flick; longer: a power-off, back lit
 ARM_RETRY_S = 60.0  # after an OnPowerUp Get/Set got no answer on a link that stays up (a new link: at once)
@@ -355,7 +355,7 @@ class Daemon:
         refused rather than connecting them."""
         free = [b for b in bulbs if not b.held]
         if bulbs and not free:
-            raise UserError(_("{bid} is disconnected (held); connect it first: hauslicht connect").format(
+            raise UserError(_("{bid} is disconnected (held); connect it first: lichthaus connect").format(
                 bid=", ".join(b.id for b in bulbs)))
         return free
 
@@ -600,7 +600,7 @@ class Daemon:
                 log.warning("%s: colour %s not confirmed; retrying in %.0f s", bulb.id, color, ARM_RETRY_S)
 
     def note_armed(self, bulb: Bulb, target: str | None) -> None:
-        """The on-disk marker (common.armed_path) that `hauslicht disarm
+        """The on-disk marker (common.armed_path) that `lichthaus disarm
         --if-armed` (the unit's ExecStopPost) reads after an unclean exit:
         target None takes the bulb off it. Written only on a change."""
         if self.armed_marker.get(bulb.id) == target:
@@ -1106,14 +1106,14 @@ class Daemon:
     def set_flick(self, value) -> None:
         """off | on | fast | exclusive. fast and exclusive need the root setup
         current: the widget runs it first (pkexec in the login session), the
-        CLI `hauslicht setup-root` (sudo); here it is only checked, never run.
+        CLI `lichthaus setup-root` (sudo); here it is only checked, never run.
         flick_last keeps the last mode that is not off (the popup's switch)."""
         try:
             mode = check_global_value("flick", value)
         except ValueError as exc:
             raise UserError(str(exc)) from None
         if mode in FAST_FLICK and rootsetup.status()["status"] != "current":
-            raise UserError(_("flick mode {mode} needs the system setup first: hauslicht setup-root").format(
+            raise UserError(_("flick mode {mode} needs the system setup first: lichthaus setup-root").format(
                 mode=mode))
         self.settings["flick"] = mode
         if mode != "off":

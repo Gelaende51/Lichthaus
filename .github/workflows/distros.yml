@@ -75,12 +75,12 @@ jobs:
       - name: What install.sh left
         run: |
           set -x
-          test -L "$HOME/.local/bin/hauslicht" && test -L "$HOME/.local/bin/hauslicht-ctl"
-          test -e "$HOME/.local/share/man/man1/hauslicht.1" && test -e "$HOME/.local/share/man/de/man1/hauslicht.1"
-          grep -q "^ExecStart=$PWD/.venv/bin/python $PWD/hauslicht.py sync" "$HOME/.config/systemd/user/hauslicht.service"
-          test -f "$HOME/.local/share/applications/io.github.gelaende51.HausLicht.desktop"
+          test -L "$HOME/.local/bin/lichthaus" && test -L "$HOME/.local/bin/lichthaus-ctl"
+          test -e "$HOME/.local/share/man/man1/lichthaus.1" && test -e "$HOME/.local/share/man/de/man1/lichthaus.1"
+          grep -q "^ExecStart=$PWD/.venv/bin/python $PWD/lichthaus.py sync" "$HOME/.config/systemd/user/lichthaus.service"
+          test -f "$HOME/.local/share/applications/io.github.gelaende51.Lichthaus.desktop"
           grep -q "systemctl --user daemon-reload" /tmp/stub/calls
-          "$HOME/.local/bin/hauslicht" --help > /dev/null
+          "$HOME/.local/bin/lichthaus" --help > /dev/null
       - name: Test requirements
         run: |
           .venv/bin/pip install -r requirements-dev.txt

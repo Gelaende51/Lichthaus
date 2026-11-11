@@ -41,7 +41,7 @@ from . import Backend, NeedsAccess, Offline
 from ..common import UserError
 from ._bulbkit import no_access, tr
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 TRANSPORTS = ("command", "http", "mqtt", "serial", "udp")
 TEMPLATES = ("on", "off", "brightness", "colour", "white")

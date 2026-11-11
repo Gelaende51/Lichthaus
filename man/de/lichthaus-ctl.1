@@ -1,15 +1,15 @@
-.TH HAUSLICHT\-CTL 1 "2026-11-03" "Haus.Licht 0.2" "Benutzerbefehle"
+.TH LICHTHAUS\-CTL 1 "2026-11-03" "Lichthaus 0.2" "Benutzerbefehle"
 .SH BEZEICHNUNG
-hauslicht\-ctl \- einen rohen Befehl an den hauslicht-Dienst senden und seine JSON-Antwort ausgeben
+lichthaus\-ctl \- einen rohen Befehl an den lichthaus-Dienst senden und seine JSON-Antwort ausgeben
 .SH \[u00DC]BERSICHT
-.B hauslicht\-ctl
+.B lichthaus\-ctl
 [\fB@\fR\fIN\fR] \fIBEFEHL\fR [\fIARGUMENT\fR ...]
 .SH BESCHREIBUNG
-\fBhauslicht\-ctl\fR ist der kleine Client, den das Plasma-Widget benutzt. Er
+\fBlichthaus\-ctl\fR ist der kleine Client, den das Plasma-Widget benutzt. Er
 schickt eine Anfrage \[u00FC]ber den Unix-Socket an den laufenden Dienst
-(\fBhauslicht sync\fR) und gibt \fBresults[0]\fR der Antwort als eine JSON-Zeile
+(\fBlichthaus sync\fR) und gibt \fBresults[0]\fR der Antwort als eine JSON-Zeile
 aus. Er braucht weder die virtuelle Umgebung noch Bluetooth-Bibliotheken. F\[u00FC]r
-lesbare Ausgabe gibt es \fBhauslicht\fR(1) mit denselben Befehlen.
+lesbare Ausgabe gibt es \fBlichthaus\fR(1) mit denselben Befehlen.
 .PP
 Jede Anfrage ist eine JSON-Zeile,
 \fB{"cmd": "set", "arg": "range_hi=150", "args": ["range_hi=150"], "which": null}\fR,
@@ -231,14 +231,14 @@ Bei einer Mock-Lampe einen Flick am Wandschalter, die R\[u00FC]ckkehr nach
 \fIABSTAND\fR Sekunden oder einen Ausfall vort\[u00E4]uschen.
 .SH UMGEBUNG
 .TP
-\fBHAUSLICHT_SOCK\fR
+\fBLICHTHAUS_SOCK\fR
 Der Socket eines anderen Dienstes (einer Testinstanz).
 .TP
 \fBXDG_RUNTIME_DIR\fR
-Der Socket ist \fB$XDG_RUNTIME_DIR/hauslicht.sock\fR, sofern \fBHAUSLICHT_SOCK\fR nicht gesetzt ist.
+Der Socket ist \fB$XDG_RUNTIME_DIR/lichthaus.sock\fR, sofern \fBLICHTHAUS_SOCK\fR nicht gesetzt ist.
 .SH DATEIEN
 .TP
-\fI$XDG_RUNTIME_DIR/hauslicht.sock\fR
+\fI$XDG_RUNTIME_DIR/lichthaus.sock\fR
 Der Socket des Dienstes.
 .SH R\[u00DC]CKGABEWERT
 .TP
@@ -254,12 +254,12 @@ Kein Befehl angegeben; die Kurzhilfe geht auf die Standardfehlerausgabe.
 .PP
 .RS
 .nf
-hauslicht\-ctl get
-hauslicht\-ctl set range_hi=150
-hauslicht\-ctl @2 select mesh:0003
-hauslicht\-ctl bulb\-set mesh:0002 name=Schreibtisch use=on
-hauslicht\-ctl watch
+lichthaus\-ctl get
+lichthaus\-ctl set range_hi=150
+lichthaus\-ctl @2 select mesh:0003
+lichthaus\-ctl bulb\-set mesh:0002 name=Schreibtisch use=on
+lichthaus\-ctl watch
 .fi
 .RE
 .SH SIEHE AUCH
-\fBhauslicht\fR(1); docs/ctl\-protocol.md im Checkout: jeder Befehl und jedes Feld von \fBget\fR.
+\fBlichthaus\fR(1); docs/ctl\-protocol.md im Checkout: jeder Befehl und jedes Feld von \fBget\fR.

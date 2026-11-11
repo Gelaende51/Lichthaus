@@ -4,7 +4,7 @@ from haus.profiles import DEFAULT, migrate, new_state
 
 FAKE_KEY = "00112233445566778899aabbccddeeff"
 
-V1 = {  # the shape of the single-bulb hauslicht.json, with fake keys
+V1 = {  # the shape of the single-bulb lichthaus.json, with fake keys
     "netkey": FAKE_KEY, "appkey": FAKE_KEY, "iv_index": 0, "netkey_index": 0, "appkey_index": 0,
     "provisioner_addr": 1, "next_unicast": 3, "seq": 1234,
     "devices": {"0x0002": {"device_key": FAKE_KEY, "uuid": "ab" * 16, "address": "F0:D1:B8:00:00:01",

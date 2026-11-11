@@ -1,5 +1,5 @@
 #!/usr/bin/python3 -I
-"""Haus.Licht root helper: lend one Bluetooth adapter to the daemon.
+"""Lichthaus root helper: lend one Bluetooth adapter to the daemon.
 
     hci-claim hciN        (stdin: a Unix socket of the daemon)
 

@@ -1,5 +1,5 @@
 #!/usr/bin/python3 -I
-"""Haus.Licht root helper: switch the 5 V of one USB port (the usbport kind).
+"""Lichthaus root helper: switch the 5 V of one USB port (the usbport kind).
 
     usb-port-power PORT on|off|get
 
@@ -20,7 +20,7 @@ and a peer that is not such a port. Writes nothing but the `disable` of that
 port and of its peer. Exit 1: a write or read failed.
 Installed root-owned by setup-root.sh; the user may run it via sudo only.
 
-HAUSLICHT_TEST_USB_SYSFS (a fake /sys for the tests) is honoured only when
+LICHTHAUS_TEST_USB_SYSFS (a fake /sys for the tests) is honoured only when
 neither the real nor the effective user is root: under sudo it never counts.
 """
 import os
@@ -32,7 +32,7 @@ PORT_RE = re.compile(r"(usb[0-9]+|[0-9]+-[0-9.]+)-port[0-9]+")
 # the stricter form actually accepted: no empty or ".." hub path components
 STRICT_RE = re.compile(r"(usb[0-9]{1,3}|[0-9]{1,3}-[0-9]{1,3}(\.[0-9]{1,3}){0,6})-port[0-9]{1,3}")
 INTERFACE_RE = re.compile(r"[0-9]{1,3}-[0-9]{1,3}(\.[0-9]{1,3}){0,6}:[0-9]{1,3}\.[0-9]{1,3}|[0-9]{1,3}-0:1\.0")
-TEST_ENV = "HAUSLICHT_TEST_USB_SYSFS"
+TEST_ENV = "LICHTHAUS_TEST_USB_SYSFS"
 
 
 class Refused(Exception):

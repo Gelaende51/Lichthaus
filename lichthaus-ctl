@@ -1,44 +1,44 @@
 #!/usr/bin/env python3
-"""hauslicht-ctl: tiny client for the hauslicht sync daemon (used by the Plasma widget).
+"""lichthaus-ctl: tiny client for the lichthaus sync daemon (used by the Plasma widget).
 
-    hauslicht-ctl get                     state as JSON
-    hauslicht-ctl set KEY=VALUE           mode, lid, flick (off|on|fast|exclusive),
+    lichthaus-ctl get                     state as JSON
+    lichthaus-ctl set KEY=VALUE           mode, lid, flick (off|on|fast|exclusive),
                                           exclusive_adapter (hciN|MAC|auto) globally;
                                           track, off_at_zero, range_lo, range_hi,
                                           curve, level on the selection's profile
-    hauslicht-ctl slider N | toggle | on | off | pause | resume | bulb N
-    hauslicht-ctl nudge N                 move the slider by N (signed; in mode off
+    lichthaus-ctl slider N | toggle | on | off | pause | resume | bulb N
+    lichthaus-ctl nudge N                 move the slider by N (signed; in mode off
                                           the brightness): scroll on the tray icon
-    hauslicht-ctl select ID|all
-    hauslicht-ctl order ID ID ...         the list order (every bulb id once)
-    hauslicht-ctl bulb-set ID name=... profile=... use=on|off icon_on=... icon_off=...
-    hauslicht-ctl widget-bulbs ID,ID...   the bulbs of the widget (none: empty)
-    hauslicht-ctl widget-settings | widget-settings-set KEY=VALUE...
+    lichthaus-ctl select ID|all
+    lichthaus-ctl order ID ID ...         the list order (every bulb id once)
+    lichthaus-ctl bulb-set ID name=... profile=... use=on|off icon_on=... icon_off=...
+    lichthaus-ctl widget-bulbs ID,ID...   the bulbs of the widget (none: empty)
+    lichthaus-ctl widget-settings | widget-settings-set KEY=VALUE...
                                           the widget's own settings: invert_scroll,
                                           icon_set, clap_last, auto_scan_bluetooth
-    hauslicht-ctl profile save|apply|delete NAME | profile rename OLD NEW
+    lichthaus-ctl profile save|apply|delete NAME | profile rename OLD NEW
                                           (preset ... is the same)
-    hauslicht-ctl discover [KIND] | add KIND key=value... | remove ID | backends
-    hauslicht-ctl adapters                Bluetooth adapters flick mode exclusive can take
-    hauslicht-ctl clap off|clap|snap|both | clap-sources | clap-meter [--listen] | clap-hits
+    lichthaus-ctl discover [KIND] | add KIND key=value... | remove ID | backends
+    lichthaus-ctl adapters                Bluetooth adapters flick mode exclusive can take
+    lichthaus-ctl clap off|clap|snap|both | clap-sources | clap-meter [--listen] | clap-hits
                                           double clap/snap toggle, its microphones, test meter
                                           (--listen: a test run while clap is off), recent hits
-    hauslicht-ctl audio on|off|toggle | audio-source NAME|default | audio-color on|off
+    lichthaus-ctl audio on|off|toggle | audio-source NAME|default | audio-color on|off
                   | audio-rate 1-3 | audio-sources | audio-status
                                           the selection follows what the computer plays
-    hauslicht-ctl video on|off|toggle | video-region ID REGION | video-max 0-100
+    lichthaus-ctl video on|off|toggle | video-region ID REGION | video-max 0-100
                   | video-smooth 0|0.2|0.5|1|2|5 | video-forget | video-status
                                           the selection follows its region of the screen
-    hauslicht-ctl follow-rate 1-3         updates per second per bulb (audio and video)
-    hauslicht-ctl notify on|off | notify-rules | notify-rules-set JSON | notify-test RULE
+    lichthaus-ctl follow-rate 1-3         updates per second per bulb (audio and video)
+    lichthaus-ctl notify on|off | notify-rules | notify-rules-set JSON | notify-test RULE
                   | notify-status        notification blinks; the rules are the selection's profile's
-    hauslicht-ctl watch                   a snapshot, then one JSON line per change
+    lichthaus-ctl watch                   a snapshot, then one JSON line per change
                                           until interrupted
-    hauslicht-ctl @N COMMAND ...          the command in widget N's context
+    lichthaus-ctl @N COMMAND ...          the command in widget N's context
 
 Every command and the full `get` JSON: docs/ctl-protocol.md. Socket only: no
 btmesh, no venv. Prints the daemon's reply as one JSON line; exit 1 with
-{"error": ...} when the daemon is not running or refuses. HAUSLICHT_SOCK
+{"error": ...} when the daemon is not running or refuses. LICHTHAUS_SOCK
 points at another daemon's socket (a test instance).
 """
 import json
@@ -47,8 +47,8 @@ import socket
 import sys
 from pathlib import Path
 
-SOCK = Path(os.environ.get("HAUSLICHT_SOCK")
-            or Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "hauslicht.sock")
+SOCK = Path(os.environ.get("LICHTHAUS_SOCK")
+            or Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "lichthaus.sock")
 
 
 def main(argv: list[str]) -> int:

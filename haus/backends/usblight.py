@@ -37,7 +37,7 @@ from . import Backend, NeedsAccess, Offline
 from ..common import UserError
 from ._bulbkit import Presence, no_access, tr
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 LIBUSB_PATH = re.compile(r"^([0-9a-fA-F]{4}):([0-9a-fA-F]{4}):")
 USB_DEV = "/dev/bus/usb"  # tests point it at a tmp tree

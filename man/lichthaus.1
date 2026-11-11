@@ -1,13 +1,13 @@
-.TH HAUSLICHT 1 "2026-11-03" "Haus.Licht 0.2" "User Commands"
+.TH LICHTHAUS 1 "2026-11-03" "Lichthaus 0.2" "User Commands"
 .SH NAME
-hauslicht \- lights that follow the screen (Bluetooth mesh and more)
+lichthaus \- lights that follow the screen (Bluetooth mesh and more)
 .SH SYNOPSIS
-.B hauslicht
+.B lichthaus
 [\fB\-w\fR \fIN\fR] [\fB\-\-json\fR] \fICOMMAND\fR [\fIARGS\fR ...]
 .SH DESCRIPTION
-\fBhauslicht\fR makes lights follow the screen: the bulbs dim and brighten with the screen backlight, switch with the lid or the monitor, follow what the computer plays or shows, blink on notifications and react to a double clap or a wall-switch flick.
+\fBlichthaus\fR makes lights follow the screen: the bulbs dim and brighten with the screen backlight, switch with the lid or the monitor, follow what the computer plays or shows, blink on notifications and react to a double clap or a wall-switch flick.
 .PP
-The daemon, \fBhauslicht sync\fR (normally run by the systemd user unit), owns the Bluetooth link and the mesh sequence number. While it runs, the other commands go to it over its Unix socket (the protocol is in \fBhauslicht-ctl\fR(1)). Without the daemon, \fBon\fR, \fBoff\fR, \fBdim\fR, \fBstatus\fR and \fBraw\fR talk to Bluetooth mesh bulbs directly; the commands marked \(lqdaemon running\(rq need it.
+The daemon, \fBlichthaus sync\fR (normally run by the systemd user unit), owns the Bluetooth link and the mesh sequence number. While it runs, the other commands go to it over its Unix socket (the protocol is in \fBlichthaus-ctl\fR(1)). Without the daemon, \fBon\fR, \fBoff\fR, \fBdim\fR, \fBstatus\fR and \fBraw\fR talk to Bluetooth mesh bulbs directly; the commands marked \(lqdaemon running\(rq need it.
 .PP
 The Plasma widget offers the same features. Its own preferences (the icon set, inverted scrolling, the clap mode its switch turns on, Auto scan) are kept by the daemon per widget, so the widget and the settings window show the same: \fBwidget\-settings\fR. Replies are printed as text; \fB\-\-json\fR prints the daemon's reply as JSON for scripts.
 .SH OPTIONS
@@ -100,7 +100,7 @@ white bulbs follow Night Light's screen white: on or off (daemon running)
 profiles: list | save NAME | apply NAME | rename OLD NEW | delete NAME (daemon running)
 .TP
 \fBset\fR KEY=VALUE [KEY=VALUE ...]
-set any key as hauslicht-ctl set does: KEY=VALUE ..., see docs/ctl-protocol.md (daemon running)
+set any key as lichthaus-ctl set does: KEY=VALUE ..., see docs/ctl-protocol.md (daemon running)
 .SS Bulbs and widgets
 .TP
 \fBlist\fR
@@ -293,7 +293,7 @@ only the bulbs the daemon left armed (its marker); nothing at all when there are
 .RE
 .TP
 \fBconfig\fR [\-\-window | \-\-system\-settings] [\-\-add\-bulb]
-open the settings: the Plasma widget's Configure pages (bulbs, profiles, sound, video, notifications); on Plasma in System Settings (Connected Devices \[u2192] Haus.Licht) when they are installed there, otherwise in a window of their own, also on other desktops
+open the settings: the Plasma widget's Configure pages (bulbs, profiles, sound, video, notifications); on Plasma in System Settings (Connected Devices \[u2192] Lichthaus) when they are installed there, otherwise in a window of their own, also on other desktops
 .RS
 .TP
 \fB\-\-window\fR
@@ -302,7 +302,7 @@ the settings window, also on Plasma
 .RS
 .TP
 \fB\-\-system\-settings\fR
-only System Settings: where Haus.Licht's pages are not there, open nothing and exit with 3
+only System Settings: where Lichthaus's pages are not there, open nothing and exit with 3
 .RE
 .RS
 .TP
@@ -320,60 +320,60 @@ debug: print the bulbs' adverts with timestamps
 send one hex access payload, print replies
 .SH FILES
 .TP
-\fIhauslicht.json\fR
-The state file, in the checkout (or \fB$HAUSLICHT_STATE\fR): bulbs, mesh keys and sequence number, profiles, widgets, settings. Readable by its owner only; it holds the mesh keys, so never share it.
+\fIlichthaus.json\fR
+The state file, in the checkout (or \fB$LICHTHAUS_STATE\fR): bulbs, mesh keys and sequence number, profiles, widgets, settings. Readable by its owner only; it holds the mesh keys, so never share it.
 .TP
-\fIhauslicht.armed.json\fR
+\fIlichthaus.armed.json\fR
 The armed marker beside the state file: the bulbs whose OnPowerUp the daemon may have left armed to something other than \(lqon\(rq. \fBdisarm \-\-if\-armed\fR reads it.
 .TP
-\fIhauslicht.lock\fR
+\fIlichthaus.lock\fR
 Beside the state file: the lock that guards the mesh link and sequence number.
 .TP
-\fI$XDG_RUNTIME_DIR/hauslicht.sock\fR
-The daemon's socket (or \fB$HAUSLICHT_SOCK\fR).
+\fI$XDG_RUNTIME_DIR/lichthaus.sock\fR
+The daemon's socket (or \fB$LICHTHAUS_SOCK\fR).
 .TP
-\fI~/.config/systemd/user/hauslicht.service\fR
-The unit: \fBhauslicht sync\fR, and \fBhauslicht disarm \-\-if\-armed\fR after every stop. Written by \fBinstall/install.sh\fR.
+\fI~/.config/systemd/user/lichthaus.service\fR
+The unit: \fBlichthaus sync\fR, and \fBlichthaus disarm \-\-if\-armed\fR after every stop. Written by \fBinstall/install.sh\fR.
 .TP
-\fI~/.config/plasma\-workspace/env/hauslicht\-kcm.sh\fR
-Adds ~/.local/lib/qt6/plugins to \fBQT_PLUGIN_PATH\fR at each Plasma login, so System Settings finds Haus.Licht's pages installed per user. Written by \fBinstall/install.sh\fR.
+\fI~/.config/plasma\-workspace/env/lichthaus\-kcm.sh\fR
+Adds ~/.local/lib/qt6/plugins to \fBQT_PLUGIN_PATH\fR at each Plasma login, so System Settings finds Lichthaus's pages installed per user. Written by \fBinstall/install.sh\fR.
 .TP
 \fI~/.local/lib/qt6/plugins/plasma/kcms/systemsettings_qwidgets/\fR
-Haus.Licht's pages as System Settings modules (kcm_hauslicht_*), built per user by \fBinstall/install.sh\fR; \fBconfig\fR opens System Settings there on Plasma.
+Lichthaus's pages as System Settings modules (kcm_lichthaus_*), built per user by \fBinstall/install.sh\fR; \fBconfig\fR opens System Settings there on Plasma.
 .TP
-\fI~/.cache/hauslicht/\fR
-The clap model, downloaded on first use; \fBHausLicht\fR, the link to Qt's \fBqml\fR runtime that \fBconfig\fR starts the settings window through.
+\fI~/.cache/lichthaus/\fR
+The clap model, downloaded on first use; \fBLichthaus\fR, the link to Qt's \fBqml\fR runtime that \fBconfig\fR starts the settings window through.
 .TP
-\fI~/.local/share/hauslicht/plasmoid/\fR
+\fI~/.local/share/lichthaus/plasmoid/\fR
 The Plasma widget's package where Plasma is missing (\fBinstall/install.sh\fR unpacks it there): its Configure pages for \fBconfig\fR.
 .TP
-\fI~/.local/state/hauslicht/config\-window.log\fR
+\fI~/.local/state/lichthaus/config\-window.log\fR
 The settings window's messages from its last start.
 .TP
-\fI/usr/local/lib/hauslicht/setup\-version\fR
+\fI/usr/local/lib/lichthaus/setup\-version\fR
 The stamp of the one-time system setup (\fBsetup\-root\fR).
 .SH ENVIRONMENT
 .TP
-\fBHAUSLICHT_STATE\fR
+\fBLICHTHAUS_STATE\fR
 Another state file (a test instance).
 .TP
-\fBHAUSLICHT_SOCK\fR
+\fBLICHTHAUS_SOCK\fR
 Another daemon socket (a test instance). Keep the path short.
 .TP
-\fBHAUSLICHT_BACKENDS\fR
+\fBLICHTHAUS_BACKENDS\fR
 A comma list of the kinds of bulbs to load, e.g. \fBmock\fR for a test instance that never touches Bluetooth.
 .TP
-\fBHAUSLICHT_MOCK\fR
-\fB1\fR shows the mock backend even when \fBHAUSLICHT_BACKENDS\fR does not name it.
+\fBLICHTHAUS_MOCK\fR
+\fB1\fR shows the mock backend even when \fBLICHTHAUS_BACKENDS\fR does not name it.
 .TP
-\fBHAUSLICHT_DEBUG\fR
+\fBLICHTHAUS_DEBUG\fR
 Set: \fBsync\fR logs at debug level.
 .TP
-\fBHAUSLICHT_NO_PANEL\fR
+\fBLICHTHAUS_NO_PANEL\fR
 \fB1\fR: the daemon adds no panel widgets, \fB0\fR: it does; unset: it does, except for a test instance.
 .TP
-\fBHAUSLICHT_PLASMOID\fR
-A package directory of the Plasma widget for \fBconfig\fR, tried before ~/.local/share/plasma/plasmoids/haus.licht.tray, /usr/share/plasma/plasmoids/haus.licht.tray and ~/.local/share/hauslicht/plasmoid.
+\fBLICHTHAUS_PLASMOID\fR
+A package directory of the Plasma widget for \fBconfig\fR, tried before ~/.local/share/plasma/plasmoids/lichthaus.tray, /usr/share/plasma/plasmoids/lichthaus.tray and ~/.local/share/lichthaus/plasmoid.
 .TP
 \fBLANGUAGE, LC_ALL, LC_MESSAGES, LANG\fR
 German messages when the language is \fBde\fR, English otherwise.
@@ -389,15 +389,15 @@ The daemon is not running, it refused the command (the message goes to standard 
 A usage error, or the Bluetooth link failed without the daemon.
 .TP
 \fB3\fR
-\fBconfig \-\-system\-settings\fR: Haus.Licht's pages are not in System Settings here; nothing was opened.
+\fBconfig \-\-system\-settings\fR: Lichthaus's pages are not in System Settings here; nothing was opened.
 .SH EXAMPLES
 .PP
 Switch the lights on and dim them to 40 percent:
 .PP
 .RS
 .nf
-hauslicht on
-hauslicht dim 40
+lichthaus on
+lichthaus dim 40
 .fi
 .RE
 .PP
@@ -405,8 +405,8 @@ What the widget shows, and every bulb:
 .PP
 .RS
 .nf
-hauslicht info
-hauslicht bulbs
+lichthaus info
+lichthaus bulbs
 .fi
 .RE
 .PP
@@ -414,9 +414,9 @@ Up to 150 percent of the screen's brightness, warm colour:
 .PP
 .RS
 .nf
-hauslicht range 0 150
-hauslicht hue 30
-hauslicht sat 60
+lichthaus range 0 150
+lichthaus hue 30
+lichthaus sat 60
 .fi
 .RE
 .PP
@@ -424,8 +424,8 @@ Two widgets, the second for the shelf lamp:
 .PP
 .RS
 .nf
-hauslicht widgets 2
-hauslicht \-w 2 widget\-bulbs mesh:0003
+lichthaus widgets 2
+lichthaus \-w 2 widget\-bulbs mesh:0003
 .fi
 .RE
 .PP
@@ -433,9 +433,9 @@ Find, then add a bulb:
 .PP
 .RS
 .nf
-hauslicht discover bluetooth
-hauslicht backends
-hauslicht add wiz address=192.168.1.40
+lichthaus discover bluetooth
+lichthaus backends
+lichthaus add wiz address=192.168.1.40
 .fi
 .RE
 .PP
@@ -443,9 +443,9 @@ A USB lamp on a hub port that switches its power (check the hub with uhubctl; th
 .PP
 .RS
 .nf
-hauslicht discover usbport
-hauslicht add usbport port=1\-1.4\-port2 name=Shelf
-hauslicht identify usbport:1\-1.4\-port2
+lichthaus discover usbport
+lichthaus add usbport port=1\-1.4\-port2 name=Shelf
+lichthaus identify usbport:1\-1.4\-port2
 .fi
 .RE
 .PP
@@ -453,10 +453,10 @@ A test instance beside the live one:
 .PP
 .RS
 .nf
-export HAUSLICHT_STATE=/tmp/hl.json HAUSLICHT_SOCK=$XDG_RUNTIME_DIR/hl.sock
-HAUSLICHT_BACKENDS=mock hauslicht sync \-\-no\-desktop\-writes &
-hauslicht add mock name=Desk
+export LICHTHAUS_STATE=/tmp/hl.json LICHTHAUS_SOCK=$XDG_RUNTIME_DIR/hl.sock
+LICHTHAUS_BACKENDS=mock lichthaus sync \-\-no\-desktop\-writes &
+lichthaus add mock name=Desk
 .fi
 .RE
 .SH SEE ALSO
-\fBhauslicht\-ctl\fR(1), \fBsystemctl\fR(1); docs/ctl\-protocol.md and README.md in the checkout.
+\fBlichthaus\-ctl\fR(1), \fBsystemctl\fR(1); docs/ctl\-protocol.md and README.md in the checkout.

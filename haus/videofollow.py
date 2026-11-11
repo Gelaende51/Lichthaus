@@ -43,12 +43,12 @@ import subprocess
 import time
 from collections.abc import Callable
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 W, H = 48, 27  # the frame the bulbs are taken from (16:9; other screens are stretched)
 FPS = 5
 FRAME = W * H * 3  # RGB, rows packed (W * 3 is a multiple of 4: no padding)
-APP_ID = "io.github.gelaende51.HausLicht"
+APP_ID = "io.github.gelaende51.Lichthaus"
 
 REGIONS = ("whole", "left", "right", "top", "bottom", "top-left", "top-right", "bottom-left", "bottom-right")
 ALIASES = {"up": "top", "down": "bottom", "all": "whole", "full": "whole"}
@@ -304,7 +304,7 @@ class ScreenCast:
 
     async def _request(self, member: str, signature: str, args: list, options: dict) -> dict:
         from dbus_fast import Variant
-        token = f"hauslicht{os.getpid()}_{next(self.tokens)}"
+        token = f"lichthaus{os.getpid()}_{next(self.tokens)}"
         sender = self.bus.unique_name.lstrip(":").replace(".", "_")
         path = f"{PORTAL_PATH}/request/{sender}/{token}"
         fut = asyncio.get_running_loop().create_future()
@@ -325,7 +325,7 @@ class ScreenCast:
         from dbus_fast import Variant
         await self.connect()
         results = await self._request("CreateSession", "a{sv}", [],
-                                      {"session_handle_token": Variant("s", f"hauslicht{os.getpid()}")})
+                                      {"session_handle_token": Variant("s", f"lichthaus{os.getpid()}")})
         self.session = str(results.get("session_handle") or "")
         if not self.session:
             raise VideoError("the portal gave no session")

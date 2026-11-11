@@ -1,13 +1,13 @@
 #!/bin/sh
-# One-time system setup for Haus.Licht (run with sudo, or with pkexec: the
+# One-time system setup for Lichthaus (run with sudo, or with pkexec: the
 # daemon does that when a flick mode needs it). Idempotent; changed system
 # files keep a backup of their original. Ends by writing its version
-# (install/setup-version) to /usr/local/lib/hauslicht/setup-version.
+# (install/setup-version) to /usr/local/lib/lichthaus/setup-version.
 # - loads the kernel's uleds driver now and at boot, so the sync daemon can
 #   create the "keyboard backlight" that Plasma's brightness applet shows;
 # - lets the logged-in user open /dev/uleds (systemd uaccess, like audio devices);
 # - lets the logged-in user open USB status lights and USB-serial LED
-#   controllers (uaccess, rule file 70-haus-licht-devices.rules);
+#   controllers (uaccess, rule file 70-lichthaus-devices.rules);
 # - installs the root helpers conn-update, hci-claim and usb-port-power and
 #   lets the installing user run them via sudo without a password;
 # - checks that BlueZ scans Bluetooth Low Energy (the bulbs speak nothing else).
@@ -21,8 +21,8 @@ here=$(cd "$(dirname "$0")" && pwd)
 version=$(cat "$here/setup-version")
 case $version in ''|*[!0-9]*) echo "bad $here/setup-version" >&2; exit 1 ;; esac
 
-echo uleds > /etc/modules-load.d/haus-licht.conf
-echo 'KERNEL=="uleds", TAG+="uaccess"' > /etc/udev/rules.d/70-haus-licht.rules
+echo uleds > /etc/modules-load.d/lichthaus.conf
+echo 'KERNEL=="uleds", TAG+="uaccess"' > /etc/udev/rules.d/70-lichthaus.rules
 modprobe uleds
 udevadm control --reload
 udevadm trigger --action=add /dev/uleds
@@ -36,10 +36,10 @@ echo "uleds ready: $(ls -l /dev/uleds)"
 # before 73-seat-late.rules, hence 70.
 USBLIGHT_IDS="047f:d005 04d8:f372 04d8:f848 0e53:2516 0e53:2517 0e53:2519 1130:0001 1130:0002 1130:1e00 1395:0074 16c0:27db 20a0:41e5 20a0:42da 20a0:42db 27b8:01ed 27bb:3bca 27bb:3bcb 27bb:3bcd 27bb:3bce 27bb:3bcf 2c0d:0001 2c0d:0002 2c0d:0003 2c0d:000a 2c0d:000c 2c0d:0010 340b:f001 340b:f002"
 SERIAL_IDS="1a86:7523 10c4:ea60 0403:6001 0403:6015 2341:* 303a:*"
-devrules=/etc/udev/rules.d/70-haus-licht-devices.rules
+devrules=/etc/udev/rules.d/70-lichthaus-devices.rules
 set -f  # 2341:* is a udev glob, not a file name
 {
-    echo "# Haus.Licht (install/setup-root.sh): USB lights and LED controllers for the logged-in user"
+    echo "# Lichthaus (install/setup-root.sh): USB lights and LED controllers for the logged-in user"
     for id in $USBLIGHT_IDS; do
         vid=${id%:*}; pid=${id#*:}
         echo "SUBSYSTEM==\"usb\", ATTR{idVendor}==\"$vid\", ATTR{idProduct}==\"$pid\", TAG+=\"uaccess\""
@@ -65,19 +65,19 @@ echo "device access rules: $devrules"
 #   usb-port-power: switches the 5 V of one hotplug USB port and its peer
 #                (sysfs `disable`, the usbport kind; ports have no udev
 #                subsystem, so no udev rule could grant it).
-install -D -o root -g root -m 0755 "$here/conn-update" /usr/local/lib/hauslicht/conn-update
-install -D -o root -g root -m 0755 "$here/hci-claim" /usr/local/lib/hauslicht/hci-claim
-install -D -o root -g root -m 0755 "$here/usb-port-power" /usr/local/lib/hauslicht/usb-port-power
+install -D -o root -g root -m 0755 "$here/conn-update" /usr/local/lib/lichthaus/conn-update
+install -D -o root -g root -m 0755 "$here/hci-claim" /usr/local/lib/lichthaus/hci-claim
+install -D -o root -g root -m 0755 "$here/usb-port-power" /usr/local/lib/lichthaus/usb-port-power
 user=${SUDO_USER:-}
 if [ -z "$user" ] && [ -n "${PKEXEC_UID:-}" ]; then
     user=$(id -nu "$PKEXEC_UID")
 fi
 if [ -n "$user" ]; then
-    rule="$user ALL=(root) NOPASSWD: /usr/local/lib/hauslicht/conn-update, /usr/local/lib/hauslicht/hci-claim, /usr/local/lib/hauslicht/usb-port-power"
+    rule="$user ALL=(root) NOPASSWD: /usr/local/lib/lichthaus/conn-update, /usr/local/lib/lichthaus/hci-claim, /usr/local/lib/lichthaus/usb-port-power"
     tmp=$(mktemp)
     echo "$rule" > "$tmp"
     if visudo -cf "$tmp" >/dev/null; then
-        install -o root -g root -m 0440 "$tmp" /etc/sudoers.d/hauslicht
+        install -o root -g root -m 0440 "$tmp" /etc/sudoers.d/lichthaus
         echo "sudoers rule installed for $user"
     else
         echo "WARNING: sudoers rule failed validation, not installed" >&2
@@ -107,14 +107,14 @@ set_conf() {  # section key value
         insec && !done && $0 ~ ("^#?[ \t]*" key "[ \t]*=") { print key " = " val; done = 1; next }
         { print }
         END { flush(); if (!done) { print ""; print sec; print key " = " val } }
-    ' "$conf" > "$conf.hauslicht-new"
-    if cmp -s "$conf" "$conf.hauslicht-new"; then
-        rm -f "$conf.hauslicht-new"
+    ' "$conf" > "$conf.lichthaus-new"
+    if cmp -s "$conf" "$conf.lichthaus-new"; then
+        rm -f "$conf.lichthaus-new"
         return 0
     fi
-    [ -e "$conf.hauslicht-bak" ] || cp -p "$conf" "$conf.hauslicht-bak"
-    cat "$conf.hauslicht-new" > "$conf"
-    rm -f "$conf.hauslicht-new"
+    [ -e "$conf.lichthaus-bak" ] || cp -p "$conf" "$conf.lichthaus-bak"
+    cat "$conf.lichthaus-new" > "$conf"
+    rm -f "$conf.lichthaus-new"
     bt_changed=1
 }
 bt_changed=0
@@ -126,7 +126,7 @@ if [ -e "$conf" ]; then
     set_conf GATT Cache always
     set_conf GATT Channels 1
     if [ "$bt_changed" = 1 ]; then
-        echo "$conf tuned (backup: $conf.hauslicht-bak)."
+        echo "$conf tuned (backup: $conf.lichthaus-bak)."
         if systemctl is-active --quiet bluetooth 2>/dev/null; then
             systemctl restart bluetooth
             echo "bluetooth restarted to read it"
@@ -139,8 +139,8 @@ fi
 # A3 (kernel auto-connect) needs nothing here; A2 (the advertising bearer) is
 # flick mode exclusive through hci-claim above: see dev/flick-tuning-notes.md.
 
-install -d -o root -g root -m 0755 /usr/local/lib/hauslicht
-echo "$version" > /usr/local/lib/hauslicht/setup-version.new
-chmod 0644 /usr/local/lib/hauslicht/setup-version.new
-mv /usr/local/lib/hauslicht/setup-version.new /usr/local/lib/hauslicht/setup-version
-echo "Haus.Licht system setup v$version installed"
+install -d -o root -g root -m 0755 /usr/local/lib/lichthaus
+echo "$version" > /usr/local/lib/lichthaus/setup-version.new
+chmod 0644 /usr/local/lib/lichthaus/setup-version.new
+mv /usr/local/lib/lichthaus/setup-version.new /usr/local/lib/lichthaus/setup-version
+echo "Lichthaus system setup v$version installed"

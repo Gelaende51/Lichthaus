@@ -25,7 +25,7 @@ from ..common import UserError
 from ._bulbkit import color_caps, kelvin_range, learn_color, mired_kelvin
 from ._lan import Presence, Throttle, mdns_browse, mdns_host as _host, poll_loop
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 POLL_S = 5.0
 TIMEOUT_S = 4.0

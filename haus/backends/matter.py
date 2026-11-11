@@ -33,7 +33,7 @@ from . import Backend, Offline
 from ..common import UserError, _language
 from ._bulbkit import color_caps, kelvin_range, learn_color, mired_kelvin
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 MIN_INTERVAL_S = 0.2  # per node: Thread bulbs answer in tens to hundreds of ms
 REQUEST_TIMEOUT_S = 10.0

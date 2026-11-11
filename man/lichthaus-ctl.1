@@ -1,15 +1,15 @@
-.TH HAUSLICHT\-CTL 1 "2026-11-03" "Haus.Licht 0.2" "User Commands"
+.TH LICHTHAUS\-CTL 1 "2026-11-03" "Lichthaus 0.2" "User Commands"
 .SH NAME
-hauslicht\-ctl \- send one raw command to the hauslicht daemon and print its JSON reply
+lichthaus\-ctl \- send one raw command to the lichthaus daemon and print its JSON reply
 .SH SYNOPSIS
-.B hauslicht\-ctl
+.B lichthaus\-ctl
 [\fB@\fR\fIN\fR] \fICOMMAND\fR [\fIARG\fR ...]
 .SH DESCRIPTION
-\fBhauslicht\-ctl\fR is the small client the Plasma widget uses. It sends one
-request to the running daemon (\fBhauslicht sync\fR) over its Unix socket and
+\fBlichthaus\-ctl\fR is the small client the Plasma widget uses. It sends one
+request to the running daemon (\fBlichthaus sync\fR) over its Unix socket and
 prints \fBresults[0]\fR of the reply as one JSON line. It needs neither the
 virtual environment nor Bluetooth libraries. For readable output use
-\fBhauslicht\fR(1), which offers the same commands.
+\fBlichthaus\fR(1), which offers the same commands.
 .PP
 Each request is one JSON line,
 \fB{"cmd": "set", "arg": "range_hi=150", "args": ["range_hi=150"], "which": null}\fR,
@@ -228,14 +228,14 @@ Simulate a wall-switch flick, a return after \fIGAP\fR seconds, or an outage
 of a mock bulb.
 .SH ENVIRONMENT
 .TP
-\fBHAUSLICHT_SOCK\fR
+\fBLICHTHAUS_SOCK\fR
 Another daemon's socket (a test instance).
 .TP
 \fBXDG_RUNTIME_DIR\fR
-The socket is \fB$XDG_RUNTIME_DIR/hauslicht.sock\fR unless \fBHAUSLICHT_SOCK\fR is set.
+The socket is \fB$XDG_RUNTIME_DIR/lichthaus.sock\fR unless \fBLICHTHAUS_SOCK\fR is set.
 .SH FILES
 .TP
-\fI$XDG_RUNTIME_DIR/hauslicht.sock\fR
+\fI$XDG_RUNTIME_DIR/lichthaus.sock\fR
 The daemon's socket.
 .SH EXIT STATUS
 .TP
@@ -251,13 +251,13 @@ No command given; the usage is printed to standard error.
 .PP
 .RS
 .nf
-hauslicht\-ctl get
-hauslicht\-ctl set range_hi=150
-hauslicht\-ctl @2 select mesh:0003
-hauslicht\-ctl bulb\-set mesh:0002 name=Desk use=on
-hauslicht\-ctl watch
+lichthaus\-ctl get
+lichthaus\-ctl set range_hi=150
+lichthaus\-ctl @2 select mesh:0003
+lichthaus\-ctl bulb\-set mesh:0002 name=Desk use=on
+lichthaus\-ctl watch
 .fi
 .RE
 .SH SEE ALSO
-\fBhauslicht\fR(1); docs/ctl\-protocol.md in the checkout: every command and every
+\fBlichthaus\fR(1); docs/ctl\-protocol.md in the checkout: every command and every
 field of \fBget\fR.

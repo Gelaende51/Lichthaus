@@ -16,7 +16,7 @@ from pathlib import Path
 
 from .common import _
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 BACKLIGHT_DIR = Path("/sys/class/backlight")
 NIGHT_POLL_S = 60.0  # besides the PropertiesChanged signal, in case it is missed
@@ -384,7 +384,7 @@ class KbdSlider:
     arrives here as a 4-byte int on /dev/uleds.
     """
 
-    NAME = b"hauslicht::kbd_backlight"
+    NAME = b"lichthaus::kbd_backlight"
     MAX = 100
 
     def __init__(self, on_change) -> None:
@@ -497,7 +497,7 @@ class SleepGuard:
     async def _inhibit(self) -> None:
         if self.fd is None:
             self.fd = await self.manager.call_inhibit(
-                "sleep", "Haus.Licht", "switch the bulbs off first", "delay")
+                "sleep", "Lichthaus", "switch the bulbs off first", "delay")
 
     def _release(self) -> None:
         if self.fd is not None:

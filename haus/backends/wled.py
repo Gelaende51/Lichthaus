@@ -33,7 +33,7 @@ from ..common import UserError
 from ._bulbkit import Presence, Throttle, clamp, mac_suffix, tr
 from ._lan import mdns_browse, mdns_host
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 TIMEOUT_S = 4.0
 SEND_INTERVAL_S = 0.1   # an ESP8266 copes with ~10 JSON posts a second

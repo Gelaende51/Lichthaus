@@ -1,5 +1,5 @@
 #!/bin/sh
-# Per-user install of Haus.Licht from this checkout (no root; for the slider
+# Per-user install of Lichthaus from this checkout (no root; for the slider
 # also run install/setup-root.sh once with sudo). On Plasma it also builds and
 # installs the System Settings pages (KCMs) and their login env script.
 #
@@ -9,7 +9,7 @@
 #   install/install.sh --dry-run ...          print the pip command, change nothing
 #   install/install.sh --plasmoid PATH        the tray widget from this .plasmoid file or
 #                                             package dir (default: its latest release); the
-#                                             package dir of a Haus.Licht-plasma checkout
+#                                             package dir of a Lichthaus-plasma checkout
 #                                             also gives its System Settings pages (kcm/)
 set -eu
 dir=$(cd "$(dirname "$0")/.." && pwd)
@@ -37,9 +37,9 @@ if [ -n "$plasmoid" ] && [ ! -e "$plasmoid" ]; then
 fi
 
 # The Plasma tray widget lives in its own repository; its releases carry
-# haus.licht.tray-<version>.plasmoid and a .sha256 beside it.
-widget_repo=Gelaende51/Haus.Licht-plasma
-widget_api=${HAUSLICHT_WIDGET_API:-https://api.github.com/repos/$widget_repo/releases/latest}
+# lichthaus.tray-<version>.plasmoid and a .sha256 beside it.
+widget_repo=Gelaende51/Lichthaus-plasma
+widget_api=${LICHTHAUS_WIDGET_API:-https://api.github.com/repos/$widget_repo/releases/latest}
 
 # fetch_widget DIR: download the latest release's .plasmoid and .sha256 into
 # DIR, check the sum, print the .plasmoid's path; the release's description
@@ -85,7 +85,7 @@ fetch_kcm_source() {
     return 1
 }
 
-# build_kcm SRC: configure, build and install Haus.Licht-plasma's kcm/ per
+# build_kcm SRC: configure, build and install Lichthaus-plasma's kcm/ per
 # user (~/.local/lib/qt6/plugins, ~/.local/share/systemsettings/categories)
 build_kcm() {
     build=$(mktemp -d)
@@ -96,7 +96,7 @@ build_kcm() {
         rm -rf "$build" "$build.log"
         return 0
     fi
-    echo "Haus.Licht's System Settings pages did not build (log: $build.log)" >&2
+    echo "Lichthaus's System Settings pages did not build (log: $build.log)" >&2
     rm -rf "$build"
     return 1
 }
@@ -112,7 +112,7 @@ if [ -n "$dry" ]; then
     [ -x "$dir/.venv/bin/python" ] && py="$dir/.venv/bin/python"
     echo "pip install -r $dir/requirements.txt"
     if [ -n "$kinds" ]; then
-        reqs=$("$py" "$dir/hauslicht.py" backends --requires "$kinds")
+        reqs=$("$py" "$dir/lichthaus.py" backends --requires "$kinds")
         # shellcheck disable=SC2086
         echo "pip install" $reqs
     fi
@@ -122,40 +122,40 @@ fi
 [ -x "$dir/.venv/bin/python" ] || python3 -m venv "$dir/.venv"
 "$dir/.venv/bin/pip" install -q -r "$dir/requirements.txt"
 if [ -n "$kinds" ]; then
-    reqs=$("$dir/.venv/bin/python" "$dir/hauslicht.py" backends --requires "$kinds")
+    reqs=$("$dir/.venv/bin/python" "$dir/lichthaus.py" backends --requires "$kinds")
     # shellcheck disable=SC2086
     [ -z "$reqs" ] || "$dir/.venv/bin/pip" install -q $reqs
 fi
 
 mkdir -p "$HOME/.local/bin" "$HOME/.config/systemd/user"
-ln -sf "$dir/hauslicht" "$HOME/.local/bin/hauslicht"
-ln -sf "$dir/hauslicht-ctl" "$HOME/.local/bin/hauslicht-ctl"
-# man pages (man hauslicht, man hauslicht-ctl; German under de), linked like the commands
+ln -sf "$dir/lichthaus" "$HOME/.local/bin/lichthaus"
+ln -sf "$dir/lichthaus-ctl" "$HOME/.local/bin/lichthaus-ctl"
+# man pages (man lichthaus, man lichthaus-ctl; German under de), linked like the commands
 mkdir -p "$HOME/.local/share/man/man1" "$HOME/.local/share/man/de/man1"
-for page in hauslicht.1 hauslicht-ctl.1; do
+for page in lichthaus.1 lichthaus-ctl.1; do
     ln -sf "$dir/man/$page" "$HOME/.local/share/man/man1/$page"
     ln -sf "$dir/man/de/$page" "$HOME/.local/share/man/de/man1/$page"
 done
 
 # replace earlier symlinks instead of writing through them into the checkout
-rm -f "$HOME/.config/systemd/user/hauslicht.service"
-sed -e "s|^ExecStart=.*|ExecStart=$dir/.venv/bin/python $dir/hauslicht.py sync|" \
-    -e "s|^ExecStopPost=.*|ExecStopPost=-$dir/.venv/bin/python $dir/hauslicht.py disarm --if-armed|" \
-    "$dir/hauslicht.service" > "$HOME/.config/systemd/user/hauslicht.service"
+rm -f "$HOME/.config/systemd/user/lichthaus.service"
+sed -e "s|^ExecStart=.*|ExecStart=$dir/.venv/bin/python $dir/lichthaus.py sync|" \
+    -e "s|^ExecStopPost=.*|ExecStopPost=-$dir/.venv/bin/python $dir/lichthaus.py disarm --if-armed|" \
+    "$dir/lichthaus.service" > "$HOME/.config/systemd/user/lichthaus.service"
 # The daemon's app id for xdg-desktop-portal (follow video: the screen-cast
-# permission is kept under it) and of the settings window (hauslicht config:
+# permission is kept under it) and of the settings window (lichthaus config:
 # its icon and name; the Settings action opens it); hidden, not a launcher.
 # Exec gets the full path: a desktop session's PATH may lack ~/.local/bin.
 mkdir -p "$HOME/.local/share/applications"
-rm -f "$HOME/.local/share/applications/io.github.gelaende51.HausLicht.desktop"
-sed "s|^Exec=hauslicht |Exec=$HOME/.local/bin/hauslicht |" "$dir/install/io.github.gelaende51.HausLicht.desktop" \
-    > "$HOME/.local/share/applications/io.github.gelaende51.HausLicht.desktop"
+rm -f "$HOME/.local/share/applications/io.github.gelaende51.Lichthaus.desktop"
+sed "s|^Exec=lichthaus |Exec=$HOME/.local/bin/lichthaus |" "$dir/install/io.github.gelaende51.Lichthaus.desktop" \
+    > "$HOME/.local/share/applications/io.github.gelaende51.Lichthaus.desktop"
 command -v update-desktop-database >/dev/null && update-desktop-database -q "$HOME/.local/share/applications" || true
 # Plasma tray widget (shows up in the system tray after the next Plasma start).
 # Without Plasma (no kpackagetool6) its package is only unpacked, to
-# ~/.local/share/hauslicht/plasmoid: hauslicht config shows its Configure pages.
+# ~/.local/share/lichthaus/plasmoid: lichthaus config shows its Configure pages.
 # A failed download leaves the service installed: only the widget is missing.
-pages="$HOME/.local/share/hauslicht/plasmoid"
+pages="$HOME/.local/share/lichthaus/plasmoid"
 # unpack_pages PATH: a .plasmoid file or a package directory, replacing $pages
 unpack_pages() {
     rm -rf "$pages.new" && mkdir -p "$pages.new" || return 1
@@ -175,7 +175,7 @@ if command -v kpackagetool6 >/dev/null; then
     widget=install_widget
 else
     widget=unpack_pages
-    echo "no kpackagetool6 (not KDE Plasma 6?): the tray widget's pages go to $pages for hauslicht config"
+    echo "no kpackagetool6 (not KDE Plasma 6?): the tray widget's pages go to $pages for lichthaus config"
 fi
 tmp=$(mktemp -d)
 if [ -n "$plasmoid" ]; then
@@ -191,27 +191,27 @@ else
     fi
 fi
 
-# Plasma 6 System Settings: Haus.Licht's pages as KCMs, System Settings →
-# Connected Devices (category `hardware`) → Haus.Licht → Bulbs, Profiles, Sound, Video,
-# Notifications, from Haus.Licht-plasma's kcm/ (docs/system-settings.md).
+# Plasma 6 System Settings: Lichthaus's pages as KCMs, System Settings →
+# Connected Devices (category `hardware`) → Lichthaus → Bulbs, Profiles, Sound, Video,
+# Notifications, from Lichthaus-plasma's kcm/ (docs/system-settings.md).
 # Built here when there is System Settings and the build tools (cmake, a C++
 # compiler, extra-cmake-modules, the KF6 KCMUtils headers): per user into
 # ~/.local/lib/qt6/plugins, where Qt looks only when QT_PLUGIN_PATH names it,
-# which ~/.config/plasma-workspace/env/hauslicht-kcm.sh does from the next
+# which ~/.config/plasma-workspace/env/lichthaus-kcm.sh does from the next
 # login. Without them, or when the build fails, the entry under Connected Devices is
-# an external application that runs hauslicht config. Never both: the
+# an external application that runs lichthaus config. Never both: the
 # category replaces that entry. Harmless where there is no Plasma.
 kcm_user="$HOME/.local/lib/qt6/plugins/plasma/kcms/systemsettings_qwidgets"
-kcm_category="$HOME/.local/share/systemsettings/categories/settings-hardware-hauslicht.desktop"
-kcm_env="$HOME/.config/plasma-workspace/env/hauslicht-kcm.sh"
-external="$HOME/.local/share/plasma/systemsettings/externalmodules/hauslicht-systemsettings.desktop"
+kcm_category="$HOME/.local/share/systemsettings/categories/settings-hardware-lichthaus.desktop"
+kcm_env="$HOME/.config/plasma-workspace/env/lichthaus-kcm.sh"
+external="$HOME/.local/share/plasma/systemsettings/externalmodules/lichthaus-systemsettings.desktop"
 qt_plugins=$(qtpaths6 --query QT_INSTALL_PLUGINS 2>/dev/null || qtpaths --query QT_INSTALL_PLUGINS 2>/dev/null) \
     || qt_plugins=/usr/lib/qt6/plugins
-if [ -f "$qt_plugins/plasma/kcms/systemsettings_qwidgets/kcm_hauslicht_bulbs.so" ]; then
+if [ -f "$qt_plugins/plasma/kcms/systemsettings_qwidgets/kcm_lichthaus_bulbs.so" ]; then
     # installed with the system (a distribution package): a copy per user
     # would list every page twice
-    rm -f "$kcm_user"/kcm_hauslicht_*.so "$kcm_category" "$kcm_env" "$external"
-    echo "System Settings: Haus.Licht's pages come with the system ($qt_plugins)"
+    rm -f "$kcm_user"/kcm_lichthaus_*.so "$kcm_category" "$kcm_env" "$external"
+    echo "System Settings: Lichthaus's pages come with the system ($qt_plugins)"
 else
     kcm_src=""
     if [ -n "$plasmoid" ] && [ -d "$plasmoid" ] && [ -f "$plasmoid/../kcm/CMakeLists.txt" ]; then
@@ -223,24 +223,24 @@ else
             && { command -v c++ >/dev/null || command -v g++ >/dev/null || command -v clang++ >/dev/null; }; then
         build_kcm "$kcm_src" || true
     fi
-    if [ -f "$kcm_user/kcm_hauslicht_bulbs.so" ] && [ -f "$kcm_category" ]; then
+    if [ -f "$kcm_user/kcm_lichthaus_bulbs.so" ] && [ -f "$kcm_category" ]; then
         mkdir -p "$(dirname "$kcm_env")"
-        cp "$dir/install/hauslicht-kcm-env.sh" "$kcm_env"
+        cp "$dir/install/lichthaus-kcm-env.sh" "$kcm_env"
         rm -f "$external"
         case ":${QT_PLUGIN_PATH:-}:" in
-            *":$HOME/.local/lib/qt6/plugins:"*) echo "System Settings: Haus.Licht's pages are under Connected Devices" ;;
-            *) echo "System Settings: Haus.Licht's pages show under Connected Devices from the next login" \
-                    "(hauslicht config opens them before that, unless System Settings is already open)" ;;
+            *":$HOME/.local/lib/qt6/plugins:"*) echo "System Settings: Lichthaus's pages are under Connected Devices" ;;
+            *) echo "System Settings: Lichthaus's pages show under Connected Devices from the next login" \
+                    "(lichthaus config opens them before that, unless System Settings is already open)" ;;
         esac
     else
         rm -f "$kcm_category" "$kcm_env"
         mkdir -p "$(dirname "$external")"
-        sed "s|^Exec=hauslicht |Exec=$HOME/.local/bin/hauslicht |" "$dir/install/hauslicht-systemsettings.desktop" \
+        sed "s|^Exec=lichthaus |Exec=$HOME/.local/bin/lichthaus |" "$dir/install/lichthaus-systemsettings.desktop" \
             > "$external"
     fi
 fi
 rm -rf "$tmp"
 
 systemctl --user daemon-reload
-echo "installed. Adopt a bulb (hauslicht adopt), then:"
-echo "  systemctl --user enable --now hauslicht"
+echo "installed. Adopt a bulb (lichthaus adopt), then:"
+echo "  systemctl --user enable --now lichthaus"

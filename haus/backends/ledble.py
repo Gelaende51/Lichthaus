@@ -25,7 +25,7 @@ from . import Backend
 from ..common import UserError
 from ._bulbkit import MAC_RE, Throttle, ble_device, ble_scan, clamp, color_caps, hs_rgb, learn_color, mac_suffix, tr
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 NAME_PREFIXES = ("Triones", "LEDBLE", "LEDBlue", "QHM-", "Dream~")
 SEND_INTERVAL_S = 0.1

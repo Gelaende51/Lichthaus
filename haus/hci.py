@@ -31,7 +31,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 # H4 packet types
 CMD_PKT, ACL_PKT, EVT_PKT = 0x01, 0x02, 0x04
@@ -67,7 +67,7 @@ SCAN_INTERVAL = SCAN_WINDOW = 0x0030  # 30 ms both: scanning 100 % of the time
 COMMAND_TIMEOUT_S = 2.0
 STATUS_UNKNOWN_COMMAND, STATUS_UNSUPPORTED, STATUS_INVALID_PARAMS = 0x01, 0x11, 0x12
 
-HELPER = "/usr/local/lib/hauslicht/hci-claim"
+HELPER = "/usr/local/lib/lichthaus/hci-claim"
 CLAIM_TIMEOUT_S = 12.0  # sudo, mgmt power-off and the bind take well under 1 s here
 RELEASE_TIMEOUT_S = 10.0  # the helper powers the adapter on again (retries up to 8 s)
 SYSFS = Path("/sys/class/bluetooth")

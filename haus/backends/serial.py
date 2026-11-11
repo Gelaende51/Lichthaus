@@ -35,7 +35,7 @@ from . import Backend, NeedsAccess, Offline
 from ..common import UserError
 from ._bulbkit import Presence, no_access, tr
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 BY_ID = Path("/dev/serial/by-id")  # tests point it at a tmp tree
 GREETING_S = 2.5

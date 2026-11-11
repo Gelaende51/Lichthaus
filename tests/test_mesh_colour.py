@@ -141,7 +141,7 @@ def test_the_composition_is_read_once_stored_and_the_models_bound_per_element(ca
         b, ctx = gatt_backend(bulb)
         assert b.caps(ctx.bulb) == BASE_CAPS and b.ct_range(ctx.bulb) == mesh.CT_DEFAULT_RANGE
         assert b._colour_due(0x0002, b.link.connected_at)
-        with caplog.at_level(logging.INFO, logger="hauslicht"):
+        with caplog.at_level(logging.INFO, logger="lichthaus"):
             await setup_now(b)
         dev = ctx.state["devices"]["0x0002"]
         assert dev["composition"] == CT_COMP and bulb.comp_gets == 1

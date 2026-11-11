@@ -28,7 +28,7 @@ class FakeBus:
     async def call(self, dest, path, iface, member, signature="", body=None):
         self.calls.append((member, body))
         if member == "getComponent":
-            return ["/component/hauslicht"]
+            return ["/component/lichthaus"]
         if member == "evaluateScript":
             return [self.script_reply]
         return []
@@ -41,8 +41,8 @@ class FakeBus:
 
 
 def press(k, action):
-    k._signal(SimpleNamespace(member="globalShortcutPressed", path="/component/hauslicht",
-                              body=["hauslicht", action, 0]))
+    k._signal(SimpleNamespace(member="globalShortcutPressed", path="/component/lichthaus",
+                              body=["lichthaus", action, 0]))
 
 
 def with_kde(tmp_path, state, body, panel=False):
@@ -59,11 +59,11 @@ def test_register_without_keys(tmp_path):
     async def body(d, k, bus):
         regs = bus.of("doRegister")
         assert len(regs) == len(ACTIONS) == 15
-        assert regs[0] == [["hauslicht", "select-all", "Haus.Licht", "Select all bulbs"]]
+        assert regs[0] == [["lichthaus", "select-all", "Lichthaus", "Select all bulbs"]]
         sets = bus.of("setShortcut")
         assert all(b[1] == [] for b in sets)  # never a key
         assert {b[2] for b in sets} == {IS_DEFAULT, SET_PRESENT}  # never NoAutoloading
-        assert "path='/component/hauslicht'" in bus.matches[0]
+        assert "path='/component/lichthaus'" in bus.matches[0]
         assert not bus.of("evaluateScript")  # panel off
     with_kde(tmp_path, mock_state(mock_1={}, mock_2={}), body)
 
@@ -171,11 +171,11 @@ def test_panel_synced_at_start_and_on_widget_count(tmp_path):
 
 
 def test_panel_disabled_env(monkeypatch):
-    monkeypatch.delenv("HAUSLICHT_NO_PANEL", raising=False)
+    monkeypatch.delenv("LICHTHAUS_NO_PANEL", raising=False)
     assert panel_disabled(test_instance=True) and not panel_disabled(test_instance=False)
-    monkeypatch.setenv("HAUSLICHT_NO_PANEL", "1")
+    monkeypatch.setenv("LICHTHAUS_NO_PANEL", "1")
     assert panel_disabled(test_instance=False)
-    monkeypatch.setenv("HAUSLICHT_NO_PANEL", "0")
+    monkeypatch.setenv("LICHTHAUS_NO_PANEL", "0")
     assert not panel_disabled(test_instance=True)
 
 
@@ -201,7 +201,7 @@ function panels() { return ps; }
 function print(s) { out = s; }
 eval(process.argv[2]);
 console.log(JSON.stringify({done: JSON.parse(out), panels: ps.map(function (p) {
-  return p.list.map(function (w) { return w.type === "haus.licht.tray" ? "H" + w.readConfig("widgetIndex", 1) :
+  return p.list.map(function (w) { return w.type === "lichthaus.tray" ? "H" + w.readConfig("widgetIndex", 1) :
     w.type.split(".").pop(); }); })}));
 """
 
@@ -217,7 +217,7 @@ def shell(panels, n):
 
 def as_state(layout, screen=0, pid=1):
     return [{"id": pid, "screen": screen, "widgets": [
-        {"type": "haus.licht.tray", "cfg": {"widgetIndex": int(w[1:])}} if w.startswith("H")
+        {"type": "lichthaus.tray", "cfg": {"widgetIndex": int(w[1:])}} if w.startswith("H")
         else {"type": "org.kde.plasma." + w, "cfg": {}} for w in layout]}]
 
 

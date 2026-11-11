@@ -17,14 +17,14 @@ import os
 
 from .common import _
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
-COMPONENT, COMPONENT_NAME = "hauslicht", "Haus.Licht"
+COMPONENT, COMPONENT_NAME = "lichthaus", "Lichthaus"
 KGA_DEST, KGA_PATH, KGA_IFACE = "org.kde.kglobalaccel", "/kglobalaccel", "org.kde.KGlobalAccel"
 KGA_COMPONENT_IFACE = "org.kde.kglobalaccel.Component"
 OSD_DEST, OSD_PATH, OSD_IFACE = "org.kde.plasmashell", "/org/kde/osdService", "org.kde.osdService"
 SHELL_DEST, SHELL_PATH, SHELL_IFACE = "org.kde.plasmashell", "/PlasmaShell", "org.kde.PlasmaShell"
-PLUGIN = "haus.licht.tray"
+PLUGIN = "lichthaus.tray"
 TRAY = "org.kde.plasma.systemtray"
 ICON = "brightness-high"
 STEP = 5.0
@@ -49,16 +49,16 @@ def friendly(name: str) -> str:
 
 
 def panel_disabled(test_instance: bool) -> bool:
-    """HAUSLICHT_NO_PANEL=1 switches the panel widgets off, =0 on; unset: off
+    """LICHTHAUS_NO_PANEL=1 switches the panel widgets off, =0 on; unset: off
     for a test instance (--no-desktop-writes), on otherwise."""
-    value = os.environ.get("HAUSLICHT_NO_PANEL")
+    value = os.environ.get("LICHTHAUS_NO_PANEL")
     if value is None:
         return test_instance
     return value.strip() not in ("0", "", "no", "off", "false")
 
 
 def panel_script(n: int) -> str:
-    """Desktop script: every panel holding a system tray gets haus.licht.tray
+    """Desktop script: every panel holding a system tray gets lichthaus.tray
     applets with widgetIndex 2..n exactly once, inserted left of the tray;
     instances above n (and duplicates) go. Applets with widgetIndex 1 (and
     the tray's own instance, which lives in the tray's containment) are

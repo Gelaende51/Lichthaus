@@ -1,13 +1,13 @@
-.TH HAUSLICHT 1 "2026-11-03" "Haus.Licht 0.2" "Benutzerbefehle"
+.TH LICHTHAUS 1 "2026-11-03" "Lichthaus 0.2" "Benutzerbefehle"
 .SH BEZEICHNUNG
-hauslicht \- Lampen, die dem Bildschirm folgen (Bluetooth Mesh und mehr)
+lichthaus \- Lampen, die dem Bildschirm folgen (Bluetooth Mesh und mehr)
 .SH \[u00DC]BERSICHT
-.B hauslicht
+.B lichthaus
 [\fB\-w\fR \fIN\fR] [\fB\-\-json\fR] \fIBEFEHL\fR [\fIARGUMENTE\fR ...]
 .SH BESCHREIBUNG
-\fBhauslicht\fR l\[u00E4]sst Lampen dem Bildschirm folgen: sie werden mit der Bildschirmhelligkeit heller und dunkler, schalten mit dem Deckel oder dem Monitor, folgen dem, was der Computer abspielt oder zeigt, blinken bei Benachrichtigungen und reagieren auf doppeltes Klatschen oder kurzes Aus- und Einschalten am Wandschalter.
+\fBlichthaus\fR l\[u00E4]sst Lampen dem Bildschirm folgen: sie werden mit der Bildschirmhelligkeit heller und dunkler, schalten mit dem Deckel oder dem Monitor, folgen dem, was der Computer abspielt oder zeigt, blinken bei Benachrichtigungen und reagieren auf doppeltes Klatschen oder kurzes Aus- und Einschalten am Wandschalter.
 .PP
-Der Dienst, \fBhauslicht sync\fR (normalerweise von der systemd-Benutzer-Unit gestartet), h\[u00E4]lt die Bluetooth-Verbindung und die Mesh-Sequenznummer. W\[u00E4]hrend er l\[u00E4]uft, gehen die anderen Befehle \[u00FC]ber seinen Unix-Socket an ihn (das Protokoll steht in \fBhauslicht-ctl\fR(1)). Ohne Dienst sprechen \fBon\fR, \fBoff\fR, \fBdim\fR, \fBstatus\fR und \fBraw\fR Bluetooth-Mesh-Lampen direkt an; die mit \(BqDienst l\[u00E4]uft\(lq markierten Befehle brauchen ihn.
+Der Dienst, \fBlichthaus sync\fR (normalerweise von der systemd-Benutzer-Unit gestartet), h\[u00E4]lt die Bluetooth-Verbindung und die Mesh-Sequenznummer. W\[u00E4]hrend er l\[u00E4]uft, gehen die anderen Befehle \[u00FC]ber seinen Unix-Socket an ihn (das Protokoll steht in \fBlichthaus-ctl\fR(1)). Ohne Dienst sprechen \fBon\fR, \fBoff\fR, \fBdim\fR, \fBstatus\fR und \fBraw\fR Bluetooth-Mesh-Lampen direkt an; die mit \(BqDienst l\[u00E4]uft\(lq markierten Befehle brauchen ihn.
 .PP
 Das Plasma-Widget bietet dieselben Funktionen. Seine eigenen Einstellungen (der Symbolsatz, umgekehrtes Scrollen, der Klatschmodus seines Schalters, Automatisch suchen) speichert der Dienst je Widget, sodass Widget und Einstellungsfenster dasselbe zeigen: \fBwidget\-settings\fR. Antworten erscheinen als Text; \fB\-\-json\fR gibt die Antwort des Dienstes f\[u00FC]r Skripte als JSON aus.
 .SH OPTIONEN
@@ -100,7 +100,7 @@ wei\[u00DF]e Lampen folgen dem Bildschirmwei\[u00DF] des Nachtlichts: on oder of
 Profile: list | save NAME | apply NAME | rename ALT NEU | delete NAME (Dienst l\[u00E4]uft)
 .TP
 \fBset\fR KEY=VALUE [KEY=VALUE ...]
-einen beliebigen Schl\[u00FC]ssel setzen wie hauslicht-ctl set: SCHL\[u00DC]SSEL=WERT ..., siehe docs/ctl-protocol.md (Dienst l\[u00E4]uft)
+einen beliebigen Schl\[u00FC]ssel setzen wie lichthaus-ctl set: SCHL\[u00DC]SSEL=WERT ..., siehe docs/ctl-protocol.md (Dienst l\[u00E4]uft)
 .SS Lampen und Widgets
 .TP
 \fBlist\fR
@@ -293,7 +293,7 @@ nur die Lampen, die der Dienst scharf hinterlassen hat (seine Markierung); gar n
 .RE
 .TP
 \fBconfig\fR [\-\-window | \-\-system\-settings] [\-\-add\-bulb]
-die Einstellungen \[u00F6]ffnen: die Einrichtungsseiten des Plasma-Widgets (Lampen, Profile, Ton, Video, Benachrichtigungen); unter Plasma in den Systemeinstellungen (Angeschlossene Ger\[u00E4]te \[u2192] Haus.Licht), wenn sie dort installiert sind, sonst in einem eigenen Fenster, auch auf anderen Desktops
+die Einstellungen \[u00F6]ffnen: die Einrichtungsseiten des Plasma-Widgets (Lampen, Profile, Ton, Video, Benachrichtigungen); unter Plasma in den Systemeinstellungen (Angeschlossene Ger\[u00E4]te \[u2192] Lichthaus), wenn sie dort installiert sind, sonst in einem eigenen Fenster, auch auf anderen Desktops
 .RS
 .TP
 \fB\-\-window\fR
@@ -302,7 +302,7 @@ das Einstellungsfenster, auch unter Plasma
 .RS
 .TP
 \fB\-\-system\-settings\fR
-nur die Systemeinstellungen: wo die Seiten von Haus.Licht dort fehlen, nichts \[u00F6]ffnen und mit 3 enden
+nur die Systemeinstellungen: wo die Seiten von Lichthaus dort fehlen, nichts \[u00F6]ffnen und mit 3 enden
 .RE
 .RS
 .TP
@@ -320,60 +320,60 @@ Debug: die Advertisements der Lampen mit Zeitstempel ausgeben
 eine Hex-Nachricht senden, Antworten ausgeben
 .SH DATEIEN
 .TP
-\fIhauslicht.json\fR
-Die Zustandsdatei, im Checkout (oder \fB$HAUSLICHT_STATE\fR): Lampen, Mesh-Schl\[u00FC]ssel und Sequenznummer, Profile, Widgets, Einstellungen. Nur f\[u00FC]r den Besitzer lesbar; sie enth\[u00E4]lt die Mesh-Schl\[u00FC]ssel, also nie weitergeben.
+\fIlichthaus.json\fR
+Die Zustandsdatei, im Checkout (oder \fB$LICHTHAUS_STATE\fR): Lampen, Mesh-Schl\[u00FC]ssel und Sequenznummer, Profile, Widgets, Einstellungen. Nur f\[u00FC]r den Besitzer lesbar; sie enth\[u00E4]lt die Mesh-Schl\[u00FC]ssel, also nie weitergeben.
 .TP
-\fIhauslicht.armed.json\fR
+\fIlichthaus.armed.json\fR
 Die Scharf-Markierung neben der Zustandsdatei: die Lampen, deren OnPowerUp der Dienst auf etwas anderes als \(Bqon\(lq gestellt haben kann. \fBdisarm \-\-if\-armed\fR liest sie.
 .TP
-\fIhauslicht.lock\fR
+\fIlichthaus.lock\fR
 Neben der Zustandsdatei: die Sperre f\[u00FC]r die Mesh-Verbindung und die Sequenznummer.
 .TP
-\fI$XDG_RUNTIME_DIR/hauslicht.sock\fR
-Der Socket des Dienstes (oder \fB$HAUSLICHT_SOCK\fR).
+\fI$XDG_RUNTIME_DIR/lichthaus.sock\fR
+Der Socket des Dienstes (oder \fB$LICHTHAUS_SOCK\fR).
 .TP
-\fI~/.config/systemd/user/hauslicht.service\fR
-Die Unit: \fBhauslicht sync\fR, und nach jedem Stopp \fBhauslicht disarm \-\-if\-armed\fR. Von \fBinstall/install.sh\fR geschrieben.
+\fI~/.config/systemd/user/lichthaus.service\fR
+Die Unit: \fBlichthaus sync\fR, und nach jedem Stopp \fBlichthaus disarm \-\-if\-armed\fR. Von \fBinstall/install.sh\fR geschrieben.
 .TP
-\fI~/.config/plasma\-workspace/env/hauslicht\-kcm.sh\fR
-F\[u00FC]gt bei jeder Plasma-Anmeldung ~/.local/lib/qt6/plugins zu \fBQT_PLUGIN_PATH\fR hinzu, damit die Systemeinstellungen die pro Benutzer installierten Seiten von Haus.Licht finden. Von \fBinstall/install.sh\fR geschrieben.
+\fI~/.config/plasma\-workspace/env/lichthaus\-kcm.sh\fR
+F\[u00FC]gt bei jeder Plasma-Anmeldung ~/.local/lib/qt6/plugins zu \fBQT_PLUGIN_PATH\fR hinzu, damit die Systemeinstellungen die pro Benutzer installierten Seiten von Lichthaus finden. Von \fBinstall/install.sh\fR geschrieben.
 .TP
 \fI~/.local/lib/qt6/plugins/plasma/kcms/systemsettings_qwidgets/\fR
-Die Seiten von Haus.Licht als Module der Systemeinstellungen (kcm_hauslicht_*), von \fBinstall/install.sh\fR pro Benutzer gebaut; \fBconfig\fR \[u00F6]ffnet unter Plasma die Systemeinstellungen dort.
+Die Seiten von Lichthaus als Module der Systemeinstellungen (kcm_lichthaus_*), von \fBinstall/install.sh\fR pro Benutzer gebaut; \fBconfig\fR \[u00F6]ffnet unter Plasma die Systemeinstellungen dort.
 .TP
-\fI~/.cache/hauslicht/\fR
-Das Klatsch-Modell, beim ersten Gebrauch heruntergeladen; \fBHausLicht\fR, der Link auf Qts \fBqml\fR-Laufzeit, \[u00FC]ber den \fBconfig\fR das Einstellungsfenster startet.
+\fI~/.cache/lichthaus/\fR
+Das Klatsch-Modell, beim ersten Gebrauch heruntergeladen; \fBLichthaus\fR, der Link auf Qts \fBqml\fR-Laufzeit, \[u00FC]ber den \fBconfig\fR das Einstellungsfenster startet.
 .TP
-\fI~/.local/share/hauslicht/plasmoid/\fR
+\fI~/.local/share/lichthaus/plasmoid/\fR
 Das Paket des Plasma-Widgets, wo Plasma fehlt (\fBinstall/install.sh\fR entpackt es dorthin): seine Einrichtungsseiten f\[u00FC]r \fBconfig\fR.
 .TP
-\fI~/.local/state/hauslicht/config\-window.log\fR
+\fI~/.local/state/lichthaus/config\-window.log\fR
 Die Meldungen des Einstellungsfensters seit seinem letzten Start.
 .TP
-\fI/usr/local/lib/hauslicht/setup\-version\fR
+\fI/usr/local/lib/lichthaus/setup\-version\fR
 Der Stempel der einmaligen Systemeinrichtung (\fBsetup\-root\fR).
 .SH UMGEBUNG
 .TP
-\fBHAUSLICHT_STATE\fR
+\fBLICHTHAUS_STATE\fR
 Eine andere Zustandsdatei (eine Testinstanz).
 .TP
-\fBHAUSLICHT_SOCK\fR
+\fBLICHTHAUS_SOCK\fR
 Ein anderer Socket des Dienstes (eine Testinstanz). Den Pfad kurz halten.
 .TP
-\fBHAUSLICHT_BACKENDS\fR
+\fBLICHTHAUS_BACKENDS\fR
 Eine Komma-Liste der Lampenarten, die geladen werden, z.\~B. \fBmock\fR f\[u00FC]r eine Testinstanz, die Bluetooth nie anfasst.
 .TP
-\fBHAUSLICHT_MOCK\fR
-\fB1\fR zeigt das Mock-Backend, auch wenn \fBHAUSLICHT_BACKENDS\fR es nicht nennt.
+\fBLICHTHAUS_MOCK\fR
+\fB1\fR zeigt das Mock-Backend, auch wenn \fBLICHTHAUS_BACKENDS\fR es nicht nennt.
 .TP
-\fBHAUSLICHT_DEBUG\fR
+\fBLICHTHAUS_DEBUG\fR
 Gesetzt: \fBsync\fR protokolliert auf Debug-Stufe.
 .TP
-\fBHAUSLICHT_NO_PANEL\fR
+\fBLICHTHAUS_NO_PANEL\fR
 \fB1\fR: der Dienst legt keine Panel-Widgets an, \fB0\fR: er tut es; nicht gesetzt: er tut es, au\[u00DF]er in einer Testinstanz.
 .TP
-\fBHAUSLICHT_PLASMOID\fR
-Ein Paketverzeichnis des Plasma-Widgets f\[u00FC]r \fBconfig\fR, versucht vor ~/.local/share/plasma/plasmoids/haus.licht.tray, /usr/share/plasma/plasmoids/haus.licht.tray und ~/.local/share/hauslicht/plasmoid.
+\fBLICHTHAUS_PLASMOID\fR
+Ein Paketverzeichnis des Plasma-Widgets f\[u00FC]r \fBconfig\fR, versucht vor ~/.local/share/plasma/plasmoids/lichthaus.tray, /usr/share/plasma/plasmoids/lichthaus.tray und ~/.local/share/lichthaus/plasmoid.
 .TP
 \fBLANGUAGE, LC_ALL, LC_MESSAGES, LANG\fR
 Deutsche Meldungen bei der Sprache \fBde\fR, sonst englische.
@@ -389,15 +389,15 @@ Der Dienst l\[u00E4]uft nicht, er hat den Befehl abgelehnt (die Meldung geht auf
 Ein Bedienfehler, oder die Bluetooth-Verbindung ohne Dienst schlug fehl.
 .TP
 \fB3\fR
-\fBconfig \-\-system\-settings\fR: Die Seiten von Haus.Licht sind hier nicht in den Systemeinstellungen; nichts wurde ge\[u00F6]ffnet.
+\fBconfig \-\-system\-settings\fR: Die Seiten von Lichthaus sind hier nicht in den Systemeinstellungen; nichts wurde ge\[u00F6]ffnet.
 .SH BEISPIELE
 .PP
 Licht einschalten und auf 40 Prozent dimmen:
 .PP
 .RS
 .nf
-hauslicht on
-hauslicht dim 40
+lichthaus on
+lichthaus dim 40
 .fi
 .RE
 .PP
@@ -405,8 +405,8 @@ Was das Widget zeigt, und jede Lampe:
 .PP
 .RS
 .nf
-hauslicht info
-hauslicht bulbs
+lichthaus info
+lichthaus bulbs
 .fi
 .RE
 .PP
@@ -414,9 +414,9 @@ Bis 150 Prozent der Bildschirmhelligkeit, warme Farbe:
 .PP
 .RS
 .nf
-hauslicht range 0 150
-hauslicht hue 30
-hauslicht sat 60
+lichthaus range 0 150
+lichthaus hue 30
+lichthaus sat 60
 .fi
 .RE
 .PP
@@ -424,8 +424,8 @@ Zwei Widgets, das zweite f\[u00FC]r die Regallampe:
 .PP
 .RS
 .nf
-hauslicht widgets 2
-hauslicht \-w 2 widget\-bulbs mesh:0003
+lichthaus widgets 2
+lichthaus \-w 2 widget\-bulbs mesh:0003
 .fi
 .RE
 .PP
@@ -433,9 +433,9 @@ Eine Lampe suchen, dann hinzuf\[u00FC]gen:
 .PP
 .RS
 .nf
-hauslicht discover bluetooth
-hauslicht backends
-hauslicht add wiz address=192.168.1.40
+lichthaus discover bluetooth
+lichthaus backends
+lichthaus add wiz address=192.168.1.40
 .fi
 .RE
 .PP
@@ -443,9 +443,9 @@ Eine USB-Lampe an einem Hub-Port, der seinen Strom schaltet (den Hub mit uhubctl
 .PP
 .RS
 .nf
-hauslicht discover usbport
-hauslicht add usbport port=1\-1.4\-port2 name=Regal
-hauslicht identify usbport:1\-1.4\-port2
+lichthaus discover usbport
+lichthaus add usbport port=1\-1.4\-port2 name=Regal
+lichthaus identify usbport:1\-1.4\-port2
 .fi
 .RE
 .PP
@@ -453,10 +453,10 @@ Eine Testinstanz neben der laufenden:
 .PP
 .RS
 .nf
-export HAUSLICHT_STATE=/tmp/hl.json HAUSLICHT_SOCK=$XDG_RUNTIME_DIR/hl.sock
-HAUSLICHT_BACKENDS=mock hauslicht sync \-\-no\-desktop\-writes &
-hauslicht add mock name=Desk
+export LICHTHAUS_STATE=/tmp/hl.json LICHTHAUS_SOCK=$XDG_RUNTIME_DIR/hl.sock
+LICHTHAUS_BACKENDS=mock lichthaus sync \-\-no\-desktop\-writes &
+lichthaus add mock name=Desk
 .fi
 .RE
 .SH SIEHE AUCH
-\fBhauslicht\-ctl\fR(1), \fBsystemctl\fR(1); docs/ctl\-protocol.md und README.md im Checkout.
+\fBlichthaus\-ctl\fR(1), \fBsystemctl\fR(1); docs/ctl\-protocol.md und README.md im Checkout.

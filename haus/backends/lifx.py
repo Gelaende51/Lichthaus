@@ -33,7 +33,7 @@ from . import Backend, Offline
 from ..common import UserError
 from ._bulbkit import Presence, Throttle, clamp, color_caps, kelvin_range, learn_color, tr
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 PORT = 56700
 BROADCAST = "255.255.255.255"

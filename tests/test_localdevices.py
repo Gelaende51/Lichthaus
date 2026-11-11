@@ -87,7 +87,7 @@ def leds(tmp_path, monkeypatch):
 def test_sysled_discover_skips_own_uleds_and_shows_trigger(leds):
     led(leds, "phy0-led")
     led(leds, "input3::capslock", max_b=1, trigger="[none] kbd-capslock")
-    led(leds, "hauslicht::kbd_backlight")
+    led(leds, "lichthaus::kbd_backlight")
     found = run(sysled.SysLedBackend(FakeCtx()).discover(0))
     assert [f["address"] for f in found] == ["input3::capslock", "phy0-led"]
     by = {f["address"]: f for f in found}
@@ -99,9 +99,9 @@ def test_sysled_discover_skips_own_uleds_and_shows_trigger(leds):
 
 
 def test_sysled_own_uleds_is_refused(leds):
-    led(leds, "hauslicht::kbd_backlight")
+    led(leds, "lichthaus::kbd_backlight")
     with pytest.raises(UserError):
-        run(sysled.SysLedBackend(FakeCtx()).add({"led": "hauslicht::kbd_backlight"}))
+        run(sysled.SysLedBackend(FakeCtx()).add({"led": "lichthaus::kbd_backlight"}))
 
 
 def test_sysled_plain_led_writes_brightness(leds):

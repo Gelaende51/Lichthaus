@@ -15,7 +15,7 @@ import time
 
 from ..common import GERMAN, TRANSLATION
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 PROBE_S = 3.0  # how often an unreachable LAN bulb is asked again
 MAC_RE = re.compile(r"^[0-9A-Fa-f]{2}([:-]?[0-9A-Fa-f]{2}){5}$")
@@ -29,9 +29,9 @@ def tr(en: str, de: str) -> str:
 
 def no_access(node: str) -> str:
     """The NeedsAccess message for a device node this user may not open."""
-    return tr(f"No access to {node}: the system setup grants it (Grant access…, or: hauslicht setup-root).",
+    return tr(f"No access to {node}: the system setup grants it (Grant access…, or: lichthaus setup-root).",
               f"Kein Zugriff auf {node}: die Systemeinrichtung erlaubt ihn (Zugriff erlauben…, "
-              "oder: hauslicht setup-root).")
+              "oder: lichthaus setup-root).")
 
 
 def clamp(value: float, lo: float, hi: float) -> float:

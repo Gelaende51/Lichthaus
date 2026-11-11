@@ -1,5 +1,5 @@
 #!/usr/bin/python3 -I
-"""Haus.Licht root helper: shorten the BLE link timeout to one bulb.
+"""Lichthaus root helper: shorten the BLE link timeout to one bulb.
 
     conn-update AA:BB:CC:DD:EE:FF [timeout_ms]
 

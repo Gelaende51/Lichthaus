@@ -151,7 +151,7 @@ onto Linux. Worth reporting upstream where marked.
 - KWin Night Light's `running` is true day and night whenever Night Light is
   on; only `daylight` tells the hour (false = night, true = day or Night
   Light inactive; Constant mode: always false). `track night|day` read it.
-- Power is now kept per bulb in hauslicht.json. A bulb not reached since the
+- Power is now kept per bulb in lichthaus.json. A bulb not reached since the
   daemon started is a *first contact*, not an outage: it keeps its saved
   power (before, the "long outage → on" rule lit it after every restart).
   The migration from the single-bulb file switches every bulb off.
@@ -182,7 +182,7 @@ onto Linux. Worth reporting upstream where marked.
 - Test fakes: amqtt pins websockets==15, lifx-emulator needs a newer one;
   pip refuses both in one resolve. The suite runs with websockets 17 and
   amqtt installed with `--no-deps` (requirements-dev.txt).
-- The widget's executable data engine does not pass HAUSLICHT_SOCK from a
+- The widget's executable data engine does not pass LICHTHAUS_SOCK from a
   `plasmawindowed` started with it set: a windowed widget still talks to the
   live socket, so it cannot be pointed at a test instance that way.
 - pkexec from a systemd user service: the process is in no logind session, so polkit must fall back to the user's display session to find the agent; unverified here (2026-10-17). Exit 126 = dismissed, 127 = no agent / not authorised; the daemon reverts the flick mode on either.
@@ -319,7 +319,7 @@ onto Linux. Worth reporting upstream where marked.
   signals ended before the cutoff). The detector now remembers the last
   dropped onset (`dropped`). Found while generalising the double to a
   triple (`clap_count` 3), where four quick claps showed it.
-- The setting is `clap_count`, not `clap_hits`: `hauslicht clap-hits` is
+- The setting is `clap_count`, not `clap_hits`: `lichthaus clap-hits` is
   already the hit-history command, and the CLI maps `clap-X` to the key
   `clap_X`.
 
@@ -397,7 +397,7 @@ onto Linux. Worth reporting upstream where marked.
 - busylight-core claims serial ports by VID:PID alone: MuteSync on any CP210x
   (10c4:ea60, also countless Arduino clones and ESP boards), BusyTag on
   Espressif 303a:81df, fit-statUSB on 2047:03df. `Light.all_lights()` would
-  open them, toggling DTR (an Arduino or a 3D printer resets). Haus.Licht
+  open them, toggling DTR (an Arduino or a 3D printer resets). Lichthaus
   enumerates `ConnectionType.HID` only and leaves serial ports to the
   `serial` kind. Upstream: a product-string check for MuteSync.
 - busylight-core's Kuando keepalive is an asyncio task when `on()` is called
@@ -425,11 +425,11 @@ onto Linux. Worth reporting upstream where marked.
 - Electron-template's reusable workflows do not fit a Python project yet:
   distros.yml always installs Electron's libraries and Node and runs npm, and
   desktops.yml's KDE is Ubuntu 24.04's Plasma 5. Optional `deps`/`node`
-  inputs and an Arch Plasma 6 session there would let Haus.Licht reuse them.
-- Splitting the widget into Haus.Licht-plasma (2026-10): `uvx git-filter-repo`
+  inputs and an Arch Plasma 6 session there would let Lichthaus reuse them.
+- Splitting the widget into Lichthaus-plasma (2026-10): `uvx git-filter-repo`
   on a `git clone --no-local` copy with `--path plasmoid/ --path
   .github/workflows/plasmoid.yml --path tests/test_iconsets.py
-  --path-rename plasmoid/haus.licht.tray/:package/` kept every widget commit
+  --path-rename plasmoid/lichthaus.tray/:package/` kept every widget commit
   (main.qml: 24 before and after) and dropped the remote, so nothing could be
   pushed by accident. Unexpected coupling: dev/gen-man.py took the man
   pages' version from the widget's metadata.json; the daemon now has its own
@@ -443,7 +443,7 @@ onto Linux. Worth reporting upstream where marked.
   Every component keeps one `brightness` across its modes, so a colour can be
   sent without it; RGBCCT switches with `mode` (rgb / cct). Untested on a
   real device.
-- Standalone settings window (`hauslicht config`, 2026-10): the widget's
+- Standalone settings window (`lichthaus config`, 2026-10): the widget's
   Configure pages run in Qt's plain `qml` runtime when a directory with
   stand-ins for `org.kde.plasma.plasmoid` and `org.kde.plasma.configuration`
   comes first on the import path (`qml -I`): an import path entry shadows
@@ -458,8 +458,8 @@ onto Linux. Worth reporting upstream where marked.
   - Wayland app id = organisation domain reversed + "." + the basename the
     program was started under, not resolved through symlinks (`/usr/bin/qml6`
     gave `….qml6`). Setting `Qt.application.domain` before the window is
-    first shown and starting the runtime through a link named `HausLicht`
-    gives `io.github.gelaende51.HausLicht`, an existing desktop file.
+    first shown and starting the runtime through a link named `Lichthaus`
+    gives `io.github.gelaende51.Lichthaus`, an existing desktop file.
   - The runtime sets its own window icon (the Qt logo) and Qt 6.12 sends it
     through xdg-toplevel-icon, which KWin prefers over the desktop file's
     icon; `QT_WAYLAND_DISABLED_INTERFACES=xdg_toplevel_icon_manager_v1`
@@ -495,9 +495,9 @@ onto Linux. Worth reporting upstream where marked.
     key is unanswered: a poll's reply that left before the send would
     otherwise put the old value back for a moment.
   - The QML tests run the real HausCtl.qml under `qml6` against a fake
-    `hauslicht-ctl` in a temporary `$HOME` (HausCtl runs
-    `$HOME/.local/bin/hauslicht-ctl`): no socket, no live daemon.
-- System Settings KCMs (2026-10-27; Haus.Licht-plasma's kcm/,
+    `lichthaus-ctl` in a temporary `$HOME` (HausCtl runs
+    `$HOME/.local/bin/lichthaus-ctl`): no socket, no live daemon.
+- System Settings KCMs (2026-10-27; Lichthaus-plasma's kcm/,
   [docs/system-settings.md](../docs/system-settings.md)):
   - System Settings runs all its QML KCMs and its own window on one shared
     QML engine, and the import path belongs to the engine. The pages need a
@@ -509,14 +509,14 @@ onto Linux. Worth reporting upstream where marked.
     searches its own plugin directory and `QT_PLUGIN_PATH`, nothing under
     the home directory. A script in `~/.config/plasma-workspace/env/`
     (sourced by Plasma at login) appends it, so the pages show from the next
-    login on. Until then `hauslicht config` starts System Settings with the
+    login on. Until then `lichthaus config` starts System Settings with the
     variable set, which only helps while none is open: a second start hands
     its arguments to the running one.
   - Categories are read from `systemsettings/categories` under the XDG data
     directories, `~/.local/share` included, so the category file can be
     installed per user without any setup.
   - System Settings hides a category without modules: a category file whose
-    KCMs are not found shows nothing at all, not an empty "Haus.Licht".
+    KCMs are not found shows nothing at all, not an empty "Lichthaus".
   - Size hint: KCMUtils' host of QML KCMs gives the page's implicit size as
     the widget's size hint (kcmshell6 opens its window at that size), while
     QQuickWidget's own is the root item's size when it was loaded, before it
@@ -536,7 +536,7 @@ onto Linux. Worth reporting upstream where marked.
     judging a screenshot; KDE's `GetActiveTime` answers in milliseconds, not
     the seconds the freedesktop spec names. XWayland windows stay stale too.
     For a check while locked: `xvfb-run` with `QT_QPA_PLATFORM=xcb kcmshell6
-    kcm_hauslicht_bulbs` and `import -window root`, or `grabToImage` from
+    kcm_lichthaus_bulbs` and `import -window root`, or `grabToImage` from
     QML.
   - Plasma's desktop style (qqc2-desktop-style, org.kde.desktop
     ComboBox.qml) puts a touch-mode cursor on every ComboBox's contentItem

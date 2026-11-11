@@ -29,7 +29,7 @@ from . import Backend, Offline
 from ..common import UserError
 from ._bulbkit import Presence, Throttle, clamp, color_caps, hs_rgb, kelvin_range, learn_color, mac_suffix, tr
 
-log = logging.getLogger("hauslicht")
+log = logging.getLogger("lichthaus")
 
 MULTICAST = "239.255.255.250"
 SCAN_PORT = 4001

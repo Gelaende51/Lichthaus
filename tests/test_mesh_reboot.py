@@ -451,7 +451,7 @@ def counterless_return(comes_up: bool) -> list[tuple]:
 def test_unknown_without_a_counter_is_decided_by_the_state(caplog):
     """A bulb that never answered the vendor Get (no counter): before, every
     return counted as power back; now the bulb's state decides."""
-    caplog.set_level("INFO", logger="hauslicht")
+    caplog.set_level("INFO", logger="lichthaus")
     assert [e[:2] for e in counterless_return(comes_up=True)] == [("power", BID)]
     assert counterless_return(comes_up=False) == []
     assert "boot count unknown" in caplog.text
@@ -879,7 +879,7 @@ def wrap_replay(lit_set: bool, comes_up: bool | None, answers: bool = True):
 def test_unknown_count_with_the_bulb_still_as_set_is_no_flick(caplog):
     """23:09:06 "boot count 2 -> 4: unknown: counted as a reboot", flick -> on:
     the bulb, switched off at 22:16, came on by the daemon's own hand."""
-    caplog.set_level("INFO", logger="hauslicht")
+    caplog.set_level("INFO", logger="lichthaus")
 
     async def run():
         b = await wrap_replay(lit_set=False, comes_up=False)()
@@ -926,7 +926,7 @@ def test_unknown_count_with_the_state_unread_waits_for_a_later_read():
 def test_unknown_count_on_a_return_with_the_bulb_as_set_is_no_power_back(caplog):
     """2026-10-27 02:53: "boot count unknown: drop or reboot cannot be told;
     counted as power back", then flick -> on."""
-    caplog.set_level("INFO", logger="hauslicht")
+    caplog.set_level("INFO", logger="lichthaus")
 
     async def run():
         device = FakeBulb(count=251)
@@ -1147,7 +1147,7 @@ def test_after_connect_ends_quietly_when_the_link_is_replaced(exc, logged, monke
         raise exc
 
     monkeypatch.setattr(b, "_after_connect", fail)
-    with caplog.at_level("DEBUG", logger="hauslicht"):
+    with caplog.at_level("DEBUG", logger="lichthaus"):
         asyncio.run(b.after_connect("AA:BB"))  # never raises
     assert any(r.levelname == "ERROR" for r in caplog.records) == logged
 
@@ -1242,7 +1242,7 @@ def test_same_boot_checks_log_one_line_an_hour(caplog, monkeypatch):
     hour, four info lines each (2026-11-11); now debug, counted in one info
     line per DROPS_SUMMARY_S. A reboot still logs at once."""
     from haus.backends import mesh
-    caplog.set_level("INFO", logger="hauslicht")
+    caplog.set_level("INFO", logger="lichthaus")
     device = FakeBulb(count=40)
     assert offbeat(device, reboot=False) == []
     assert "link drop" not in caplog.text and "same boot" not in caplog.text
