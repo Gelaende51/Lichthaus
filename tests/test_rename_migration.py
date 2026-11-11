@@ -120,6 +120,25 @@ def test_other_helper_paths_stay_as_they_are(helper_dirs):
     assert common.helper_path("/nonexistent/hci-claim") == "/nonexistent/hci-claim"
 
 
+def test_setup_is_outdated_while_the_helpers_have_only_the_old_name(helper_dirs, tmp_path, monkeypatch):
+    new, old = helper_dirs
+    version = tmp_path / "setup-version"
+    version.write_text("6\n")
+    monkeypatch.setattr(rootsetup, "VERSION_FILE", version)
+    old.mkdir()
+    (old / "setup-version").write_text("6\n")  # current by its number
+    assert rootsetup.status() == {"status": "outdated", "installed": 6, "required": 6}
+    new.mkdir()
+    (new / "conn-update").write_text("")  # Licht.Haus's leftover: still the old helpers
+    assert rootsetup.status()["status"] == "outdated"
+    (new / "setup-version").write_text("6\n")  # setup-root.sh ran again
+    assert rootsetup.status() == {"status": "current", "installed": 6, "required": 6}
+    (new / "setup-version").unlink()
+    (old / "setup-version").unlink()
+    old.rmdir()
+    assert rootsetup.status(legacy=[])["status"] == "missing"  # a fresh install
+
+
 def test_setup_root_removes_what_the_old_name_installed():
     script = (ROOT / "install" / "setup-root.sh").read_text()
     for path in ("/etc/modules-load.d/haus-licht.conf", "/etc/udev/rules.d/70-haus-licht.rules",

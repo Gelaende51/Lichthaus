@@ -20,6 +20,7 @@ import shutil
 import sys
 from pathlib import Path
 
+from . import common
 from .common import HELPER_DIR, OLD_HELPER_DIR, ROOT, helper_dir
 
 SCRIPT = ROOT / "install" / "setup-root.sh"
@@ -47,6 +48,10 @@ def status(stamp: Path | None = None, legacy=None) -> dict:
     if have is None:
         legacy = LEGACY if legacy is None else legacy
         state = "outdated" if any(p.exists() for p in legacy) else "missing"
+    elif stamp is None and helper_dir() != common.HELPER_DIR:
+        # the helpers only under the name from before the rename: they work,
+        # but setup-root.sh has to run once more to move them
+        state = "outdated"
     else:
         state = "current" if have >= want else "outdated"
     return {"status": state, "installed": have, "required": want}
