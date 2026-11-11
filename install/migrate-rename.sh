@@ -14,6 +14,8 @@ set -eu
 
 units="$HOME/.config/systemd/user"
 appletsrc="$HOME/.config/plasma-org.kde.plasma.desktop-appletsrc"
+# the old service was enabled: install.sh enables the new one (and removes this)
+enable_marker="$HOME/.local/state/lichthaus/enable-after-rename"
 
 # aside PATH: PATH, or PATH.<time> when PATH is taken (a backup never overwrites one)
 aside() {
@@ -47,17 +49,16 @@ before() {
 
     # The service: stopped, disabled and removed; install.sh writes lichthaus.service.
     if [ -e "$units/hauslicht.service" ] || [ -L "$units/hauslicht.service" ]; then
-        enabled=""
         if systemctl --user is-enabled --quiet hauslicht.service 2>/dev/null; then
-            enabled=1
+            # install.sh enables and starts lichthaus.service at its end, also
+            # when it runs again after failing halfway (the marker stays till then)
+            mkdir -p "${enable_marker%/*}"
+            : > "$enable_marker"
         fi
         systemctl --user stop hauslicht.service 2>/dev/null || true
         systemctl --user disable hauslicht.service 2>/dev/null || true
         rm -f "$units/hauslicht.service"
         echo "hauslicht.service stopped, disabled and removed (now lichthaus.service)"
-        if [ -n "$enabled" ]; then
-            echo "  it was enabled: enable the new one afterwards (systemctl --user enable --now lichthaus)"
-        fi
     fi
     for link in "$units"/*.wants/hauslicht.service; do
         # what disable leaves where no systemd user instance runs

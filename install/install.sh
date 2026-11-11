@@ -249,5 +249,16 @@ fi
 rm -rf "$tmp"
 
 systemctl --user daemon-reload
-echo "installed. Adopt a bulb (lichthaus adopt), then:"
-echo "  systemctl --user enable --now lichthaus"
+# the service of the name before the rename was enabled (install/migrate-rename.sh): so is this one
+enable_marker="$HOME/.local/state/lichthaus/enable-after-rename"
+if [ -f "$enable_marker" ]; then
+    if systemctl --user enable --now lichthaus; then
+        rm -f "$enable_marker"
+        echo "installed; lichthaus.service enabled and started, as the service before the rename was"
+    else
+        echo "installed, but lichthaus.service did not start: systemctl --user enable --now lichthaus" >&2
+    fi
+else
+    echo "installed. Adopt a bulb (lichthaus adopt), then:"
+    echo "  systemctl --user enable --now lichthaus"
+fi

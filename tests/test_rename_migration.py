@@ -157,7 +157,8 @@ rc="$HOME/.config/plasma-org.kde.plasma.desktop-appletsrc"
 echo "$(basename "$0") $* [old ids: $(grep -c 'haus\\.licht\\.tray' "$rc" 2>/dev/null)]" >> "$STUB_LOG"
 case "$(basename "$0") $*" in
     *is-active*plasma-plasmashell*) exit "${STUB_PLASMA_ACTIVE:-1}" ;;
-    *is-enabled*) exit 0 ;;
+    *is-enabled*) exit "${STUB_ENABLED:-0}" ;;
+    curl*|qtpaths*|systemsettings*|cmake*) exit 1 ;;
     pgrep*) exit "${STUB_PLASMA_RUNNING:-1}" ;;
     kpackagetool6*) exit 1 ;;
 esac
@@ -190,7 +191,8 @@ class Home:
         self.checkout.mkdir()
         self.bin = tmp_path / "bin"
         self.bin.mkdir()
-        for name in ("systemctl", "kpackagetool6", "pgrep", "plasmashell", "kquitapp6", "kstart"):
+        for name in ("systemctl", "kpackagetool6", "pgrep", "plasmashell", "kquitapp6", "kstart",
+                     "curl", "qtpaths6", "qtpaths", "update-desktop-database", "systemsettings", "cmake"):
             (self.bin / name).write_text(STUB)
             (self.bin / name).chmod(0o755)
         self.log = tmp_path / "calls"
@@ -211,11 +213,12 @@ class Home:
         p.symlink_to(target)
         return p
 
-    def run(self, *args: str, **env: str) -> subprocess.CompletedProcess:
+    def run(self, *args: str, script: Path = MIGRATE, **env: str) -> subprocess.CompletedProcess:
         self.log.write_text("")
-        clean = {k: v for k, v in os.environ.items() if not k.startswith("XDG_")}
-        clean.update(HOME=str(self.home), PATH=f"{self.bin}:/usr/bin:/bin", STUB_LOG=str(self.log), LC_ALL="C", **env)
-        proc = subprocess.run(["sh", str(MIGRATE), *args], env=clean, capture_output=True, text=True, timeout=30)
+        clean = {k: v for k, v in os.environ.items() if not k.startswith(("XDG_", "QT_"))}
+        clean.update(HOME=str(self.home), PATH=f"{self.bin}:/usr/bin:/bin", STUB_LOG=str(self.log), LC_ALL="C",
+                     TMPDIR=str(self.home.parent), **env)
+        proc = subprocess.run(["sh", str(script), *args], env=clean, capture_output=True, text=True, timeout=60)
         assert proc.returncode == 0, proc.stderr
         return proc
 
@@ -262,7 +265,7 @@ def test_before_moves_an_old_install_to_the_new_names(home):
         "systemctl --user is-enabled --quiet hauslicht.service",
         "systemctl --user stop hauslicht.service", "systemctl --user disable hauslicht.service"]
     assert "kpackagetool6 --type Plasma/Applet --remove haus.licht.tray" in calls[-1]
-    assert "enable the new one" in out
+    assert h.path(".local/state/lichthaus/enable-after-rename").exists()  # for install.sh's end
     units = h.units
     assert not (units / "hauslicht.service").exists()
     assert not (units / "graphical-session.target.wants/hauslicht.service").is_symlink()
@@ -442,3 +445,62 @@ def test_a_failing_migration_logs_and_registers_anyway(tmp_path, caplog):
     assert not [b for b in bus.of("setShortcut") if b[1]]
     assert sum("not taken over" in r.getMessage() for r in caplog.records) == 1
     assert bus.matches  # the new component is listened to
+
+
+# ------------------------------------------------------------ install.sh as a whole
+
+def fake_checkout(h: Home) -> Path:
+    """install.sh and what it reads, in a checkout with a stand-in venv (no pip, no network)."""
+    for rel in ("install/install.sh", "install/migrate-rename.sh", "lichthaus.service",
+                "install/io.github.gelaende51.Lichthaus.desktop", "install/lichthaus-systemsettings.desktop",
+                "install/lichthaus-kcm-env.sh", "requirements.txt"):
+        dest = h.checkout / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes((ROOT / rel).read_bytes())
+    venv = h.checkout / ".venv/bin"
+    venv.mkdir(parents=True)
+    for name in ("python", "pip"):
+        (venv / name).write_text("#!/bin/sh\nexit 0\n")
+        (venv / name).chmod(0o755)
+    return h.checkout / "install/install.sh"
+
+
+def systemctl_calls(h: Home) -> list[str]:
+    return [c.split(" [")[0] for c in h.calls() if c.startswith("systemctl")]
+
+
+def test_install_sh_enables_the_new_service_when_the_old_one_was_enabled(home):
+    h = home
+    h.write(".config/systemd/user/hauslicht.service", "[Service]\nExecStart=/x/hauslicht.py sync\n")
+    install = fake_checkout(h)
+    out = h.run(script=install, STUB_ENABLED="0").stdout
+    calls = systemctl_calls(h)
+    assert calls[:3] == ["systemctl --user is-enabled --quiet hauslicht.service",
+                         "systemctl --user stop hauslicht.service", "systemctl --user disable hauslicht.service"]
+    assert calls[-2:] == ["systemctl --user daemon-reload", "systemctl --user enable --now lichthaus"]
+    assert f"ExecStart={h.checkout}/.venv/bin/python {h.checkout}/lichthaus.py sync" in \
+        (h.units / "lichthaus.service").read_text()  # the new unit was written before
+    assert "enabled and started" in out
+    assert not h.path(".local/state/lichthaus/enable-after-rename").exists()
+    h.run(script=install)  # again: nothing to enable any more
+    assert systemctl_calls(h)[-1] == "systemctl --user daemon-reload"
+
+
+def test_install_sh_leaves_the_new_service_alone_when_the_old_one_was_not_enabled(home):
+    h = home
+    h.write(".config/systemd/user/hauslicht.service", "[Service]\nExecStart=/x/hauslicht.py sync\n")
+    install = fake_checkout(h)
+    out = h.run(script=install, STUB_ENABLED="1").stdout
+    calls = systemctl_calls(h)
+    assert "systemctl --user stop hauslicht.service" in calls
+    assert calls[-1] == "systemctl --user daemon-reload"
+    assert not any("enable" in c and "is-enabled" not in c for c in calls)
+    assert "systemctl --user enable --now lichthaus" in out  # the hint, as on a fresh install
+
+
+def test_install_sh_retries_the_enable_after_a_failed_run(home):
+    h = home
+    h.write(".local/state/lichthaus/enable-after-rename")  # left by a run that failed halfway
+    install = fake_checkout(h)
+    h.run(script=install)
+    assert systemctl_calls(h)[-2:] == ["systemctl --user daemon-reload", "systemctl --user enable --now lichthaus"]
