@@ -119,6 +119,11 @@ if [ -n "$dry" ]; then
     exit 0
 fi
 
+# An install from before the rename to Lichthaus: its service stopped and
+# removed, its files moved or removed (install/migrate-rename.sh); the panel
+# follows once the new widget is there (below)
+sh "$dir/install/migrate-rename.sh" before "$dir"
+
 [ -x "$dir/.venv/bin/python" ] || python3 -m venv "$dir/.venv"
 "$dir/.venv/bin/pip" install -q -r "$dir/requirements.txt"
 if [ -n "$kinds" ]; then
@@ -190,6 +195,8 @@ else
         echo "and run install/install.sh --plasmoid FILE." >&2
     fi
 fi
+# panel widgets of the old id get the new one (install/migrate-rename.sh)
+sh "$dir/install/migrate-rename.sh" panel
 
 # Plasma 6 System Settings: Lichthaus's pages as KCMs, System Settings →
 # Connected Devices (category `hardware`) → Lichthaus → Bulbs, Profiles, Sound, Video,

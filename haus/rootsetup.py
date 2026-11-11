@@ -20,13 +20,14 @@ import shutil
 import sys
 from pathlib import Path
 
-from .common import ROOT
+from .common import HELPER_DIR, OLD_HELPER_DIR, ROOT, helper_dir
 
 SCRIPT = ROOT / "install" / "setup-root.sh"
 VERSION_FILE = ROOT / "install" / "setup-version"
-STAMP = Path("/usr/local/lib/lichthaus/setup-version")
+STAMP = HELPER_DIR / "setup-version"  # or the same name in OLD_HELPER_DIR (common.helper_dir)
 # what a run from before the stamp left behind: such a setup is outdated, not missing
-LEGACY = (Path("/usr/local/lib/lichthaus/conn-update"), Path("/etc/modules-load.d/lichthaus.conf"))
+LEGACY = (OLD_HELPER_DIR / "conn-update",
+          Path("/etc/modules-load.d/haus-licht.conf"))  # rename-lichthaus: keep
 
 
 def required() -> int:
@@ -35,7 +36,7 @@ def required() -> int:
 
 def installed(stamp: Path | None = None) -> int | None:
     try:
-        return int((stamp or STAMP).read_text().strip())
+        return int((stamp or helper_dir() / STAMP.name).read_text().strip())
     except (OSError, ValueError):
         return None
 

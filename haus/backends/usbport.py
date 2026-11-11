@@ -27,7 +27,7 @@ import re
 from pathlib import Path
 
 from . import Backend, NeedsAccess, Offline
-from ..common import UserError
+from ..common import UserError, helper_path
 from ._bulbkit import Presence, tr
 
 log = logging.getLogger("lichthaus")
@@ -187,13 +187,14 @@ class UsbPortBackend(Backend):
 
     async def switch(self, name: str, on: bool) -> None:
         """The root helper: `usb-port-power PORT on|off` via sudo."""
-        if not os.path.exists(HELPER):
+        helper = helper_path(HELPER)
+        if not os.path.exists(helper):
             raise NeedsAccess(tr("Switching USB ports needs the system setup v6 (Grant access…, or: "
                                  "lichthaus setup-root).",
                                  "USB-Ports schalten braucht die Systemeinrichtung v6 (Zugriff erlauben…, "
                                  "oder: lichthaus setup-root)."))
         proc = await asyncio.create_subprocess_exec(
-            *SUDO, HELPER, name, "on" if on else "off", stdin=asyncio.subprocess.DEVNULL,
+            *SUDO, helper, name, "on" if on else "off", stdin=asyncio.subprocess.DEVNULL,
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
         try:
             _out, err = await asyncio.wait_for(proc.communicate(), HELPER_TIMEOUT_S)
@@ -251,7 +252,7 @@ class UsbPortBackend(Backend):
             raise UserError(tr(f"{name} is not a socket (connect_type {port.connect_type or '?'}): never switched",
                                f"{name} ist keine Buchse (connect_type {port.connect_type or '?'}): "
                                "wird nie geschaltet"))
-        if not os.path.exists(HELPER):
+        if not os.path.exists(helper_path(HELPER)):
             raise NeedsAccess(tr("Switching USB ports needs the system setup v6 (Grant access…, or: "
                                  "lichthaus setup-root).",
                                  "USB-Ports schalten braucht die Systemeinrichtung v6 (Zugriff erlauben…, "

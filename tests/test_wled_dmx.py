@@ -277,7 +277,7 @@ def test_sacn_packet_unicast(monkeypatch):
     assert len(p1) == 638
     assert p1[0:2] == b"\x00\x10" and p1[4:16] == b"ASC-E1.17\x00\x00\x00"
     assert p1[18:22] == b"\x00\x00\x00\x04" and p1[22:38] == cid
-    assert p1[40:44] == b"\x00\x00\x00\x02" and p1[44:54] == b"Lichthaus"
+    assert p1[40:44] == b"\x00\x00\x00\x02" and p1[44:54] == b"Lichthaus\x00"
     assert p1[108] == 150 and p1[113:115] == b"\x00\x07"
     assert p2[111] == (p1[111] + 1) & 0xFF and p1[112] == 0  # no stream-terminated bit
     assert p1[117] == 0x02 and p1[123:125] == (513).to_bytes(2, "big") and p1[125] == 0

@@ -111,7 +111,7 @@ import os
 import sys
 import time
 
-from .common import SOCK_PATH, STATE_PATH, TRANSLATION, _, link_lock, read_state
+from .common import SOCK_PATH, STATE_PATH, TRANSLATION, _, link_lock, migrate_state_files, read_state
 from .profiles import FAST_FLICK, FLICK_MODES, LID_EVENTS, MODES, TRACKING, migrate
 
 log = logging.getLogger("lichthaus")
@@ -856,6 +856,10 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(_("range needs both LO and HI, or neither"))
     if args.cmd == "profile" and args.percent != "list" and not args.words:
         parser.error(_("profile {action} needs a NAME").format(action=args.percent))
+    if not os.environ.get("LICHTHAUS_STATE"):
+        # renamed from Haus.Licht: an older install's state file gets the new name (names only, never content)  # rename-lichthaus: keep
+        for old_name, new_name in migrate_state_files():
+            print(f"lichthaus: {old_name} renamed to {new_name}", file=sys.stderr)
 
     if args.cmd == "list":
         return cmd_list()

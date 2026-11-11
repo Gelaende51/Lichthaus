@@ -21,9 +21,80 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))  # provision_and_toggle.py lives there
 
 # LICHTHAUS_STATE / LICHTHAUS_SOCK: a second instance (tests, widget work) beside the live one.
-STATE_PATH = Path(os.environ.get("LICHTHAUS_STATE") or ROOT / "lichthaus.json")
+STATE_NAME = "lichthaus.json"
+STATE_PATH = Path(os.environ.get("LICHTHAUS_STATE") or ROOT / STATE_NAME)
 SOCK_PATH = Path(os.environ.get("LICHTHAUS_SOCK")
                  or Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "lichthaus.sock")
+
+
+# The root helpers (install/setup-root.sh installs them, and its version stamp).
+HELPER_DIR = Path("/usr/local/lib/lichthaus")
+
+# rename-lichthaus: keep-begin
+# Renamed from Haus.Licht (2026-11, dev/rename-lichthaus.md): the names an
+# existing install still has, until the daemon and setup-root.sh have moved it.
+OLD_STATE_NAME = "hauslicht.json"
+OLD_HELPER_DIR = Path("/usr/local/lib/hauslicht")
+# rename-lichthaus: keep-end
+
+
+def helper_dir() -> Path:
+    """Where the root helpers are: the new directory once setup-root.sh has
+    stamped it (setup-version); before that the old one, while it is there.
+    The new name alone is no proof: the older Licht.Haus left a
+    conn-update of its own there, without the stamp. Asked at each use, so
+    a setup run while the daemon runs takes effect at once."""
+    if (HELPER_DIR / "setup-version").exists():
+        return HELPER_DIR
+    return OLD_HELPER_DIR if OLD_HELPER_DIR.is_dir() else HELPER_DIR
+
+
+def helper_path(path: str) -> str:
+    """A helper's path under HELPER_DIR, moved to wherever helper_dir() says;
+    any other path (a test's stand-in) as it is."""
+    p = Path(path)
+    return str(helper_dir() / p.name) if p.parent == HELPER_DIR else path
+
+
+def migrate_state_files(root: Path = ROOT) -> list[tuple[str, str]]:
+    """Give the state files of an install from before the rename their new
+    names: OLD_STATE_NAME, its backups (OLD_STATE_NAME.*) and its armed file
+    become STATE_NAME, STATE_NAME.* and the new armed file. Only when the
+    new state file is missing, each file only to a free name, and by
+    os.replace: never a copy, since the mesh SEQ counter in it must not exist
+    twice. Nothing moves while a process of the old name holds the old lock
+    (it would write the old file again). The files are never read. Returns
+    the (old, new) names that moved."""
+    old_state, new_state = root / OLD_STATE_NAME, root / STATE_NAME
+    if not old_state.exists() or new_state.exists() or new_state.is_symlink():
+        return []
+    old_lock = lock_path(old_state)
+    try:
+        fd = os.open(old_lock, os.O_RDWR)
+    except FileNotFoundError:
+        fd = None
+    try:
+        if fd is not None:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                return []
+        old_armed, new_armed = armed_path(old_state), armed_path(new_state)
+        pairs = [(old_state, new_state), (old_armed, new_armed)]
+        pairs += [(p, root / (STATE_NAME + p.name[len(OLD_STATE_NAME):]))
+                  for p in sorted(root.glob(OLD_STATE_NAME + ".*")) if p != old_armed]
+        moved = []
+        for old, new in pairs:
+            if (old.exists() or old.is_symlink()) and not (new.exists() or new.is_symlink()):
+                os.replace(old, new)
+                moved.append((old.name, new.name))
+        if fd is not None:
+            with contextlib.suppress(OSError):
+                old_lock.unlink()  # nothing of the old name uses it any more
+        return moved
+    finally:
+        if fd is not None:
+            os.close(fd)
 
 
 def lock_path(state_path: Path) -> Path:

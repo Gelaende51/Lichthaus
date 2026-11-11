@@ -31,6 +31,8 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .common import helper_path
+
 log = logging.getLogger("lichthaus")
 
 # H4 packet types
@@ -467,8 +469,8 @@ class Claim:
         return lines[-1] if lines else ""
 
 
-def helper_command(adapter: str, helper: str = HELPER) -> list[str]:
-    return ["sudo", "-n", helper, adapter]
+def helper_command(adapter: str, helper: str | None = None) -> list[str]:
+    return ["sudo", "-n", helper or helper_path(HELPER), adapter]
 
 
 async def claim(adapter: str, command: list[str] | None = None, timeout: float = CLAIM_TIMEOUT_S) -> Claim:
@@ -476,7 +478,7 @@ async def claim(adapter: str, command: list[str] | None = None, timeout: float =
     if not NAME_RE.fullmatch(adapter):
         raise ClaimError(f"not an adapter name: {adapter!r}")
     cmd = command or helper_command(adapter)
-    if command is None and not os.path.exists(HELPER):
+    if command is None and not os.path.exists(helper_path(HELPER)):
         raise ClaimError("the helper is not installed (system setup v4)")
     ours, theirs = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
     try:

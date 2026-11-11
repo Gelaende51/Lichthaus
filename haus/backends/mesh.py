@@ -56,7 +56,7 @@ from types import SimpleNamespace
 
 from . import QUICK_GAP_S, Backend, Offline
 from .. import hci
-from ..common import UserError, _, link_lock, save_state
+from ..common import UserError, _, helper_path, link_lock, save_state
 from ..profiles import FAST_FLICK, LEDVANCE_NAME, mesh_id, migrate
 
 try:  # optional: without btmesh the registry lists mesh as unavailable
@@ -848,11 +848,12 @@ class AdvLink(MeshLink):
 async def shorten_link_timeout(address: str, delay: float = 1.0) -> None:
     """Ask for a 1 s link timeout (the bulb asks ~5 s), so a power cut frees
     the connection at once. Root helper via sudo, installed by setup-root.sh."""
-    if not os.path.exists(CONN_UPDATE_HELPER):
+    helper = helper_path(CONN_UPDATE_HELPER)
+    if not os.path.exists(helper):
         return
     await asyncio.sleep(delay)  # after the bulb's own parameter request
     proc = await asyncio.create_subprocess_exec(
-        "sudo", "-n", CONN_UPDATE_HELPER, address, str(LINK_TIMEOUT_MS),
+        "sudo", "-n", helper, address, str(LINK_TIMEOUT_MS),
         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
     out, _err = await proc.communicate()
     log.info("link timeout: %s", out.decode().strip() or proc.returncode)
@@ -1620,7 +1621,7 @@ class MeshBackend(Backend):
             log.exception("after_connect %s", address)
 
     async def _after_connect(self, address: str) -> None:
-        helper = os.path.exists(CONN_UPDATE_HELPER) and self.radio is None  # no connection to update
+        helper = os.path.exists(helper_path(CONN_UPDATE_HELPER)) and self.radio is None  # no connection to update
         fast = self.fast_flick()
         if not (helper or fast) or self.link is None:
             return

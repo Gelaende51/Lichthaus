@@ -117,6 +117,12 @@ set_conf() {  # section key value
     rm -f "$conf.lichthaus-new"
     bt_changed=1
 }
+# rename-lichthaus: keep-begin
+# Renamed from Haus.Licht: the backup of the original keeps its role under the new name
+if [ -e "$conf.hauslicht-bak" ] && [ ! -e "$conf.lichthaus-bak" ]; then
+    mv "$conf.hauslicht-bak" "$conf.lichthaus-bak"
+fi
+# rename-lichthaus: keep-end
 bt_changed=0
 if [ -e "$conf" ]; then
     set_conf LE ScanIntervalConnect 96
@@ -138,6 +144,27 @@ fi
 
 # A3 (kernel auto-connect) needs nothing here; A2 (the advertising bearer) is
 # flick mode exclusive through hci-claim above: see dev/flick-tuning-notes.md.
+
+# rename-lichthaus: keep-begin
+# Renamed from Haus.Licht (dev/rename-lichthaus.md): what a setup under the
+# old name installed. The daemon uses the old helpers only until the new
+# directory has its setup-version (below).
+removed=""
+for f in /etc/modules-load.d/haus-licht.conf /etc/udev/rules.d/70-haus-licht.rules \
+        /etc/udev/rules.d/70-haus-licht-devices.rules /etc/sudoers.d/hauslicht \
+        /usr/local/lib/hauslicht/conn-update /usr/local/lib/hauslicht/hci-claim \
+        /usr/local/lib/hauslicht/usb-port-power /usr/local/lib/hauslicht/setup-version; do
+    if [ -e "$f" ]; then
+        rm -f "$f"
+        removed="$removed $f"
+    fi
+done
+rmdir /usr/local/lib/hauslicht 2>/dev/null || true
+if [ -n "$removed" ]; then
+    udevadm control --reload
+    echo "removed what the setup had installed under the old name Haus.Licht:$removed"
+fi
+# rename-lichthaus: keep-end
 
 install -d -o root -g root -m 0755 /usr/local/lib/lichthaus
 echo "$version" > /usr/local/lib/lichthaus/setup-version.new
