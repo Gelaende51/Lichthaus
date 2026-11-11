@@ -347,3 +347,98 @@ def test_install_sh_runs_the_migration_around_the_new_install():
     before = script.index('migrate-rename.sh" before "$dir"')
     assert script.index('exit 0\nfi', 0) < before < script.index('python3 -m venv')  # never in --dry-run
     assert script.index("fetch_widget \"$tmp\"); then") < script.index('migrate-rename.sh" panel')
+
+
+# ------------------------------------------------------------ KDE global shortcuts
+
+from haus import kde  # noqa: E402
+from test_core import mock_state, run  # noqa: E402
+from test_kde import FakeBus  # noqa: E402
+
+TOGGLE_KEYS = [0x0C000054]  # Meta+Ctrl+T, as kglobalaccel reports it
+
+
+class OldComponentBus(FakeBus):
+    """kglobalaccel still knowing the component of the old name."""
+
+    def __init__(self, fail=None):
+        super().__init__()
+        self.fail = fail
+        self.old = {"toggle": TOGGLE_KEYS, "select-2": [0, 0x01000031], "remote-up": [], "gone-action": [0x41]}
+
+    async def call(self, dest, path, iface, member, signature="", body=None):
+        if member == self.fail:
+            self.calls.append((member, body))
+            raise RuntimeError(f"{member}: org.kde.kglobalaccel.NoSuchComponent")
+        if member == "allMainComponents":
+            self.calls.append((member, body))
+            return [[["kwin", "KWin"], ["hauslicht", "Haus.Licht"]]]
+        if member == "allActionsForComponent":
+            self.calls.append((member, body))
+            return [[["hauslicht", a, "Haus.Licht", a] for a in self.old]]
+        if member == "shortcut":
+            self.calls.append((member, body))
+            return [self.old[body[0][1]]]
+        if member == "unregister":
+            self.calls.append((member, body))
+            return [True]
+        if member == "getComponent" and body == ["hauslicht"]:
+            self.calls.append((member, body))
+            return ["/component/hauslicht"]
+        return await super().call(dest, path, iface, member, signature, body)
+
+
+def start_kde(tmp_path, bus):
+    async def body(d):
+        k = kde.Kde(d, panel=False, bus=bus)
+        await k.start()
+        return k
+    return run(tmp_path, mock_state(mock_1={}), body)
+
+
+def test_keys_of_the_old_component_move_to_the_new_one(tmp_path):
+    bus = OldComponentBus()
+    start_kde(tmp_path, bus)
+    members = [m for m, _b in bus.calls]
+    assert sorted(b[1] for b in bus.of("unregister")) == ["gone-action", "remote-up", "select-2", "toggle"]
+    assert all(b[0] == "hauslicht" for b in bus.of("unregister"))
+    last_unregister = max(i for i, m in enumerate(members) if m == "unregister")
+    assert last_unregister < members.index("doRegister")  # the keys are free before the new actions take them
+    assert "cleanUp" in members
+    forced = [b for b in bus.of("setShortcut") if b[1]]
+    assert forced == [
+        [["lichthaus", "select-2", "Lichthaus", kde.friendly("Select bulb 2")], [0x01000031],
+         kde.SET_PRESENT | kde.NO_AUTOLOADING],
+        [["lichthaus", "toggle", "Lichthaus", kde.friendly("Switch on/off")], TOGGLE_KEYS,
+         kde.SET_PRESENT | kde.NO_AUTOLOADING]]
+    for b in forced:  # each after its own action's registration with empty keys
+        i = bus.calls.index(("setShortcut", b))
+        assert bus.calls[i - 1] == ("setShortcut", [b[0], [], kde.SET_PRESENT])
+    assert not any(b[0][1] == "gone-action" for b in bus.of("doRegister"))
+    assert len(bus.of("doRegister")) == len(kde.ACTIONS)
+
+
+def test_no_old_component_no_migration(tmp_path):
+    bus = OldComponentBus()
+    original = bus.call
+
+    async def call(dest, path, iface, member, signature="", body=None):
+        if member == "allMainComponents":
+            bus.calls.append((member, body))
+            return [[["kwin", "KWin"]]]
+        return await original(dest, path, iface, member, signature, body)
+    bus.call = call
+    start_kde(tmp_path, bus)
+    members = [m for m, _b in bus.calls]
+    assert "allActionsForComponent" not in members and "unregister" not in members
+    assert {b[2] for b in bus.of("setShortcut")} == {kde.IS_DEFAULT, kde.SET_PRESENT}
+
+
+def test_a_failing_migration_logs_and_registers_anyway(tmp_path, caplog):
+    bus = OldComponentBus(fail="allActionsForComponent")
+    with caplog.at_level("INFO", logger="lichthaus"):
+        start_kde(tmp_path, bus)
+    assert len(bus.of("doRegister")) == len(kde.ACTIONS)
+    assert not [b for b in bus.of("setShortcut") if b[1]]
+    assert sum("not taken over" in r.getMessage() for r in caplog.records) == 1
+    assert bus.matches  # the new component is listened to
