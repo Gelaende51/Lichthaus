@@ -219,6 +219,9 @@ systemctl --user enable --now hauslicht
 - Clap to toggle and Follow audio: `.venv/bin/pip install -r
   requirements-clap.txt` (numpy, ai-edge-litert; the 4 MB sound model is
   fetched on first clap use). Both record with `pw-record` or `parec`.
+  ai-edge-litert ships prebuilt wheels only, so far up to Python 3.14; on a
+  newer Python (Fedora's 3.15) create the venv with 3.14 before `install.sh`:
+  `sudo dnf install python3.14 && python3.14 -m venv .venv`.
 - Follow video: GStreamer with its PipeWire plugin (`gst-launch-1.0`,
   `pipewiresrc`) and xdg-desktop-portal.
 - Tests: `pip install -r requirements-dev.txt` (see the note on amqtt there);

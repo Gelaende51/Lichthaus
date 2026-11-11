@@ -243,6 +243,9 @@ systemctl --user enable --now hauslicht
   requirements-clap.txt` (numpy, ai-edge-litert; das 4-MB-Klangmodell wird
   beim ersten Klatschen geladen). Beide nehmen mit `pw-record` oder `parec`
   auf.
+  ai-edge-litert gibt es nur als fertige Wheels, bisher bis Python 3.14; mit
+  einer neueren Version (Fedoras 3.15) vor `install.sh` das venv mit 3.14
+  anlegen: `sudo dnf install python3.14 && python3.14 -m venv .venv`.
 - Video folgen: GStreamer mit seinem PipeWire-Plugin (`gst-launch-1.0`,
   `pipewiresrc`) und xdg-desktop-portal.
 - Tests: `pip install -r requirements-dev.txt` (siehe dort den Hinweis zu

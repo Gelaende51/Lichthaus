@@ -83,7 +83,10 @@ jobs:
           "$HOME/.local/bin/hauslicht" --help > /dev/null
       - name: Test requirements
         run: |
-          .venv/bin/pip install -r requirements-dev.txt -r requirements-clap.txt
+          .venv/bin/pip install -r requirements-dev.txt
+          # ai-edge-litert (the clap extra's model runtime) ships wheels only,
+          # none yet for Fedora's Python 3.15 (2026-11): numpy alone then
+          .venv/bin/pip install -r requirements-clap.txt || .venv/bin/pip install numpy
           .venv/bin/pip install --no-deps amqtt==0.12.1
       - name: pytest
         run: .venv/bin/python -m pytest -q -rs
