@@ -52,7 +52,9 @@ jobs:
               apt-get update -q
               apt-get install -y -q python3 python3-venv python3-pip bluez ca-certificates ;;
             *fedora*)
-              dnf install -y python3 python3-pip bluez ;;
+              # Python 3.15 there (2026-11): no hidapi wheel yet (USB busylight
+              # backend), pip builds it, which needs a compiler and these headers
+              dnf install -y python3 python3-pip bluez gcc python3-devel libusb1-devel systemd-devel ;;
             *arch*)
               pacman -Syu --noconfirm --needed python python-pip bluez ;;
             *suse*)

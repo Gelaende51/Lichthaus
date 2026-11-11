@@ -208,6 +208,9 @@ systemctl --user enable --now hauslicht
 
 - `install/install.sh --dry-run …` prints what would be installed;
   `hauslicht backends --requires KIND` lists a kind's pip packages.
+- USB status lights need hidapi; where pip has no wheel for your Python
+  (Fedora's 3.15 in November 2026) it compiles it: install a compiler and the
+  headers first, e.g. `sudo dnf install gcc python3-devel libusb1-devel systemd-devel`.
 - The tray widget comes from the latest release of
   [Haus.Licht-plasma](https://github.com/Gelaende51/Haus.Licht-plasma/releases) (checked against its SHA-256).
   Offline, the rest installs and a note says how to add the widget later;
